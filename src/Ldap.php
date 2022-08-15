@@ -1,20 +1,20 @@
 <?php
 
 class Ldap
-{   
+{
 
   private $ldap_host;
   private $ldap_admin;
-  private $ldap_pwd;  
-  
-  public function __construct(string $ldap_host, string $ldap_admin, string $ldap_pwd)
+  private $ldap_pwd;
+
+  public function __construct (string $ldap_host, string $ldap_admin, string $ldap_pwd)
   {
     $this->ldap_host  = $ldap_host;
     $this->ldap_admin = $ldap_admin;
-    $this->ldap_pwd   = $ldap_pwd; 
+    $this->ldap_pwd   = $ldap_pwd;
   }
 
-  //return type can be ldap\connection 
+  //return type can be ldap\connection
   static private function getConnection ()
   {
     $ds = ldap_connect('ldap://'.self::$ldap_host)

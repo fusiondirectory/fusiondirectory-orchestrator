@@ -11,20 +11,19 @@ $parts = explode("/", $path);
 // We only need the name of the ressource
 $resource = $parts[2];
 
-// And the ID of that ressource. Ex: http://orchestrator/api/task(2)/id(3)/ 
-$id = $parts[3] ?? null;
+// And the ID of that ressource. Ex: http://orchestrator/api/task(2)/id(3)/
+$id = $parts[3] ?? NULL;
 
 // Only focus on delivering a task ressource for now.
-if($resource != "tasks") 
-{
-    
+if ($resource != "tasks") {
+
     http_response_code(404);
     exit;
 }
 
 // Retrieve an authenticated ldap connection
 $ldap_connect = new Ldap($_ENV["LDAP_HOST"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
-                         
+
 // Retrieve all user info based on API_key / ID / Username
 $user_gateway = new UserGateway($ldap_connect);
 
@@ -34,7 +33,7 @@ $codec = new JWTCodec($_ENV["SECRET_KEY"]);
 // Verify User With Related Token Access
 $auth = new Auth($user_gateway, $codec);
 
-// Quit script execution if access token is invalid or expired 
+// Quit script execution if access token is invalid or expired
 if (!$auth->authenticateAccessToken()) {
     exit;
 }
