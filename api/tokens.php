@@ -1,5 +1,8 @@
 <?php
 
+// Note sub equals to Subject defined by IANA standard of JWT.
+// Such as exp equals expiry time (int)
+// https://www.iana.org/assignments/jwt/jwt.xhtml
 $payload = [
   "sub" => $user["id"],
   "name" => $user["name"],

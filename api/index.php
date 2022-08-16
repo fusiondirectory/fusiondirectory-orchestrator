@@ -11,7 +11,7 @@ $parts = explode("/", $path);
 // We only need the name of the ressource
 $resource = $parts[3];
 
-// And the ID of that ressource. Ex: http://orchestrator/api/task(2)/id(3)/
+// And the ID of that ressource. Ex: http://orchestrator/api/task(3)/id(4)/
 $id = $parts[4] ?? NULL;
 
 // Only focus on delivering a task ressource for now.
