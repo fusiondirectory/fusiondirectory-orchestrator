@@ -3,7 +3,7 @@
 class TaskController
 {
   private TaskGateway $gateway;
-    // user_id might become obsolete as FD->Orchestrator->Integrator might always be the same user.
+  // user_id might become obsolete as FD->Orchestrator->Integrator might always be the same user.
   private int $user_id;
 
   public function __construct (TaskGateway $gateway, int $user_id)
@@ -16,16 +16,16 @@ class TaskController
     if ($id === NULL) {
       if ($method == "GET") {
 
-            echo json_encode($this->gateway->getTask($this->user_id));
-
+        echo json_encode($this->gateway->getTask($this->user_id));
       } elseif ($method == "POST") {
 
-          $data = (array) json_decode(file_get_contents("php://input"), TRUE);
+        $data = (array) json_decode(file_get_contents("php://input"), TRUE);
 
-          $id = $this->gateway->createTask($this->user_id, $data);
-          $this->respondCreated($id);
+        $id = $this->gateway->createTask($this->user_id, $data);
+        $this->respondCreated($id);
 
       } else {
+
         $this->respondMethodNotAllowed("GET, POST");
       }
     } else {

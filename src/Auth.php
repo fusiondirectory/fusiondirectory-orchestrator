@@ -51,7 +51,7 @@ class Auth
     }
 
     try {
-        $data = $this->codec->decode($matches[1]);
+      $data = $this->codec->decode($matches[1]);
 
     } catch (InvalidSignatureException $e) {
 
@@ -75,9 +75,9 @@ class Auth
         return FALSE;
     }
 
-      $this->user_id = $data["sub"];
+    $this->user_id = $data["sub"];
 
-      return TRUE;
+    return TRUE;
   }
 }
 

@@ -4,15 +4,15 @@ class UserGateway
 {
     private $conn;
 
-    // Passed variable can be typed Ldap
+  // Passed variable can be typed Ldap
   public function __construct ($ldap_connect)
   {
-      $this->conn = $ldap_connect->getConnection();
+    $this->conn = $ldap_connect->getConnection();
   }
 
   public function getByAPIKey (string $key): array | FALSE
   {
-     // return all from user where api key = api key
+    // return all from user where api key = api key
   }
 
   public function getByUsername (string $username): array | FALSE

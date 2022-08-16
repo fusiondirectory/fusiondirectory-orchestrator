@@ -6,13 +6,13 @@ class TaskGateway
 {
     private $conn;
 
-    // Variable type can be LDAP
+  // Variable type can be LDAP
   public function __construct ($ldap_connect)
   {
       $this->conn = $ldap_connect->getConnection();
   }
 
-    // Return the task specified by ID for specific user ID
+  // Return the task specified by ID for specific user ID
   public function getTask (int $user_id, string $id): array | FALSE
   {
     // Will Trigger Integrator And Return List Of Tasks

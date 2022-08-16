@@ -53,9 +53,9 @@ $user = $user_gateway->getByID($user_id);
 
 if ($user === FALSE) {
 
-    http_response_code(401);
-    echo json_encode(["message" => "invalid authentication"]);
-    exit;
+  http_response_code(401);
+  echo json_encode(["message" => "invalid authentication"]);
+  exit;
 }
 
 require __DIR__ . "/tokens.php";

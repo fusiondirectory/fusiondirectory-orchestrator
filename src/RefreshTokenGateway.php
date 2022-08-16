@@ -12,8 +12,8 @@ class RefreshTokenGateway
   // Ldap_connect could be typed Ldap
   public function __construct ($ldap_connect, string $key)
   {
-      $this->conn = $ldap_connect->getConnection();
-      $this->key = $key;
+    $this->conn = $ldap_connect->getConnection();
+    $this->key = $key;
   }
 
   public function create (string $token, int $expiry): bool
