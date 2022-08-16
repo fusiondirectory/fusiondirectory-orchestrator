@@ -4,7 +4,7 @@ class Auth
 {
   private int $user_id;
   private UserGateway $user_gateway;
-  private JWTCode $codec;
+  private JWTCodec $codec;
 
   public function __construct (UserGateway $user_gateway, JWTCodec $codec)
   {

@@ -15,15 +15,15 @@ class Ldap
   }
 
   //return type can be ldap\connection
-  static private function getConnection ()
+  static public function getConnection ()
   {
-    $ds = ldap_connect('ldap://'.self::$ldap_host)
-          or die("Could no connect to ".self::$ldap_host);
+    $ds = ldap_connect('ldap://'.$_ENV["LDAP_HOST"])
+          or die("Could no connect to ".$_ENV["LDAP_HOST"]);
 
     // Set ldap version
     ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3);
 
-    $ldapbind = ldap_bind($ds, self::$ldap_admin, self::$ldap_pwd);
+    $ldapbind = ldap_bind($ds, $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
 
     if (!$ldapbind) {
       echo "Fail connection to ldap in admin";
@@ -31,7 +31,7 @@ class Ldap
     }
 
     // Important to keep in mind that this return an opened connection which
-    // requires closing after uses.
+    // requires closing after use. !Not Yet Integrated - 16/08/22!
     return $ldapbind;
   }
 }

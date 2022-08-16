@@ -2,11 +2,11 @@
 
 class JWTCodec
 {
-  private string key;
+  private string $key;
 
   public function __construct (string $key)
   {
-    $this->key = $key
+    $this->key = $key;
   }
 
   public function encode (array $payload): string
