@@ -31,8 +31,9 @@ class Ldap
     }
 
     // Important to keep in mind that this return an opened connection which
-    // requires closing after use. !Not Yet Integrated - 16/08/22!
-    return $ldapbind;
+    // requires closing after use. 
+    
+    return $ds;
   }
 }
 

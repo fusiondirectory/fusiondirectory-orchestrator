@@ -25,6 +25,8 @@ class RefreshTokenGateway
             VALUES (:token_hash, :expires_at)";
 
     // return ldap_errors
+    // for test :
+    return TRUE;
   }
 
   public function delete (string $token): int
@@ -36,9 +38,12 @@ class RefreshTokenGateway
             WHERE token_hash = :token_hash";
 
     // return ldap_errors
+    // Always return 1 for test
+    return 1;
   }
 
-  public function getByToken (string $token): array | FALSE
+  //Refresh token is stored in DB. PHP 8.0 returns the token or false it not existent.
+  public function getByToken (string $token): bool
   {
     $hash = hash_hmac("sha256", $token, $this->key);
 
@@ -48,6 +53,8 @@ class RefreshTokenGateway
             WHERE token_hash = :token_hash";
 
     // return ldap attributes values
+    // Test purposes
+    return TRUE;
   }
 
   public function deleteExpired (): int
@@ -57,6 +64,8 @@ class RefreshTokenGateway
             WHERE expires_at < UNIX_TIMESTAMP()";
 
     // return ldap errors
+    // testing purposes
+    return 1;
   }
 }
 

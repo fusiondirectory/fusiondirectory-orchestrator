@@ -13,9 +13,10 @@ class TaskGateway
   }
 
   // Return the task specified by ID for specific user ID
-  public function getTask (int $user_id, string $id): array | FALSE
+  public function getTask (int $user_id, string $id): bool
   {
     // Will Trigger Integrator And Return List Of Tasks
+    return TRUE;
   }
 
   public function createTask (int $user_id, array $data): string

@@ -9,6 +9,7 @@ class TaskController
   public function __construct (TaskGateway $gateway, int $user_id)
   {
     $this->user_id = $user_id;
+    $this->gateway = $gateway;
   }
 
   public function processRequest (string $method, ?string $id): void
@@ -17,6 +18,8 @@ class TaskController
       if ($method == "GET") {
 
         echo json_encode($this->gateway->getTask($this->user_id));
+        echo "Within GET without ID" .PHP_EOL;
+
       } elseif ($method == "POST") {
 
         $data = (array) json_decode(file_get_contents("php://input"), TRUE);
@@ -39,7 +42,8 @@ class TaskController
 
       switch ($method) {
         case "GET":
-          echo json_encode($task);
+          echo json_encode($task) .PHP_EOL;
+          echo "Process Request with ID and Method GET" .PHP_EOL;
           break;
 
         case "PATCH":
