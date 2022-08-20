@@ -31,8 +31,8 @@ class Ldap
     }
 
     // Important to keep in mind that this return an opened connection which
-    // requires closing after use. 
-    
+    // requires closing after use.
+
     return $ds;
   }
 }

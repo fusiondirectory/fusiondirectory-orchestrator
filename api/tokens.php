@@ -4,7 +4,7 @@
 // Such as exp equals expiry time (int)
 // https://www.iana.org/assignments/jwt/jwt.xhtml
 //$payload = [
-//  "" => $user["id"],
+//  "sub" => $user["id"],
 //  "name" => $user["name"],
 //  "exp" => time() + 300
 //];
@@ -21,7 +21,7 @@ $access_token = $codec->encode($payload);
 $refresh_token_expiry = time() + 432000;
 
 //$refresh_token = $codec->encode([
-//  "" => $user["id"],
+//  "sub" => $user["id"],
 //  "exp" => $refresh_token_expiry
 //]);
 

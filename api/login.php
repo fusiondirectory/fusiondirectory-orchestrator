@@ -26,20 +26,19 @@ $user_gateway = new UserGateway($ldap_connect);
 
 $user = $user_gateway->getByUsername($data["username"]);
 
-if ($user === FALSE) {
+if ($user == NULL) {
 
   http_response_code(401);
   echo json_encode(["message" => "invalid authentication"]);
   exit;
 }
 
-// user variable can contains array or bool in php 8.0
-//if (!password_verify($data["password"], $user["password_hash"])) {
-//
-//  http_response_code(401);
-//  echo json_encode(["message" => "invalid authentication"]);
-//  exit;
-//}
+if (!$user_gateway->check_password($data["password"], $user["password_hash"])) {
+
+  http_response_code(401);
+  echo json_encode(["message" => "invalid authentication"]);
+  exit;
+}
 
 $codec = new JWTCodec($_ENV["SECRET_KEY"]);
 
