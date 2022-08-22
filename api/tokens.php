@@ -6,6 +6,7 @@
 
 $payload = [
   "sub" => $user["uid"],
+  "name" => $user["cn"],
   "exp" => time() + 300
 ];
 

@@ -13,23 +13,23 @@ class TaskGateway
   }
 
   // Return the task specified by ID for specific user ID
-  public function getTask (int $user_id, string $id): bool
+  public function getTask (string $user_uid, string $id): bool
   {
     // Will Trigger Integrator And Return List Of Tasks
     return TRUE;
   }
 
-  public function createTask (int $user_id, array $data): string
+  public function createTask (string $user_uid, array $data): string
   {
     // Will Trigger Integrator And Return Last Created LDAP Entry
   }
 
-  public function updateTask (int $user_id, string $id, array $data): int
+  public function updateTask (string $user_uid, string $id, array $data): int
   {
     // Will Trigger Integrator And Update Specific Task
   }
 
-  public function deleteTask (int $user_id, string $id): int
+  public function deleteTask (string $user_uid, string $id): int
   {
     // Will Trigger Integrator And Delete Specific Task
     // Archiving the Task And Set Proper Status

@@ -2,7 +2,7 @@
 
 class Auth
 {
-  private int $user_id;
+  private string $user_id;
   private UserGateway $user_gateway;
   private JWTCodec $codec;
 
@@ -12,7 +12,7 @@ class Auth
     $this->codec        = $codec;
   }
 
-  public function getUserID (): int
+  public function getUserID (): string
   {
       return $this->user_id;
   }

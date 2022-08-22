@@ -24,7 +24,7 @@ if ($resource != "tasks") {
 // Retrieve an authenticated ldap connection
 $ldap_connect = new Ldap($_ENV["LDAP_HOST"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
 
-// Retrieve all user info based on API_key / ID / Username
+// Retrieve all user info based based on uid or username
 $user_gateway = new UserGateway($ldap_connect);
 
 // Encode &  Decode +  b64 tokens
@@ -39,10 +39,10 @@ if (!$auth->authenticateAccessToken()) {
 }
 
 // To Get All Info Based On User ID.
-$user_id = $auth->getUserID();
+$user_uid = $auth->getUserID();
 
 $task_gateway = new TaskGateway($ldap_connect);
-$controller = new TaskController($task_gateway, $user_id);
+$controller = new TaskController($task_gateway, $user_uid);
 
 // Process Resquest Passing Ressources Attributes Values ($id)
 $controller->processRequest($_SERVER['REQUEST_METHOD'], $id);

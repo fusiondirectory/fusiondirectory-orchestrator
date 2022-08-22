@@ -30,9 +30,6 @@ class Ldap
       exit;
     }
 
-    // Important to keep in mind that this return an opened connection which
-    // requires closing after use.
-
     return $ds;
   }
 }

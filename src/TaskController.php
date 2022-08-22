@@ -3,12 +3,11 @@
 class TaskController
 {
   private TaskGateway $gateway;
-  // user_id might become obsolete as FD->Orchestrator->Integrator might always be the same user.
-  private int $user_id;
+  private string $user_uid;
 
-  public function __construct (TaskGateway $gateway, int $user_id)
+  public function __construct (TaskGateway $gateway, string $user_uid)
   {
-    $this->user_id = $user_id;
+    $this->user_uid = $user_uid;
     $this->gateway = $gateway;
   }
 
@@ -17,14 +16,14 @@ class TaskController
     if ($id === NULL) {
       if ($method == "GET") {
 
-        echo json_encode($this->gateway->getTask($this->user_id));
+        echo json_encode($this->gateway->getTask($this->user_uid));
         echo "Within GET without ID" .PHP_EOL;
 
       } elseif ($method == "POST") {
 
         $data = (array) json_decode(file_get_contents("php://input"), TRUE);
 
-        $id = $this->gateway->createTask($this->user_id, $data);
+        $id = $this->gateway->createTask($this->user_uid, $data);
         $this->respondCreated($id);
 
       } else {
@@ -33,7 +32,7 @@ class TaskController
       }
     } else {
 
-      $task = $this->gateway->getTask($this->user_id, $id);
+      $task = $this->gateway->getTask($this->user_uid, $id);
       if ($task === FALSE) {
 
         $this->respondNotFound($id);
@@ -48,12 +47,12 @@ class TaskController
 
         case "PATCH":
           $data = (array) json_decode(file_get_contents("php://input"), TRUE);
-          $rows = $this->gateway->updateTask($this->user_id, $id, $data);
+          $rows = $this->gateway->updateTask($this->user_uid, $id, $data);
           echo json_encode(["message" => "Task updated", "rows" => $rows]);
           break;
 
         case "DELETE":
-          $rows = $this->gateway->deleteTask($this->user_id, $id);
+          $rows = $this->gateway->deleteTask($this->user_uid, $id);
           echo json_encode(["message" => "Task deleted", "rows" => $rows]);
           break;
 
