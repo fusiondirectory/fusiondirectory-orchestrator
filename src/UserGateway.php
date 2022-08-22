@@ -32,9 +32,10 @@ class UserGateway
 
     if (is_array($info) && $info["count"] >= 1 ) {
 
-      $user_password  = $info[0]['userpassword'][0];
-
-      $info['password_hash'] = $user_password;
+      // Format array for easier use aftewards and removes uid by substring
+      $info['uid'] = $info[0]['uid'][0];
+      $info['cn'] = "cn=".substr($info[0]['dn'], 4);
+      $info['password_hash'] =  $info[0]['userpassword'][0];
 
       return $info;
     }
@@ -44,43 +45,51 @@ class UserGateway
 
   // Is used by the refresh token endpoint as ID is recovered from the refresh token
   // Allowing verification if the user has still proper priveleges.
-  public function getByID (int $id): array
+  public function getByID (string $uid): array
   {
-    // Select all from user where id = id
-    // Always return TRUE for testing
-    return TRUE;
+    /* This ID was taken from the token payload passed during refresh.
+    * Select all from user where uid = uid
+    * A default empty array used as default in case no user is found
+    */
+    $empty_array = [];
+    $filter = "(|(uid=$uid*))";
+    $attrs = ["uid"];
+
+    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_USER"], $filter, $attrs);
+    $info = ldap_get_entries($this->ds, $sr);
+    $info['uid'] = $info[0]['uid'][0];
+    $info['cn'] = "cn=".substr($info[0]['dn'], 4);
+    
+    ldap_unbind($this->ds);
+
+    if (is_array($info) && $info["count"] >= 1 ) {
+
+      return $info;
+    }
+
+    return $empty_array;
   }
 
-
-  //Inspired by https://blog.michael.kuron-germany.de/2012/07/hashing-and-verifying-ldap-passwords-in-php/comment-page-1/
-  // To be modified in switch mode.
+  // Inspired by https://blog.michael.kuron-germany.de/2012/07/hashing-and-verifying-ldap-passwords-in-php/comment-page-1/
+  // Can be made in switch mode. Only MD5 SHA SSHA and clear text are managed for now.
   public function check_password ($password, $hash)
   {
     if ($hash == '') { //No Password
       return FALSE;
     }
 
-    if ($hash{0} != '{') { //Plain Text
-      if ($password == $hash) {
-
-        return TRUE;
-      } else {
-        return FALSE;
-      }
+    if ($hash[0] != '{') { //Plain Text
+      return $password == $hash ? TRUE : FALSE;
     }
 
+    // Crypt requires better implementation - not working as sub hash are required.
     if (substr($hash, 0, 7) == '{crypt}') {
-      if (crypt($password, substr($hash, 7)) == substr($hash, 7)) {
 
-        return TRUE;
-      } else {
-
-        return FALSE;
-      }
+      return crypt($password, substr($hash, 7)) == substr($hash, 7) ? TRUE : FALSE;
     } elseif (substr($hash, 0, 5) == '{MD5}') {
 
       $encrypted_password = '{MD5}' .base64_encode(md5($password, TRUE));
-    } elseif (substr($hash, 0, 6) == '{SHA1}') {
+    } elseif (substr($hash, 0, 5) == '{SHA}') {
 
       $encrypted_password = '{SHA}' . base64_encode(sha1($password, TRUE ));
     } elseif (substr($hash, 0, 6) == '{SSHA}') {
@@ -89,7 +98,7 @@ class UserGateway
       $encrypted_password = '{SSHA}' . base64_encode(sha1( $password.$salt, TRUE ). $salt);
     } else {
 
-      echo "Unsupported password hash format";
+      echo "Unsupported password hash format" .PHP_EOL;
       return FALSE;
     }
 

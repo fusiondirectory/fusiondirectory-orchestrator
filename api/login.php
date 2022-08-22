@@ -25,7 +25,6 @@ $ldap_connect = new Ldap($_ENV["LDAP_HOST"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PW
 $user_gateway = new UserGateway($ldap_connect);
 
 $user = $user_gateway->getByUsername($data["username"]);
-
 if ($user == NULL) {
 
   http_response_code(401);
@@ -44,7 +43,7 @@ $codec = new JWTCodec($_ENV["SECRET_KEY"]);
 
 require __DIR__ . "/tokens.php";
 
-$refresh_token_gateway = new RefreshTokenGateway($ldap_connect, $_ENV["SECRET_KEY"]);
+$refresh_token_gateway = new RefreshTokenGateway($ldap_connect, $_ENV["SECRET_KEY"], $user);
 
 $refresh_token_gateway->create($refresh_token, $refresh_token_expiry);
 
