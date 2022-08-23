@@ -17,7 +17,6 @@ class TaskController
       if ($method == "GET") {
 
         echo json_encode($this->gateway->getTask($this->user_uid));
-        echo "Within GET without ID" .PHP_EOL;
 
       } elseif ($method == "POST") {
 
@@ -42,7 +41,6 @@ class TaskController
       switch ($method) {
         case "GET":
           echo json_encode($task) .PHP_EOL;
-          echo "Process Request with ID and Method GET" .PHP_EOL;
           break;
 
         case "PATCH":
