@@ -35,7 +35,7 @@ class UserGateway
       // Format array for easier use aftewards and removes uid by substring
       $info['uid'] = $info[0]['uid'][0];
       $info['cn'] = "cn=".substr($info[0]['dn'], 4);
-      $info['password_hash'] =  $info[0]['userpassword'][0];
+      $info['password_hash'] = $info[0]['userpassword'][0];
 
       return $info;
     }
@@ -59,7 +59,7 @@ class UserGateway
     $info = ldap_get_entries($this->ds, $sr);
     $info['uid'] = $info[0]['uid'][0];
     $info['cn'] = "cn=".substr($info[0]['dn'], 4);
-    
+
     ldap_unbind($this->ds);
 
     if (is_array($info) && $info["count"] >= 1 ) {

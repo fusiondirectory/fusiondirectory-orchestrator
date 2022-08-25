@@ -14,9 +14,25 @@ $resource = $parts[3];
 // And the ID of that ressource. Ex: http://orchestrator/api/task(3)/id(4)/
 $id = $parts[4] ?? NULL;
 
-// Only focus on delivering a task ressource for now.
-if ($resource != "tasks") {
+switch ($resource) {
 
+  case "login" :
+    require __DIR__ . "/loginEndPoint.php";
+    exit;
+
+  case "refresh" :
+    require __DIR__ . "/refreshEndPoint.php";
+    exit;
+
+  case "tasks" :
+    // Continue below script -> can be a specific separate endpoint as well.
+    break;
+
+  case "logout" :
+    require __DIR__ . "/logoutEndPoint.php";
+    exit;
+
+  default :
     http_response_code(404);
     exit;
 }
@@ -46,12 +62,3 @@ $controller = new TaskController($task_gateway, $user_uid);
 
 // Process Resquest Passing Ressources Attributes Values ($id)
 $controller->processRequest($_SERVER['REQUEST_METHOD'], $id);
-
-
-
-
-
-
-
-
-

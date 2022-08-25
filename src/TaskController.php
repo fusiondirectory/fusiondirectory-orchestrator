@@ -8,7 +8,7 @@ class TaskController
   public function __construct (TaskGateway $gateway, string $user_uid)
   {
     $this->user_uid = $user_uid;
-    $this->gateway = $gateway;
+    $this->gateway  = $gateway;
   }
 
   public function processRequest (string $method, ?string $id): void

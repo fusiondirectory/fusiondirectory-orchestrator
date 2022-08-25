@@ -8,10 +8,10 @@ class RefreshTokenGateway
 {
   private $ds;
   private string $key;
-  private array $user;
+  private ?array $user;
 
   // Ldap_connect could be typed Ldap
-  public function __construct ($ldap_connect, string $key, array $user)
+  public function __construct ($ldap_connect, string $key, array $user = NULL)
   {
     $this->ds = $ldap_connect->getConnection();
     $this->key = $key;
@@ -23,17 +23,17 @@ class RefreshTokenGateway
     $hash = hash_hmac("sha256", $token, $this->key);
 
     // prepare data
-    $ldap_entry["cn"] = $this->user["cn"];
-    $ldap_entry["fdRefreshToken"] = $hash;
+    $ldap_entry["cn"]                   = $this->user["cn"];
+    $ldap_entry["fdRefreshToken"]       = $hash;
     $ldap_entry["fdRefreshTokenExpiry"] = $expiry;
-    $ldap_entry["objectclass"] = "fdJWT";
+    $ldap_entry["objectclass"]          = "fdJWT";
 
     // Add data to LDAP
     try {
-      
+
       $result = ldap_add($this->ds, $this->user["cn"], $ldap_entry);
     } catch (Exception $e) {
-      
+
       try {
 
         // ObjectClass and CN cannot be modified
@@ -45,16 +45,16 @@ class RefreshTokenGateway
           echo "Message : " .$e.PHP_EOL;
       }
     }
-    
+
     ldap_unbind($this->ds);
-    
+
     return $result;
   }
 
   public function delete (string $token): bool
   {
     $hash = hash_hmac("sha256", $token, $this->key);
-    
+
     $filter = "(|(fdRefreshToken=$hash*))";
     $attrs = ["fdRefreshToken"];
 
@@ -63,8 +63,8 @@ class RefreshTokenGateway
 
     // Delete Hash from LDAP by passing empty array.
     try {
-      
-      $result = ldap_mod_del($this->ds, $info[0]["dn"], array("fdRefreshToken" => array()));
+
+      $result = ldap_mod_del($this->ds, $info[0]["dn"], ["fdRefreshToken" => []]);
     } catch (Exception $e) {
 
           echo "Message" .$e.PHP_EOL;
@@ -72,7 +72,7 @@ class RefreshTokenGateway
 
     // Must remain available for create
     //ldap_unbind($this->ds);
-    
+
     return $result;
   }
 
