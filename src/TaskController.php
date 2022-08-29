@@ -2,8 +2,8 @@
 
 class TaskController
 {
-  private TaskGateway $gateway;
-  private string $user_uid;
+  private $gateway;
+  private $user_uid;
 
   public function __construct (TaskGateway $gateway, string $user_uid)
   {

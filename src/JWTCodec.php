@@ -2,7 +2,7 @@
 
 class JWTCodec
 {
-  private string $key;
+  private $key;
 
   public function __construct (string $key)
   {

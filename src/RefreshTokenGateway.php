@@ -7,8 +7,8 @@
 class RefreshTokenGateway
 {
   private $ds;
-  private string $key;
-  private ?array $user;
+  private $key;
+  private $user;
 
   // Ldap_connect could be typed Ldap
   public function __construct ($ldap_connect, string $key, array $user = NULL)
