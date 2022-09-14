@@ -4,7 +4,7 @@
 // Class to Get / Create FD Tasks
 class TaskGateway
 {
-    private $ds;
+  private $ds;
 
   // Variable type can be LDAP
   public function __construct ($ldap_connect)
