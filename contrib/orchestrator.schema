@@ -1,0 +1,24 @@
+##
+## orchestrator.schema - Needed by Orchestrator
+##
+
+### Refresh Tokens Attributes ###
+
+attributetype ( 1.3.6.1.4.1.38414.95.1.1 NAME 'fdRefreshToken'
+  DESC 'Orchestrator Refresh Token'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15)
+
+attributetype ( 1.3.6.1.4.1.38414.95.1.2 NAME 'fdRefreshTokenExpiry'
+  DESC 'Orchestrator Refresh Token Expiry'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15)
+
+##### Classes #####
+
+objectclass (1.3.6.1.4.1.38414.95.2.1 NAME 'fdJWT'
+  DESC 'Orchestrator - Tokens Management'
+  MUST ( cn )
+  MAY ( fdRefreshTokenExpiry $ fdRefreshToken ))

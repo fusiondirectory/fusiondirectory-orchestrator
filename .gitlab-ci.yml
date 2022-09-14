@@ -1,0 +1,27 @@
+stages:
+  - lint
+  - codestyle
+
+# PHP lint
+create_php_lint_rapport:
+  image: registry.fusiondirectory.org/fusiondirectory/fd/phpcodesniffer-cli:buster
+  stage: lint
+  only:
+    - branches
+    - tags
+  script:
+    - find . -type f \( -name '*.php' -o -name '*.inc' \) -print0 | xargs -0 -n1 php -l
+
+# PHP codesniffer
+create_php_code_sniffer_rapport:
+  image: registry.fusiondirectory.org/fusiondirectory/fd/phpcodesniffer-cli:buster
+  stage: codestyle
+  only:
+    - branches
+    - tags
+  script:
+    - test -d ../dev-tools/ && rm -Rf ../dev-tools/
+    - git clone https://gitlab.fusiondirectory.org/fusiondirectory/dev-tools.git ../dev-tools
+    - find . -type f \( -name '*.php' -o -name '*.inc' \) > ./filelist2
+    - grep -v './vendor/*' filelist2 > filelist
+    - phpcs --standard=../dev-tools/php-codesniffer-rules/FDStandard/ruleset.xml --file-list=./filelist
