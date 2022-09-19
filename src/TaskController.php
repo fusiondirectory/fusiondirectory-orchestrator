@@ -32,7 +32,7 @@ class TaskController
     } else {
 
       $task = $this->gateway->getTask($this->user_uid, $id);
-      if ($task === FALSE) {
+      if ($task == FALSE) {
 
         $this->respondNotFound($id);
         return;

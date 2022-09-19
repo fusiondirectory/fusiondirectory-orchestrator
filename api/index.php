@@ -54,10 +54,6 @@ if (!$auth->authenticateAccessToken()) {
     exit;
 }
 
-// Execute mail send for POC
-$mail_controller = new MailController();
-$mail_controller->sendMail();
-
 // To Get All Info Based On User ID.
 $user_uid = $auth->getUserID();
 
