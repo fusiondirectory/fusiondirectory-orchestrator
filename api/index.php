@@ -55,9 +55,7 @@ if (!$auth->authenticateAccessToken()) {
 }
 
 // Execute mail send for POC
-echo "Beffore Php mailer" .PHP_EOL;
 $mail_controller = new MailController();
-echo "PHP MAILER OBJECT CREATED" .PHP_EOL;
 $mail_controller->sendMail();
 
 // To Get All Info Based On User ID.

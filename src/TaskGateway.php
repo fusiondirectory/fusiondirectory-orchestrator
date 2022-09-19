@@ -16,6 +16,9 @@ class TaskGateway
   public function getTask (string $user_uid, string $id): string
   {
     // Will Trigger Integrator And Return List Of Tasks
+
+    //LDAP search all tasks from object Tasks
+
     return "Integrator list of task".PHP_EOL;
   }
 
