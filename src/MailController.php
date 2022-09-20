@@ -9,6 +9,7 @@ class MailController
   protected $replyTo;
   protected $recipients;
   protected $body;
+  protected $signature;
   protected $subject;
   protected $receipt;
   protected $attachments;
@@ -18,6 +19,7 @@ class MailController
     string $replyTo,
     array $recipients,
     string $body,
+    string $signature,
     string $subject,
     bool $receipt      = NULL,
     array $attachments = NULL
@@ -29,6 +31,7 @@ class MailController
     $this->replyTo     = $replyTo;
     $this->recipients  = $recipients;
     $this->body        = $body;
+    $this->signature   = $signature;
     $this->subject     = $subject;
     $this->receipt     = $receipt;
     $this->attachments = $attachments;
@@ -53,14 +56,14 @@ class MailController
     $this->mail->setFrom($this->setFrom);
     $this->mail->addReplyTo($this->replyTo);
     $this->mail->Subject = $this->subject;
-    $this->mail->Body    = "test";
+    $this->mail->Body    = $this->body;
 
     // add it to keep SMTP connection open after each email sent
     $this->mail->SMTPKeepAlive = FALSE;
 
     unset($this->recipients["count"]);
     foreach ($this->recipients as $mail) {
-      $this->mail->addAddress($mail, "tim");
+      $this->mail->addAddress($mail, "test");
       try {
         $this->mail->send();
         echo "Message sent to: ({$mail}) {$this->mail->ErrorInfo}\n";

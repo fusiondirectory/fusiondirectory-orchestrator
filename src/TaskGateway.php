@@ -1,6 +1,5 @@
 <?php
 
-
 // Class to Get / Create FD Tasks
 class TaskGateway
 {
@@ -9,51 +8,67 @@ class TaskGateway
   // Variable type can be LDAP
   public function __construct ($ldap_connect)
   {
-      $this->ds = $ldap_connect->getConnection();
+    $this->ds = $ldap_connect->getConnection();
   }
 
   // Return the task specified by ID for specific user ID
-  public function getTask (string $user_uid, string $id): array
+  // Subject to removal as user_uid might not be useful anymore.
+  public function getTask (string $user_uid, ?string $id): array
   {
     $list_tasks = [];
-    // if id - mail, change filter and search/return for task mail only
+    // if id - mail, change ilter and search/return for task mail only
 
     switch ($id) {
       case "mail" :
-        $list_tasks = $this->getLdapTasks("fdTasksMail");
+        $list_tasks = $this->getLdapTasks("(objectClass=fdTasksMail)");
         unset($list_tasks["count"]);
 
         // FOR POC - we trigger here - mail send
-        // Construct a MailController for each tasks
-        foreach ($list_tasks as $mail) {
-          $setFrom     = "from@be.be";
-          $replyTo     = "test@be.be";
-          $recipients  = $mail["fdtasksemailsfromddn"];
-          $body        = "A Test Body";
-          $subject     = "A Test Subject";
-          $receipt     = FALSE;
-          $attachments = NULL;
-
-          $mail_controller = new MailController($setFrom, $replyTo, $recipients, $body, $subject, $receipt, $attachments);
-
-          $mail_controller->sendMail();
-        }
+        $this->processMailTasks($list_tasks);
 
         break;
 
       default:
-        //get all tasks
+        $list_tasks = $this->getLdapTasks("(objectClass=fdTasks)", ["cn", "objectClass"]);
         break;
     }
 
+    ldap_unbind($this->ds);
     return $list_tasks;
   }
 
-  public function getLdapTasks (string $type): array
+  public function processMailTasks (array $list_tasks) : void
+  {
+    foreach ($list_tasks as $mail) {
+
+      // Search for the related attached mail object.
+      $cn = $mail["fdtasksmailobject"][0];
+      $mail_content = $this->getLdapTasks("(&(objectClass=fdMailTemplate)(cn=$cn))");
+
+      $setFrom     = "from@be.be";
+      $replyTo     = "test@be.be";
+      $recipients  = $mail["fdtasksemailsfromddn"];
+      $body        = $mail_content[0]["fdmailtemplatebody"][0];
+      $signature   = $mail_content[0]["fdmailtemplatesignature"][0];
+      $subject     = $mail_content[0]["fdmailtemplatesubject"][0];
+      $receipt     = $mail_content[0]["fdmailtemplatereadreceipt"][0];
+      $attachments = $mail_content[0]["fdmailtemplateattachment"];
+
+      $mail_controller = new MailController($setFrom,
+                                        $replyTo,
+                                        $recipients,
+                                        $body,
+                                        $signature,
+                                        $subject,
+                                        $receipt,
+                                        $attachments);
+
+      $mail_controller->sendMail();
+    }
+  }
+  public function getLdapTasks (string $filter, array $attrs = []): array
   {
     $empty_array = [];
-    $filter = "(objectClass=$type)";
-    $attrs = [];
 
     // Note: If multiple DC exists within OU, a new match is required.
     if (preg_match('/(dc=.*)/', $_ENV["LDAP_OU_USER"], $match)) {
@@ -64,8 +79,6 @@ class TaskGateway
 
     $sr = ldap_search($this->ds, $dn, $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
-
-    ldap_unbind($this->ds);
 
     if (is_array($info) && $info["count"] >= 1 ) {
       return $info;

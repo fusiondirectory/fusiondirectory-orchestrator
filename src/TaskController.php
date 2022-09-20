@@ -16,7 +16,7 @@ class TaskController
     if ($id === NULL) {
       if ($method == "GET") {
 
-        echo json_encode($this->gateway->getTask($this->user_uid));
+        echo json_encode($this->gateway->getTask($this->user_uid, ''));
 
       } elseif ($method == "POST") {
 
