@@ -146,7 +146,7 @@
             e.preventDefault();
 
             const response = await fetch("http://localhost:8080/orchestrator/api/tasks/mail", {
-                method: 'GET',
+                method: 'PATCH',
                 headers: {
                     "Authorization": "Bearer " + localStorage.getItem("access_token")
                 }

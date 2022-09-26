@@ -16,7 +16,7 @@ class MailController
 
   function __construct (
     string $setFrom,
-    string $replyTo,
+    ?string $replyTo,
     array $recipients,
     string $body,
     string $signature,
@@ -54,7 +54,11 @@ class MailController
     $this->mail->Port       = $_ENV["MAIL_PORT"];
 
     $this->mail->setFrom($this->setFrom);
-    $this->mail->addReplyTo($this->replyTo);
+
+    if (isset($this->replyTo) && !empty($this->replyTo)) {
+      $this->mail->addReplyTo($this->replyTo);
+    }
+
     $this->mail->Subject = $this->subject;
     $this->mail->Body    = $this->body;
 
@@ -62,10 +66,13 @@ class MailController
     $this->mail->SMTPKeepAlive = FALSE;
 
     unset($this->recipients["count"]);
+    $errors = [];
     foreach ($this->recipients as $mail) {
-      $this->mail->addAddress($mail, "test");
+      $this->mail->addAddress($mail);
       try {
         $this->mail->send();
+
+        $errors[] = json_encode("Mail sent to: ({$mail}) {$this->mail->ErrorInfo}");
 
         // You can retrieve  mail->ErrorInfo and return for debug.
         // Update tasks mail module here
@@ -74,11 +81,15 @@ class MailController
 
         // You can retrieve  mail->ErrorInfo and return for debug.
         // Update task mail module upon failure here.
+        $errors[] = json_encode("Mailer Error ({$mail}) {$this->mail->ErrorInfo}");
 
         return FALSE;
       }
       $this->mail->clearAddresses();
     }
+
+    echo json_encode($errors);
+
     $this->mail->smtpClose();
     return TRUE;
   }

@@ -46,11 +46,11 @@ class TaskController
           break;
 
         case "PATCH":
-          echo json_encode(["message" => "Task updated", "rows" => $rows]);
+          // FOR POC launch a patch to trigger mail send
+          $this->gateway->processMailTasks($task);
           break;
 
         case "DELETE":
-          echo json_encode(["message" => "Task deleted", "rows" => $rows]);
           break;
 
         default:

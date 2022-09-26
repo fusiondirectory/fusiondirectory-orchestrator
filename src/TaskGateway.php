@@ -24,7 +24,7 @@ class TaskGateway
         unset($list_tasks["count"]);
 
         // FOR POC - we trigger here - mail send
-        $this->processMailTasks($list_tasks);
+        // $this->processMailTasks($list_tasks);
 
         break;
 
@@ -33,7 +33,7 @@ class TaskGateway
         break;
     }
 
-    ldap_unbind($this->ds);
+    // undbinging ds properly is required, dev required ($this->ds)
     return $list_tasks;
   }
 
@@ -45,9 +45,9 @@ class TaskGateway
       $cn = $mail["fdtasksmailobject"][0];
       $mail_content = $this->getLdapTasks("(&(objectClass=fdMailTemplate)(cn=$cn))");
 
-      $setFrom     = "from@be.be";
-      $replyTo     = "test@be.be";
-      $recipients  = $mail["fdtasksemailsfromddn"];
+      $setFrom     = $mail["fdtasksemailsender"][0];
+      $replyTo     = $mail["fdtasksemailreplyto"][0] ?? NULL;
+      $recipients  = $mail["fdtasksemailsfromdn"];
       $body        = $mail_content[0]["fdmailtemplatebody"][0];
       $signature   = $mail_content[0]["fdmailtemplatesignature"][0];
       $subject     = $mail_content[0]["fdmailtemplatesubject"][0];
