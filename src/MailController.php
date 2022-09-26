@@ -66,10 +66,15 @@ class MailController
       $this->mail->addAddress($mail, "test");
       try {
         $this->mail->send();
-        echo "Message sent to: ({$mail}) {$this->mail->ErrorInfo}\n";
+
+        // You can retrieve  mail->ErrorInfo and return for debug.
+        // Update tasks mail module here
+
       } catch (Exception $e) {
 
-        echo "Mailer Error ({$mail}) {$this->mail->ErrorInfo}\n";
+        // You can retrieve  mail->ErrorInfo and return for debug.
+        // Update task mail module upon failure here.
+
         return FALSE;
       }
       $this->mail->clearAddresses();

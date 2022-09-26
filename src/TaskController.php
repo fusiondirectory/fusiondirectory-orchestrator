@@ -3,6 +3,8 @@
 class TaskController
 {
   private $gateway;
+
+  // To be used later on for granularity.
   private $user_uid;
 
   public function __construct (TaskGateway $gateway, string $user_uid)
@@ -44,13 +46,10 @@ class TaskController
           break;
 
         case "PATCH":
-          $data = (array) json_decode(file_get_contents("php://input"), TRUE);
-          $rows = $this->gateway->updateTask($this->user_uid, $id, $data);
           echo json_encode(["message" => "Task updated", "rows" => $rows]);
           break;
 
         case "DELETE":
-          $rows = $this->gateway->deleteTask($this->user_uid, $id);
           echo json_encode(["message" => "Task deleted", "rows" => $rows]);
           break;
 
@@ -69,12 +68,13 @@ class TaskController
   private function respondNotFound (string $id): void
   {
     http_response_code(404);
-    //Task ID is easier to be used - requires unique ID attributes during task creation (FD-Intefarce)
+    // Task ID is easier to be used - requires unique ID attributes during task creation (FD-Intefarce)
     echo json_encode(["message" => "Task with ID $id not found"]);
   }
 
   private function respondCreated (string $id): void
   {
+    // To be completed if tasks can be created via webservice.
     http_response_code(201);
     echo json_encode(["message" => "Task created", "id" => $id]);
   }
