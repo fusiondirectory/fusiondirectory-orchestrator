@@ -23,9 +23,6 @@ class TaskGateway
         $list_tasks = $this->getLdapTasks("(objectClass=fdTasksMail)");
         unset($list_tasks["count"]);
 
-        // FOR POC - we trigger here - mail send
-        // $this->processMailTasks($list_tasks);
-
         break;
 
       default:

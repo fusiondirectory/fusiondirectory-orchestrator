@@ -20,7 +20,8 @@
                     <button id="login">Log in</button>
                 </form>
                 <button id="getTasks" style="display: none">Get tasks</button>
-                <button id="sendMail" style="display: none">Send Mail</button>
+                <button id="getTasksMail" style="display: none">Get  mail tasks</button>
+                <button id="sendMail" style="display: none">Send mail</button>
                 <button id="logout" style="display: none">Log out</button>
             </div>
         </div>
@@ -30,6 +31,7 @@
         const loginForm = document.forms[0];
         const loginButton = document.getElementById("login");
         const getTasksButton = document.getElementById("getTasks");
+        const getTasksMailButton = document.getElementById("getTasksMail");
         const sendMailButton = document.getElementById("sendMail");
         const logoutButton = document.getElementById("logout");
 
@@ -53,14 +55,14 @@
 
             if (response.status == 200) {
 
-                localStorage.setItem("access_token", obj.access_token);
-                localStorage.setItem("refresh_token", obj.refresh_token);
+              localStorage.setItem("access_token", obj.access_token);
+              localStorage.setItem("refresh_token", obj.refresh_token);
 
-                loginForm.style.display = "none";
-                logoutButton.style.display = "block";
-                getTasksButton.style.display = "block";
-                sendMailButton.style.display = "block";
-
+              loginForm.style.display = "none";
+              logoutButton.style.display = "block";
+              getTasksButton.style.display = "block";
+              getTasksMailButton.style.display = "block";
+              sendMailButton.style.display = "block";
 
             } else {
                 alert(obj.message);
@@ -76,6 +78,8 @@
 
             logoutButton.style.display = "none";
             getTasksButton.style.display = "none";
+            getTasksMailButton.style.display = "none";
+            sendMailButton.style.display = "none";
 
             const response = await fetch('http://localhost:8080/orchestrator/api/logout', {
                 method: 'POST',
@@ -113,79 +117,93 @@
 
             // else refresh token.
             } else {
-                    
-                    console.log("Access token expired, requesting new one");
+              updateToken();
+            }        
+        });
 
-                    const response = await fetch('http://localhost:8080/orchestrator/api/refresh', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            token: localStorage.getItem("refresh_token")
-                        })
-                    });
+        /**
+         * Get tasks mail
+         */
+        getTasksMailButton.addEventListener('click', async (e) => {
 
-                    const json = await response.text();
-                    const obj = JSON.parse(json);
+          e.preventDefault();
 
-                    if (response.status == 200) {
+          const response = await fetch("http://localhost:8080/orchestrator/api/tasks/mail", {
+              method: 'GET',
+              headers: {
+                  "Authorization": "Bearer " + localStorage.getItem("access_token")
+              }
+          });
 
-                        console.log("Got new access token and refresh token");
+          const json = await response.text();
+          // obj can be iterated later on to get better html content.
+          const obj = JSON.parse(json);
 
-                        localStorage.setItem("access_token", obj.access_token);
-                        localStorage.setItem("refresh_token", obj.refresh_token);
-                    }
-                }
+          if (response.status == 200) {
+            alert(json); 
+
+          // else refresh token.
+          } else {
+
+            updateToken();   
+           }
 
 
         });
+
 
         /**
          * Send Mail
          */
         sendMailButton.addEventListener('click', async (e) => {
 
-            e.preventDefault();
+          e.preventDefault();
 
-            const response = await fetch("http://localhost:8080/orchestrator/api/tasks/mail", {
-                method: 'PATCH',
-                headers: {
-                    "Authorization": "Bearer " + localStorage.getItem("access_token")
-                }
-            });
+          const response = await fetch("http://localhost:8080/orchestrator/api/tasks/mail", {
+              method: 'PATCH',
+              headers: {
+                  "Authorization": "Bearer " + localStorage.getItem("access_token")
+              }
+          });
 
-            const json = await response.text();
-            console.log(json);
+          const json = await response.text();
+          console.log(json);
 
-            // obj can be iterated later on to get better html content.
-            const obj = JSON.parse(json);
+          // obj can be iterated later on to get better html content.
+          const obj = JSON.parse(json);
 
-            if (response.status == 200) {
-              
-              alert(json);
+          if (response.status == 200) {
+            
+            alert(json);
 
-            // refresh token automatically. 
-            } else {
-                    
-                    console.log("Access token expired, requesting new one");
-                    const response = await fetch('http://localhost:8080/orchestrator/api/refresh', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            token: localStorage.getItem("refresh_token")
-                        })
-                    });
-
-                    const json = await response.text();
-                    const obj = JSON.parse(json);
-
-                    if (response.status == 200) {
-
-                        console.log("Got new access token and refresh token");
-
-                        localStorage.setItem("access_token", obj.access_token);
-                        localStorage.setItem("refresh_token", obj.refresh_token);
-                    }
-                }
+          // refresh token automatically. 
+          } else {
+                  
+              updateToken();      
+          }
 
         });
+
+        async function updateToken () {
+          
+          console.log("Access token expired, requesting new one");
+          const response = await fetch('http://localhost:8080/orchestrator/api/refresh', {
+            method: 'POST',
+            body: JSON.stringify({
+                token: localStorage.getItem("refresh_token")
+            })
+          });
+
+          const json = await response.text();
+          const obj = JSON.parse(json);
+
+          if (response.status == 200) {
+
+            console.log("Got new access token and refresh token");
+            localStorage.setItem("access_token", obj.access_token);
+            localStorage.setItem("refresh_token", obj.refresh_token);
+          }
+       }
     </script>
-</body>
+  </body>
 </html>
