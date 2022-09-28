@@ -75,12 +75,12 @@ class MailController
         $errors[] = json_encode("Mail sent to: ({$mail}) {$this->mail->ErrorInfo}");
 
         // You can retrieve  mail->ErrorInfo and return for debug.
-        // Update tasks mail module here
+        // Update tasks mail module here, granular dashboard
 
       } catch (Exception $e) {
 
         // You can retrieve  mail->ErrorInfo and return for debug.
-        // Update task mail module upon failure here.
+        // Update task mail module upon failure here, granular dashboard
         $errors[] = json_encode("Mailer Error ({$mail}) {$this->mail->ErrorInfo}");
 
         return FALSE;

@@ -37,8 +37,9 @@ class TaskGateway
   {
     foreach ($list_tasks as $mail) {
       
-      // Verify Schedule and Status 
-      if ($mail['fdtasksstatus'][0] == 1) {
+      // verify status before processing (to be check with schedule as well). 
+      if ($mail["fdtasksstatus"][0] == 1) {
+
         // Search for the related attached mail object.
         $cn = $mail["fdtasksmailobject"][0];
         $mail_content = $this->getLdapTasks("(&(objectClass=fdMailTemplate)(cn=$cn))");
@@ -61,10 +62,13 @@ class TaskGateway
                                           $receipt,
                                           $attachments);
 
-        $mail_controller->sendMail();
+        if ($mail_controller->sendMail()){
+          $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0]);
+        }
       }
     }
   }
+
   public function getLdapTasks (string $filter, array $attrs = []): array
   {
     $empty_array = [];
@@ -84,6 +88,23 @@ class TaskGateway
     }
 
     return $empty_array;
+  }
+
+  public function updateTaskMailStatus (string $dn, string $cn): void
+  {
+    // prepare data
+    $ldap_entry["cn"]                   = $cn;
+    // Status subject to change
+    $ldap_entry["fdTasksStatus"]        = "2";
+   
+    // Add data to LDAP
+    try {
+
+      $result = ldap_modify($this->ds, $dn, $ldap_entry);
+    } catch (Exception $e) {
+
+       echo "Message : " .$e.PHP_EOL;
+    }
   }
 
   public function createTask (string $user_uid, array $data): string
