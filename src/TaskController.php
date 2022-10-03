@@ -3,6 +3,8 @@
 class TaskController
 {
   private $gateway;
+
+  // To be used later on for granularity.
   private $user_uid;
 
   public function __construct (TaskGateway $gateway, string $user_uid)
@@ -16,7 +18,7 @@ class TaskController
     if ($id === NULL) {
       if ($method == "GET") {
 
-        echo json_encode($this->gateway->getTask($this->user_uid));
+        echo json_encode($this->gateway->getTask($this->user_uid, ''));
 
       } elseif ($method == "POST") {
 
@@ -32,7 +34,7 @@ class TaskController
     } else {
 
       $task = $this->gateway->getTask($this->user_uid, $id);
-      if ($task === FALSE) {
+      if ($task == FALSE) {
 
         $this->respondNotFound($id);
         return;
@@ -44,14 +46,11 @@ class TaskController
           break;
 
         case "PATCH":
-          $data = (array) json_decode(file_get_contents("php://input"), TRUE);
-          $rows = $this->gateway->updateTask($this->user_uid, $id, $data);
-          echo json_encode(["message" => "Task updated", "rows" => $rows]);
+          // FOR POC launch a patch to trigger mail send
+          $this->gateway->processMailTasks($task);
           break;
 
         case "DELETE":
-          $rows = $this->gateway->deleteTask($this->user_uid, $id);
-          echo json_encode(["message" => "Task deleted", "rows" => $rows]);
           break;
 
         default:
@@ -69,12 +68,13 @@ class TaskController
   private function respondNotFound (string $id): void
   {
     http_response_code(404);
-    //Task ID is easier to be used - requires unique ID attributes during task creation (FD-Intefarce)
+    // Task ID is easier to be used - requires unique ID attributes during task creation (FD-Intefarce)
     echo json_encode(["message" => "Task with ID $id not found"]);
   }
 
   private function respondCreated (string $id): void
   {
+    // To be completed if tasks can be created via webservice.
     http_response_code(201);
     echo json_encode(["message" => "Task created", "id" => $id]);
   }

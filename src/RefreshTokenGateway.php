@@ -71,12 +71,12 @@ class RefreshTokenGateway
     }
 
     // Must remain available for create
-    //ldap_unbind($this->ds);
+    // ldap_unbind($this->ds);
 
     return $result;
   }
 
-  //Refresh token is stored in DB. PHP 8.0 returns the token or false it not existent.
+  // Refresh token is stored in DB. PHP 8.0 returns the token or false it not existent.
   public function getByToken (string $token): array
   {
     $hash = hash_hmac("sha256", $token, $this->key);
@@ -88,8 +88,8 @@ class RefreshTokenGateway
     $sr = ldap_search($this->ds, $_ENV["LDAP_OU_USER"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
-    //Must be available for delete and create(latest of the chain).
-    //ldap_unbind($this->ds);
+    // Must be available for delete and create(latest of the chain).
+    // ldap_unbind($this->ds);
 
     if (is_array($info) && $info["count"] >= 1 ) {
 
