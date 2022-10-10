@@ -22,7 +22,6 @@ class TaskGateway
       case "mail" :
         $list_tasks = $this->getLdapTasks("(objectClass=fdTasksMail)");
         unset($list_tasks["count"]);
-
         break;
 
       default:
@@ -37,30 +36,33 @@ class TaskGateway
   public function processMailTasks (array $list_tasks) : void
   {
     foreach ($list_tasks as $mail) {
+      
+      // Verify Schedule and Status 
+      if ($mail['fdtasksstatus'][0] == 1) {
+        // Search for the related attached mail object.
+        $cn = $mail["fdtasksmailobject"][0];
+        $mail_content = $this->getLdapTasks("(&(objectClass=fdMailTemplate)(cn=$cn))");
 
-      // Search for the related attached mail object.
-      $cn = $mail["fdtasksmailobject"][0];
-      $mail_content = $this->getLdapTasks("(&(objectClass=fdMailTemplate)(cn=$cn))");
+        $setFrom     = $mail["fdtasksemailsender"][0];
+        $replyTo     = $mail["fdtasksemailreplyto"][0] ?? NULL;
+        $recipients  = $mail["fdtasksemailsfromdn"];
+        $body        = $mail_content[0]["fdmailtemplatebody"][0];
+        $signature   = $mail_content[0]["fdmailtemplatesignature"][0];
+        $subject     = $mail_content[0]["fdmailtemplatesubject"][0];
+        $receipt     = $mail_content[0]["fdmailtemplatereadreceipt"][0];
+        $attachments = $mail_content[0]["fdmailtemplateattachment"];
 
-      $setFrom     = $mail["fdtasksemailsender"][0];
-      $replyTo     = $mail["fdtasksemailreplyto"][0] ?? NULL;
-      $recipients  = $mail["fdtasksemailsfromdn"];
-      $body        = $mail_content[0]["fdmailtemplatebody"][0];
-      $signature   = $mail_content[0]["fdmailtemplatesignature"][0];
-      $subject     = $mail_content[0]["fdmailtemplatesubject"][0];
-      $receipt     = $mail_content[0]["fdmailtemplatereadreceipt"][0];
-      $attachments = $mail_content[0]["fdmailtemplateattachment"];
+        $mail_controller = new MailController($setFrom,
+                                          $replyTo,
+                                          $recipients,
+                                          $body,
+                                          $signature,
+                                          $subject,
+                                          $receipt,
+                                          $attachments);
 
-      $mail_controller = new MailController($setFrom,
-                                        $replyTo,
-                                        $recipients,
-                                        $body,
-                                        $signature,
-                                        $subject,
-                                        $receipt,
-                                        $attachments);
-
-      $mail_controller->sendMail();
+        $mail_controller->sendMail();
+      }
     }
   }
   public function getLdapTasks (string $filter, array $attrs = []): array
