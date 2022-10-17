@@ -42,12 +42,14 @@ class TaskController
 
       switch ($method) {
         case "GET":
-          echo json_encode($task) .PHP_EOL;
+          echo json_encode($task);
           break;
 
         case "PATCH":
-          // FOR POC launch a patch to trigger mail send
-          $this->gateway->processMailTasks($task);
+          // FOR POC launch a patch to trigger mail send.
+          if (!in_array('mail_processed', $this->gateway->processMailTasks($task))) {
+            echo json_encode("No mails tasks to be processed!");
+          }
           break;
 
         case "DELETE":

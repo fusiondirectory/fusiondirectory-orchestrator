@@ -33,11 +33,13 @@ class TaskGateway
     return $list_tasks;
   }
 
-  public function processMailTasks (array $list_tasks) : void
+  public function processMailTasks (array $list_tasks) : array
   {
+    $result = [];
+
     foreach ($list_tasks as $mail) {
-      
-      // verify status before processing (to be check with schedule as well). 
+
+      // verify status before processing (to be check with schedule as well).
       if ($mail["fdtasksstatus"][0] == 1) {
 
         // Search for the related attached mail object.
@@ -51,7 +53,7 @@ class TaskGateway
         $signature   = $mail_content[0]["fdmailtemplatesignature"][0];
         $subject     = $mail_content[0]["fdmailtemplatesubject"][0];
         $receipt     = $mail_content[0]["fdmailtemplatereadreceipt"][0];
-        $attachments = $mail_content[0]["fdmailtemplateattachment"];
+        $attachments = $mail_content[0]["fdmailtemplateattachment"] ?? NULL;
 
         $mail_controller = new MailController($setFrom,
                                           $replyTo,
@@ -62,11 +64,14 @@ class TaskGateway
                                           $receipt,
                                           $attachments);
 
-        if ($mail_controller->sendMail()){
+        if ($mail_controller->sendMail()) {
           $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0]);
+          $result[] = 'mail_processed';
         }
       }
     }
+
+    return $result;
   }
 
   public function getLdapTasks (string $filter, array $attrs = []): array
@@ -96,7 +101,7 @@ class TaskGateway
     $ldap_entry["cn"]                   = $cn;
     // Status subject to change
     $ldap_entry["fdTasksStatus"]        = "2";
-   
+
     // Add data to LDAP
     try {
 
