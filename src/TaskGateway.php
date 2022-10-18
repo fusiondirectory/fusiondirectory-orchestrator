@@ -16,7 +16,7 @@ class TaskGateway
   public function getTask (string $user_uid, ?string $id): array
   {
     $list_tasks = [];
-    // if id - mail, change ilter and search/return for task mail only
+    // if id - mail, change filter and search/return for task mail only
 
     switch ($id) {
       case "mail" :
@@ -38,9 +38,8 @@ class TaskGateway
     $result = [];
 
     foreach ($list_tasks as $mail) {
-
       // verify status before processing (to be check with schedule as well).
-      if ($mail["fdtasksstatus"][0] == 1) {
+      if ($mail["fdtasksstatus"][0] == 1 && $this->verifySchedule($mail["fdtasksscheduledate"][0])) {
 
         // Search for the related attached mail object.
         $cn = $mail["fdtasksmailobject"][0];
@@ -72,6 +71,20 @@ class TaskGateway
     }
 
     return $result;
+  }
+
+  // Verification of the schedule in complete string format and compare.
+  public function verifySchedule (string $schedule) : bool
+  {
+    $date = (new DateTime)->format('Y-m-d-H-i-s');
+    $dateEx  = explode('-', $date);
+    $dateStringerized = implode("", $dateEx);
+
+    if ($schedule < $dateStringerized) {
+      return TRUE;
+    }
+
+    return FALSE;
   }
 
   public function getLdapTasks (string $filter, array $attrs = []): array
