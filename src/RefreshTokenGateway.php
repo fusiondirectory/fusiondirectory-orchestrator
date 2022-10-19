@@ -33,7 +33,6 @@ class RefreshTokenGateway
 
       $result = ldap_add($this->ds, $this->user["cn"], $ldap_entry);
     } catch (Exception $e) {
-
       try {
 
         // ObjectClass and CN cannot be modified
@@ -42,7 +41,7 @@ class RefreshTokenGateway
 
         $result = ldap_modify($this->ds, $this->user["cn"], $ldap_entry);
       } catch (Exception $e) {
-          echo "Message : " .$e.PHP_EOL;
+        echo json_encode(["Ldap Error" => "$e"]);
       }
     }
 
@@ -67,7 +66,7 @@ class RefreshTokenGateway
       $result = ldap_mod_del($this->ds, $info[0]["dn"], ["fdRefreshToken" => []]);
     } catch (Exception $e) {
 
-          echo "Message" .$e.PHP_EOL;
+        echo json_encode(["Ldap Error" => "$e"]);
     }
 
     // Must remain available for create

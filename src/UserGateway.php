@@ -99,7 +99,7 @@ class UserGateway
       $encrypted_password = '{SSHA}' . base64_encode(sha1( $password.$salt, TRUE ). $salt);
     } else {
 
-      echo "Unsupported password hash format" .PHP_EOL;
+      echo json_encode(["System error" => "Unsupported password hash format"]);
       return FALSE;
     }
 

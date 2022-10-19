@@ -121,7 +121,7 @@ class TaskGateway
       $result = ldap_modify($this->ds, $dn, $ldap_entry);
     } catch (Exception $e) {
 
-       echo "Message : " .$e.PHP_EOL;
+        echo json_encode(["Ldap Error" => "$e"]);
     }
   }
 

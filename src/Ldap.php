@@ -26,7 +26,7 @@ class Ldap
     $ldapbind = ldap_bind($ds, $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
 
     if (!$ldapbind) {
-      echo "Fail connection to ldap in admin";
+      echo json_encode(["Message" => "Fail connection to LDAP in admin"]);
       exit;
     }
 
