@@ -46,10 +46,15 @@ class TaskController
           break;
 
         case "PATCH":
-          // FOR POC launch a patch to trigger mail send.
-          if (!in_array('mail_processed', $this->gateway->processMailTasks($task))) {
-            echo json_encode("No mails tasks to be processed!");
+
+          $result = $this->gateway->processMailTasks($task);
+
+          if (!empty($result)) {
+            echo json_encode($result);
+          } else {
+            echo json_encode("No emails were sent.");
           }
+
           break;
 
         case "DELETE":
