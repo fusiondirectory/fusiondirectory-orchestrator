@@ -20,8 +20,9 @@ class TaskGateway
 
     switch ($id) {
       case "mail" :
-        $list_tasks = $this->getLdapTasks("(objectClass=fdTasksMail)");
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Mail Object))");
         unset($list_tasks["count"]);
+
         break;
 
       default:
@@ -38,16 +39,17 @@ class TaskGateway
     $result = [];
 
     foreach ($list_tasks as $mail) {
+
       // verify status before processing (to be check with schedule as well).
-      if ($mail["fdtasksstatus"][0] == 1 && $this->verifySchedule($mail["fdtasksscheduledate"][0])) {
+      if ($mail["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($mail["fdtasksgranularschedule"][0])) {
 
         // Search for the related attached mail object.
-        $cn = $mail["fdtasksmailobject"][0];
+        $cn = $mail["fdtasksgranularref"][0];
         $mail_content = $this->getLdapTasks("(&(objectClass=fdMailTemplate)(cn=$cn))");
 
-        $setFrom     = $mail["fdtasksemailsender"][0];
+        $setFrom     = $mail["fdtasksgranularmailfrom"][0];
         $replyTo     = $mail["fdtasksemailreplyto"][0] ?? NULL;
-        $recipients  = $mail["fdtasksemailsfromdn"];
+        $recipients  = $mail["fdtasksgranularmail"];
         $body        = $mail_content[0]["fdmailtemplatebody"][0];
         $signature   = $mail_content[0]["fdmailtemplatesignature"][0];
         $subject     = $mail_content[0]["fdmailtemplatesubject"][0];
@@ -67,10 +69,12 @@ class TaskGateway
 
         if ($mailSentResult[0] == "SUCCESS") {
 
-          $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0]);
+          // The third arguments "2" is the status code of success for mail
+          $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], "2");
           $result[] = 'PROCESSED';
 
         } else {
+          $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0]);
           $result[] = $mailSentResult;
         }
       }
@@ -114,12 +118,12 @@ class TaskGateway
     return $empty_array;
   }
 
-  public function updateTaskMailStatus (string $dn, string $cn): void
+  public function updateTaskMailStatus (string $dn, string $cn, string $status): void
   {
     // prepare data
-    $ldap_entry["cn"]                   = $cn;
+    $ldap_entry["cn"]                           = $cn;
     // Status subject to change
-    $ldap_entry["fdTasksStatus"]        = "2";
+    $ldap_entry["fdTasksGranularStatus"]        = $status;
 
     // Add data to LDAP
     try {
