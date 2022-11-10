@@ -38,50 +38,78 @@ class TaskGateway
   {
     $result = [];
 
-    foreach ($list_tasks as $mail) {
+    if ($this->verifySpamProtection()) {
+      foreach ($list_tasks as $mail) {
 
-      // verify status before processing (to be check with schedule as well).
-      if ($mail["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($mail["fdtasksgranularschedule"][0])) {
+        // HERE - DEV get max emails to be send and increment.
 
-        // Search for the related attached mail object.
-        $cn = $mail["fdtasksgranularref"][0];
-        $mail_content = $this->getLdapTasks("(&(objectClass=fdMailTemplate)(cn=$cn))");
+        // verify status before processing (to be check with schedule as well).
+        if ($mail["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($mail["fdtasksgranularschedule"][0])) {
 
-        $setFrom     = $mail["fdtasksgranularmailfrom"][0];
-        $replyTo     = $mail["fdtasksemailreplyto"][0] ?? NULL;
-        $recipients  = $mail["fdtasksgranularmail"];
-        $body        = $mail_content[0]["fdmailtemplatebody"][0];
-        $signature   = $mail_content[0]["fdmailtemplatesignature"][0];
-        $subject     = $mail_content[0]["fdmailtemplatesubject"][0];
-        $receipt     = $mail_content[0]["fdmailtemplatereadreceipt"][0];
-        $attachments = $mail_content[0]["fdmailtemplateattachment"] ?? NULL;
+          // Search for the related attached mail object.
+          $cn = $mail["fdtasksgranularref"][0];
+          $mail_content = $this->getLdapTasks("(&(objectClass=fdMailTemplate)(cn=$cn))");
 
-        $mail_controller = new MailController($setFrom,
-                                          $replyTo,
-                                          $recipients,
-                                          $body,
-                                          $signature,
-                                          $subject,
-                                          $receipt,
-                                          $attachments);
+          $setFrom     = $mail["fdtasksgranularmailfrom"][0];
+          $replyTo     = $mail["fdtasksemailreplyto"][0] ?? NULL;
+          $recipients  = $mail["fdtasksgranularmail"];
+          $body        = $mail_content[0]["fdmailtemplatebody"][0];
+          $signature   = $mail_content[0]["fdmailtemplatesignature"][0];
+          $subject     = $mail_content[0]["fdmailtemplatesubject"][0];
+          $receipt     = $mail_content[0]["fdmailtemplatereadreceipt"][0];
+          $attachments = $mail_content[0]["fdmailtemplateattachment"] ?? NULL;
 
-        $mailSentResult = $mail_controller->sendMail();
+          $mail_controller = new MailController($setFrom,
+                                            $replyTo,
+                                            $recipients,
+                                            $body,
+                                            $signature,
+                                            $subject,
+                                            $receipt,
+                                            $attachments);
 
-        if ($mailSentResult[0] == "SUCCESS") {
+          $mailSentResult = $mail_controller->sendMail();
 
-          // The third arguments "2" is the status code of success for mail
-          $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], "2");
-          $result[] = 'PROCESSED';
+          if ($mailSentResult[0] == "SUCCESS") {
 
-        } else {
-          $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0]);
-          $result[] = $mailSentResult;
+            // The third arguments "2" is the status code of success for mail
+            $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], "2");
+            $result[] = 'PROCESSED';
+
+            // HERE - DEV requieres update of datetime status of fdTasksConf for future SPAM protection
+
+          } else {
+            $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0]);
+            $result[] = $mailSentResult;
+          }
         }
       }
     }
 
     return $result;
   }
+
+  /*
+   * Method which verify the last executed e-mails sent
+   * Verify if the time interval is respected in order to protect from SPAM.
+   */
+  public function verifySpamProtection () : BOOL
+  {
+    $fdTasksConf = $this->getLdapTasks("(objectClass=fdTasksConf)", ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails"]);
+
+    $lastExec     = $fdTasksConf[0]["fdtasksconflastexectime"][0] ?? NULL;
+    $spamInterval = $fdTasksConf[0]["fdtasksconfintervalemails"][0] ?? NULL;
+
+    // Multiplication is required to have the minutes
+    $antispam = $lastExec + $spamInterval * 100;
+    if ($antispam <= date("YmdHis")) {
+
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+
 
   // Verification of the schedule in complete string format and compare.
   public function verifySchedule (string $schedule) : bool
