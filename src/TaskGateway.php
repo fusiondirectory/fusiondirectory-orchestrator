@@ -38,10 +38,18 @@ class TaskGateway
   {
     $result = [];
 
-    if ($this->verifySpamProtection()) {
+    $fdTasksConf = $this->getLdapTasks(
+      "(objectClass=fdTasksConf)",
+      ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
+    );
+
+    // set the maximum mails to be sent to the configured value or 50 if not set.
+    $maxMailsConfig = $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
+
+    if ($this->verifySpamProtection($fdTasksConf)) {
       foreach ($list_tasks as $mail) {
 
-        // HERE - DEV get max emails to be send and increment.
+        $maxMailsIncrement = 0;
 
         // verify status before processing (to be check with schedule as well).
         if ($mail["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($mail["fdtasksgranularschedule"][0])) {
@@ -75,13 +83,19 @@ class TaskGateway
             // The third arguments "2" is the status code of success for mail
             $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], "2");
             $result[] = 'PROCESSED';
-
-            // HERE - DEV requieres update of datetime status of fdTasksConf for future SPAM protection
+            $this->updateLastMailExecTime($fdTasksConf[0]["dn"] );
 
           } else {
             $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0]);
             $result[] = $mailSentResult;
           }
+
+          // Verification anti-spam max mails to be sent and quit loop if matched
+          $maxMailsIncrement += 1;
+          if ($maxMailsIncrement == $maxMailsConfig) {
+            break;
+          }
+
         }
       }
     }
@@ -93,10 +107,8 @@ class TaskGateway
    * Method which verify the last executed e-mails sent
    * Verify if the time interval is respected in order to protect from SPAM.
    */
-  public function verifySpamProtection () : BOOL
+  public function verifySpamProtection (array $fdTasksConf) : BOOL
   {
-    $fdTasksConf = $this->getLdapTasks("(objectClass=fdTasksConf)", ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails"]);
-
     $lastExec     = $fdTasksConf[0]["fdtasksconflastexectime"][0] ?? NULL;
     $spamInterval = $fdTasksConf[0]["fdtasksconfintervalemails"][0] ?? NULL;
 
@@ -146,12 +158,15 @@ class TaskGateway
     return $empty_array;
   }
 
+  /*
+   * Update the status of the tasks.
+   */
   public function updateTaskMailStatus (string $dn, string $cn, string $status): void
   {
     // prepare data
-    $ldap_entry["cn"]                           = $cn;
+    $ldap_entry["cn"]                    = $cn;
     // Status subject to change
-    $ldap_entry["fdTasksGranularStatus"]        = $status;
+    $ldap_entry["fdTasksGranularStatus"] = $status;
 
     // Add data to LDAP
     try {
@@ -162,6 +177,25 @@ class TaskGateway
         echo json_encode(["Ldap Error" => "$e"]);
     }
   }
+
+  /*
+  * Update the attribute lastExecTime from fdTasksConf.
+  */
+  public function updateLastMailExecTime (string $dn): void
+  {
+    // prepare data
+    $ldap_entry["fdTasksConfLastExecTime"] = date("YmdHis");
+
+    // Add data to LDAP
+    try {
+
+      $result = ldap_modify($this->ds, $dn, $ldap_entry);
+    } catch (Exception $e) {
+
+        echo json_encode(["Ldap Error" => "$e"]);
+    }
+  }
+
 
 }
 
