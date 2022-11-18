@@ -72,7 +72,7 @@ class UserGateway
 
   // Inspired by https://blog.michael.kuron-germany.de/2012/07/hashing-and-verifying-ldap-passwords-in-php/comment-page-1/
   // Can be made in switch mode. Only MD5 SHA SSHA and clear text are managed for now.
-  //  !! To be removed to used the FD LDAP library already existing !!
+  //  !! To be removed to use the FD LDAP library already existing !!
   public function check_password ($password, $hash)
   {
     if ($hash == '') { //No Password

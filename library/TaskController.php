@@ -13,30 +13,23 @@ class TaskController
     $this->gateway  = $gateway;
   }
 
-  public function processRequest (string $method, ?string $id): void
+  public function processRequest (string $method, ?string $object_type): void
   {
-    if ($id === NULL) {
+    // If no specific tasks object specified, return all tasks
+    if ($object_type === NULL) {
       if ($method == "GET") {
-
         echo json_encode($this->gateway->getTask($this->user_uid, ''));
 
-      } elseif ($method == "POST") {
-
-        $data = (array) json_decode(file_get_contents("php://input"), TRUE);
-
-        $id = $this->gateway->createTask($this->user_uid, $data);
-        $this->respondCreated($id);
-
       } else {
-
-        $this->respondMethodNotAllowed("GET, POST");
+        $this->respondMethodAllowed("GET");
       }
-    } else {
 
-      $task = $this->gateway->getTask($this->user_uid, $id);
+      // Otherwise return the tasks object specified
+    } else {
+      $task = $this->gateway->getTask($this->user_uid, $object_type);
       if ($task == FALSE) {
 
-        $this->respondNotFound($id);
+        $this->respondNotFound($object_type);
         return;
       }
 
@@ -46,11 +39,11 @@ class TaskController
           break;
 
         case "PATCH":
-
           $result = $this->gateway->processMailTasks($task);
 
           if (!empty($result)) {
             echo json_encode($result);
+
           } else {
             echo json_encode("No emails were sent.");
           }
@@ -61,29 +54,22 @@ class TaskController
           break;
 
         default:
-          $this->respondMethodNotAllowed("GET, PATCH, DELETE");
+          $this->respondMethodAllowed("GET, PATCH, DELETE");
       }
     }
   }
 
-  private function respondMethodNotAllowed (string $allowed_methods): void
+  private function respondMethodAllowed (string $allowed_methods): void
   {
     http_response_code(405);
     header("Allow: $allowed_methods");
   }
 
-  private function respondNotFound (string $id): void
+  private function respondNotFound (string $object_type): void
   {
     http_response_code(404);
     // Task ID is easier to be used - requires unique ID attributes during task creation (FD-Intefarce)
-    echo json_encode(["message" => "Task with ID $id not found"]);
-  }
-
-  private function respondCreated (string $id): void
-  {
-    // To be completed if tasks can be created via webservice.
-    http_response_code(201);
-    echo json_encode(["message" => "Task created", "id" => $id]);
+    echo json_encode(["message" => "Task object type : $object_type not found"]);
   }
 
 }

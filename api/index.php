@@ -1,8 +1,7 @@
 <?php
 
 declare(strict_types=1);
-
-require __DIR__ . "/bootstrap.php";
+require __DIR__ . "/../config/bootstrap.php";
 
 $path = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
 
@@ -10,9 +9,9 @@ $parts = explode("/", $path);
 
 // We only need the name of the ressource
 $resource = $parts[3];
-
-// And the ID of that ressource. Ex: http://orchestrator/api/task(3)/id(4)/
-$id = $parts[4] ?? NULL;
+// And the tasks object required Ex: http://orchestrator/api/task(3)/object(4)/
+// Example : mail is an object type of tasks
+$object_type = $parts[4] ?? NULL;
 
 switch ($resource) {
 
@@ -61,4 +60,4 @@ $task_gateway = new TaskGateway($ldap_connect);
 $controller = new TaskController($task_gateway, $user_uid);
 
 // Process Resquest Passing Ressources Attributes Values ($id)
-$controller->processRequest($_SERVER['REQUEST_METHOD'], $id);
+$controller->processRequest($_SERVER['REQUEST_METHOD'], $object_type);

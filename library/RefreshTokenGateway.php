@@ -1,8 +1,9 @@
 <?php
 
 /*
- * RefreshToken should be called periodically via cron job or specific trigger
- * To be designed properly.
+ * RefreshToken class should be called periodically via cron job or specific trigger
+ * in order to remove unrequired tokens from LDAP after expiration.
+ * As of 18/11 method delete expired must be developped.
  */
 class RefreshTokenGateway
 {
@@ -10,7 +11,7 @@ class RefreshTokenGateway
   private $key;
   private $user;
 
-  // Ldap_connect could be typed Ldap
+  // Ldap_connect could be of typed Ldap - enhancement.
   public function __construct ($ldap_connect, string $key, array $user = NULL)
   {
     $this->ds = $ldap_connect->getConnection();
@@ -35,7 +36,7 @@ class RefreshTokenGateway
     } catch (Exception $e) {
       try {
 
-        // ObjectClass and CN cannot be modified
+        // Note : ObjectClass and CN cannot be modified
         unset($ldap_entry["objectclass"]);
         unset($ldap_entry["cn"]);
 
@@ -52,6 +53,7 @@ class RefreshTokenGateway
 
   public function delete (string $token): bool
   {
+    $result = FALSE;
     $hash = hash_hmac("sha256", $token, $this->key);
 
     $filter = "(|(fdRefreshToken=$hash*))";
@@ -60,22 +62,21 @@ class RefreshTokenGateway
     $sr = ldap_search($this->ds, $_ENV["LDAP_OU_USER"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
-    // Delete Hash from LDAP by passing empty array.
-    try {
+    if (isset($info[0]) && !empty($info[0])) {
+      // Delete Hash from LDAP by passing empty array.
+      try {
 
-      $result = ldap_mod_del($this->ds, $info[0]["dn"], ["fdRefreshToken" => []]);
-    } catch (Exception $e) {
+        $result = ldap_mod_del($this->ds, $info[0]["dn"], ["fdRefreshToken" => []]);
+      } catch (Exception $e) {
 
-        echo json_encode(["Ldap Error" => "$e"]);
+          echo json_encode(["Ldap Error" => "$e"]);
+      }
     }
-
-    // Must remain available for create
-    // ldap_unbind($this->ds);
 
     return $result;
   }
 
-  // Refresh token is stored in DB. PHP 8.0 returns the token or false it not existent.
+  // Refresh token is stored in LDAP - PHP 8.0 returns the token or false it not existent.
   public function getByToken (string $token): array
   {
     $hash = hash_hmac("sha256", $token, $this->key);
@@ -87,9 +88,6 @@ class RefreshTokenGateway
     $sr = ldap_search($this->ds, $_ENV["LDAP_OU_USER"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
-    // Must be available for delete and create(latest of the chain).
-    // ldap_unbind($this->ds);
-
     if (is_array($info) && $info["count"] >= 1 ) {
 
       return $info;
@@ -98,13 +96,14 @@ class RefreshTokenGateway
     return $empty_array;
   }
 
+  /*
+   * Method to be developped.
+   */
   public function deleteExpired (): int
   {
-    // SQL Example
-    $sql = "DELETE FROM refresh_token
-            WHERE expires_at < UNIX_TIMESTAMP()";
+    // LDAP request should "DELETE FROM refresh_token WHERE expires_at < UNIX_TIMESTAMP()"
+    // Methode delete exist already which could be re-used. Design to be tought of.
 
-    // return ldap errors
     // testing purposes
     return 1;
   }

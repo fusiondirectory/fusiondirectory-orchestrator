@@ -26,6 +26,7 @@ class MailController
     array $attachments = NULL
   )
   {
+    // The TRUE value passed it to enable the exception handling properly.
     $this->mail = new PHPMailer(TRUE);
 
     $this->setFrom     = $setFrom;

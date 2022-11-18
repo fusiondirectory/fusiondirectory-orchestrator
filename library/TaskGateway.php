@@ -5,32 +5,37 @@ class TaskGateway
 {
   private $ds;
 
-  // Variable type can be LDAP
+  // Variable type can be LDAP : enhancement
   public function __construct ($ldap_connect)
   {
     $this->ds = $ldap_connect->getConnection();
   }
 
-  // Return the task specified by ID for specific user ID
+  // Return the task specified by object type for specific user ID
   // Subject to removal as user_uid might not be useful anymore.
-  public function getTask (string $user_uid, ?string $id): array
+  public function getTask (string $user_uid, ?string $object_type): array
   {
     $list_tasks = [];
     // if id - mail, change filter and search/return for task mail only
 
-    switch ($id) {
-      case "mail" :
+    switch ($object_type) {
+      case "mail":
         $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Mail Object))");
         unset($list_tasks["count"]);
-
         break;
 
-      default:
+      // If no tasks object type declared , return all tasks
+      case NULL:
         $list_tasks = $this->getLdapTasks("(objectClass=fdTasks)", ["cn", "objectClass"]);
+        break;
+
+      //Will match any object type passed not found.
+      default:
+        // return empty array which will be interpreted as FALSE by parent.
+        $list_tasks = [];
         break;
     }
 
-    // undbinding ds properly is required, dev required ($this->ds)
     return $list_tasks;
   }
 
@@ -80,7 +85,7 @@ class TaskGateway
 
           if ($mailSentResult[0] == "SUCCESS") {
 
-            // The third arguments "2" is the status code of success for mail
+            // The third arguments "2" is the status code of success for mail as of now 18/11/22
             $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], "2");
             $result[] = 'PROCESSED';
             $this->updateLastMailExecTime($fdTasksConf[0]["dn"] );
@@ -195,7 +200,6 @@ class TaskGateway
         echo json_encode(["Ldap Error" => "$e"]);
     }
   }
-
 
 }
 
