@@ -146,7 +146,7 @@ class TaskGateway
   {
     $empty_array = [];
 
-    // Note: If multiple DC exists within OU, a new match is required.
+    // Copy the existing DCs from the passed DN
     if (preg_match('/(dc=.*)/', $_ENV["LDAP_OU_USER"], $match)) {
       $dn = $match[0];
     } else {
