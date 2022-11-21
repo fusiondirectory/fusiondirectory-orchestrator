@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require __DIR__ . "/bootstrap.php";
+require __DIR__ . "/../config/bootstrap.php";
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
@@ -19,9 +19,7 @@ if (!array_key_exists("username", $data) || !array_key_exists("password", $data)
   echo json_encode(["message" => "missing login credentials"]);
   exit;
 }
-
 $ldap_connect = new Ldap($_ENV["LDAP_HOST"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
-
 $user_gateway = new UserGateway($ldap_connect);
 
 $user = $user_gateway->getByUsername($data["username"]);
@@ -41,7 +39,7 @@ if (!$user_gateway->check_password($data["password"], $user["password_hash"])) {
 
 $codec = new JWTCodec($_ENV["SECRET_KEY"]);
 
-require __DIR__ . "/tokens.php";
+require __DIR__ . "/../config/tokens.php";
 
 $refresh_token_gateway = new RefreshTokenGateway($ldap_connect, $_ENV["SECRET_KEY"], $user);
 

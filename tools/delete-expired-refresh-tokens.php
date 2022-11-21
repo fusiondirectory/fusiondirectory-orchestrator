@@ -1,5 +1,10 @@
 <?php
 
+/*
+ * Note : deleteExpired method from refresh_token_gateway must be developped.
+ * No suppression is therefore handled for the moment : 18/11/22
+ */
+
 declare(strict_types=1);
 
 require __DIR__ . "/vendor/autoload.php";

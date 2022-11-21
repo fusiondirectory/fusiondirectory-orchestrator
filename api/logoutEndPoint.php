@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require __DIR__ . "/bootstrap.php";
+require __DIR__ . "/../config/bootstrap.php";
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
@@ -36,7 +36,9 @@ $ldap_connect = new Ldap($_ENV["LDAP_HOST"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PW
 
 $refresh_token_gateway = new RefreshTokenGateway($ldap_connect, $_ENV["SECRET_KEY"]);
 
-$refresh_token_gateway->delete($data["token"]);
+if (!$refresh_token_gateway->delete($data["token"])) {
+  echo json_encode(["message" => "Error logging out, either wrong refresh token passed or already logged out!"]);
+}
 
 
 

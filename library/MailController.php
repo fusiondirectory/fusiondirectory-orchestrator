@@ -1,6 +1,7 @@
 <?php
 
 use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 class MailController
 {
@@ -25,7 +26,8 @@ class MailController
     array $attachments = NULL
   )
   {
-    $this->mail = new PHPMailer();
+    // The TRUE value passed it to enable the exception handling properly.
+    $this->mail = new PHPMailer(TRUE);
 
     $this->setFrom     = $setFrom;
     $this->replyTo     = $replyTo;
@@ -38,7 +40,7 @@ class MailController
 
   }
 
-  public function sendMail () : bool
+  public function sendMail () : array
   {
     $this->mail->isSMTP();
     $this->mail->Host = $_ENV["MAIL_HOST"];
@@ -64,34 +66,30 @@ class MailController
 
     // add it to keep SMTP connection open after each email sent
     $this->mail->SMTPKeepAlive = FALSE;
-
     unset($this->recipients["count"]);
+
+    // Our returned array
     $errors = [];
+
     foreach ($this->recipients as $mail) {
       $this->mail->addAddress($mail);
+
       try {
         $this->mail->send();
 
-        $errors[] = json_encode("Mail sent to: ({$mail}) {$this->mail->ErrorInfo}");
-
-        // You can retrieve  mail->ErrorInfo and return for debug.
-        // Update tasks mail module here
-
       } catch (Exception $e) {
+        $errors[] = $this->mail->ErrorInfo;
 
-        // You can retrieve  mail->ErrorInfo and return for debug.
-        // Update task mail module upon failure here.
-        $errors[] = json_encode("Mailer Error ({$mail}) {$this->mail->ErrorInfo}");
-
-        return FALSE;
       }
       $this->mail->clearAddresses();
+
+      if (empty($errors)) {
+        $errors[] = "SUCCESS";
+      }
     }
 
-    echo json_encode($errors);
-
     $this->mail->smtpClose();
-    return TRUE;
+    return $errors;
   }
 
 }

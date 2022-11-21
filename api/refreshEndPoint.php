@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require __DIR__ . "/bootstrap.php";
+require __DIR__ . "/../config/bootstrap.php";
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
@@ -57,22 +57,7 @@ if ($refresh_token == FALSE) {
     exit;
 }
 
-require __DIR__ . "/tokens.php";
+require __DIR__ . "/../config/tokens.php";
 
 $refresh_token_gateway->delete($data["token"]);
 $refresh_token_gateway->create($refresh_token, $refresh_token_expiry);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

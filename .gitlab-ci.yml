@@ -24,4 +24,4 @@ create_php_code_sniffer_rapport:
     - git clone https://gitlab.fusiondirectory.org/fusiondirectory/dev-tools.git ../dev-tools
     - find . -type f \( -name '*.php' -o -name '*.inc' \) > ./filelist2
     - grep -v './vendor/*' filelist2 > filelist
-    - phpcs --standard=../dev-tools/php-codesniffer-rules/FDStandard/ruleset.xml --file-list=./filelist
+    - /root/.composer/vendor/bin/phpcs --standard=../dev-tools/php-codesniffer-rules/FDStandard/ruleset.xml --file-list=./filelist
