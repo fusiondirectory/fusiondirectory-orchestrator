@@ -45,15 +45,17 @@ class MailController
     $this->mail->isSMTP();
     $this->mail->Host = $_ENV["MAIL_HOST"];
 
-    /**
-     * Testing purposes, auth is deactivated
+    /*
+     * In case there are FQDN errors responses by the SMTP server, try below.
+     * $this->mail->Helo = '['.$_SERVER['SERVER_ADDR'].']';
      */
-    $this->mail->SMTPAuth = FALSE;
 
+    $this->mail->SMTPAuth   = TRUE;
     $this->mail->Username   = $_ENV["MAIL_USER"];
     $this->mail->Password   = $_ENV["MAIL_PASS"];
     $this->mail->SMTPSecure = $_ENV["MAIL_SEC"];
     $this->mail->Port       = $_ENV["MAIL_PORT"];
+    $this->mail->AuthType   = 'LOGIN';
 
     $this->mail->setFrom($this->setFrom);
 
