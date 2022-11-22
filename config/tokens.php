@@ -7,7 +7,7 @@
 $payload = [
   "sub" => $user["uid"],
   "name" => $user["cn"],
-  "exp" => time() + $_ENV['TOKEN_EXPIRY'];
+  "exp" => time() + $_ENV['TOKEN_EXPIRY']
 ];
 
 $access_token = $codec->encode($payload);
