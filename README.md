@@ -9,7 +9,12 @@ Components refers to (but not limited at) :
 
 # Installation
 .htaccess is required for URL Rewriting
-.env is required to store ldap access information
+.orchestrator.conf is required to store ldap access information as well as SMTP server.
+This files is pushed as information but should be located within /etc/orchestrator/orchestrator.conf.
+
+Please follow the installation guide of the User Manual or follow the technical docs for packaging within 
+gitlab Wiki.
 
 # Changelog
 - 15/08/2022 First commit, ldap methods must be written, first design completed.
+- 22/11/2022 Adds orchestrator.conf

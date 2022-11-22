@@ -7,13 +7,13 @@
 $payload = [
   "sub" => $user["uid"],
   "name" => $user["cn"],
-  "exp" => time() + 300000
+  "exp" => time() + $_ENV['TOKEN_EXPIRY'];
 ];
 
 $access_token = $codec->encode($payload);
 
 // To be adapted (in Seconds) Equals 5 days
-$refresh_token_expiry = time() + 432000;
+$refresh_token_expiry = time() + $_ENV['REFRESH_EXPIRY'];
 
 $refresh_token = $codec->encode([
   "sub" => $user["uid"],
