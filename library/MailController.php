@@ -67,7 +67,8 @@ class MailController
     $this->mail->Body    = $this->body;
 
     // add it to keep SMTP connection open after each email sent
-    $this->mail->SMTPKeepAlive = FALSE;
+    $this->mail->SMTPKeepAlive = TRUE;
+
     unset($this->recipients["count"]);
 
     // Our returned array
