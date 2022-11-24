@@ -65,6 +65,7 @@ class MailController
 
     $this->mail->Subject = $this->subject;
     $this->mail->Body    = $this->body;
+    $this->mail->Body    .= $this->signature;
 
     // add it to keep SMTP connection open after each email sent
     $this->mail->SMTPKeepAlive = TRUE;
