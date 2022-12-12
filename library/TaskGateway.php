@@ -117,10 +117,10 @@ class TaskGateway
     $lastExec     = $fdTasksConf[0]["fdtasksconflastexectime"][0] ?? NULL;
     $spamInterval = $fdTasksConf[0]["fdtasksconfintervalemails"][0] ?? NULL;
 
-    // Multiplication is required to have the minutes
-    $antispam = $lastExec + $spamInterval * 100;
-    if ($antispam <= date("YmdHis")) {
-
+    // Multiplication is required to have the seconds
+    $spamInterval = $spamInterval * 60;
+    $antispam     = $lastExec + $spamInterval;
+    if ($antispam <= time()) {
       return TRUE;
     }
 
@@ -131,11 +131,8 @@ class TaskGateway
   // Verification of the schedule in complete string format and compare.
   public function verifySchedule (string $schedule) : bool
   {
-    $date = (new DateTime)->format('Y-m-d-H-i-s');
-    $dateEx  = explode('-', $date);
-    $dateStringerized = implode("", $dateEx);
-
-    if ($schedule < $dateStringerized) {
+    $schedule = strtotime($schedule);
+    if ($schedule < time()) {
       return TRUE;
     }
 
@@ -189,7 +186,7 @@ class TaskGateway
   public function updateLastMailExecTime (string $dn): void
   {
     // prepare data
-    $ldap_entry["fdTasksConfLastExecTime"] = date("YmdHis");
+    $ldap_entry["fdTasksConfLastExecTime"] = time();
 
     // Add data to LDAP
     try {
