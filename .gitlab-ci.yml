@@ -1,16 +1,21 @@
 stages:
   - lint
   - codestyle
+  - tarballs
+  - trigger
 
-# PHP lint
+## Stage lint
+
+# PHP lint (buster)
 create_php_lint_rapport:
   image: registry.fusiondirectory.org/fusiondirectory/fd/phpcodesniffer-cli:buster
   stage: lint
   only:
     - branches
-    - tags
   script:
-    - find . -type f \( -name '*.php' -o -name '*.inc' \) -print0 | xargs -0 -n1 php -l
+    - find . -type f -name '*.php' -o -name '*.inc' -print0 | xargs -0 -n1 php -l
+
+## Stage codestyle
 
 # PHP codesniffer
 create_php_code_sniffer_rapport:
@@ -18,10 +23,56 @@ create_php_code_sniffer_rapport:
   stage: codestyle
   only:
     - branches
-    - tags
   script:
     - test -d ../dev-tools/ && rm -Rf ../dev-tools/
-    - git clone https://gitlab.fusiondirectory.org/fusiondirectory/dev-tools.git ../dev-tools
-    - find . -type f \( -name '*.php' -o -name '*.inc' \) > ./filelist2
-    - grep -v './vendor/*' filelist2 > filelist
+    - git clone --depth 1 https://gitlab.fusiondirectory.org/fusiondirectory/dev-tools.git ../dev-tools
+    - find . -type f -name '*.php' -o -name '*.inc' > ./filelist
     - /root/.composer/vendor/bin/phpcs --standard=../dev-tools/php-codesniffer-rules/FDStandard/ruleset.xml --file-list=./filelist
+    - git clone --depth 1 https://gitlab-ci:$GITLAB_CI_TOKEN@gitlab.fusiondirectory.org/php-tools/PHPCompatibility.git ../PHPCompatibility
+    - git clone --depth 1 https://gitlab-ci:$GITLAB_CI_TOKEN@gitlab.fusiondirectory.org/php-tools/PHPCSUtils.git ../PHPCSUtils
+    - /root/.composer/vendor/bin/phpcs --config-set installed_paths /builds/fusiondirectory/PHPCompatibility,/builds/fusiondirectory/PHPCSUtils
+    - /root/.composer/vendor/bin/phpcs --standard=PHPCompatibility --runtime-set testVersion 7.3-7.4 --file-list=./filelist
+
+# phpstan
+create_phpstan_rapport:
+  image: registry.fusiondirectory.org/fusiondirectory/fd/phpstan:buster
+  stage: codestyle
+  only:
+    - branches
+  script:
+    - test -d ../dev-tools/ && rm -Rf ../dev-tools/
+    - git clone --depth 1 https://gitlab.fusiondirectory.org/fusiondirectory/dev-tools.git ../dev-tools
+    - apt install libphp-phpmailer
+    - composer global require vlucas/phpdotenv=3.6.7
+    - composer global require phpstan/phpstan=0.12.94
+    - cp ../dev-tools/phpstan/fusiondirectory-orchestrator/*.neon .
+    - composer global require phpstan/phpstan=0.12.94
+    - /root/.composer/vendor/bin/phpstan analyse -c phpstan.neon
+
+build-tarballs:
+  stage: tarballs
+  only:
+    - main
+  script:
+    - mkdir ../fusiondirectory-orchestrator-0.9/
+    - mv ./* ../fusiondirectory-orchestrator-0.9/
+    - mv  ../fusiondirectory-orchestrator-0.9/ ./
+    - tar -cvzf fusiondirectory-orchestrator-0.9.tar.gz *
+  artifacts:
+    paths:
+      - fusiondirectory-orchestrator-0.9.tar.gz
+    expire_in: 30d
+
+trigger-ci-debian-buster:
+  stage: trigger
+  only:
+    - main
+  variables:
+    GROUP: "$GROUP"
+    BRANCH_CORE: "$CI_COMMIT_REF_NAME"
+    BRANCH_PLUGIN: "$CI_COMMIT_REF_NAME"
+    BRANCH_BUILD_DEBIAN_BUSTER: "$BRANCH_BUILD_DEBIAN_BUSTER"
+  trigger:
+    project: debian/buster-fusiondirectory-orchestrator-dev
+    branch: "$BRANCH_BUILD_DEBIAN_BUSTER"
+
