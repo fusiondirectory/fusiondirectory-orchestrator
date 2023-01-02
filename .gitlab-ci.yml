@@ -42,7 +42,8 @@ create_phpstan_rapport:
   script:
     - test -d ../dev-tools/ && rm -Rf ../dev-tools/
     - git clone --depth 1 https://gitlab.fusiondirectory.org/fusiondirectory/dev-tools.git ../dev-tools
-    - apt install php-vlucas-phpdotenv libphp-phpmailer
+    - apt install libphp-phpmailer
+    - composer global require vlucas/phpdotenv=3.6.7
     - composer global require phpstan/phpstan=0.12.94
     - cp ../dev-tools/phpstan/fusiondirectory-orchestrator/*.neon .
     - composer global require phpstan/phpstan=0.12.94
