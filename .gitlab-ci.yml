@@ -63,26 +63,26 @@ build-tarballs:
       - fusiondirectory-orchestrator-0.9.tar.gz
     expire_in: 30d
 
-trigger-ci-debian-bullseye:
-  stage: trigger
-  only:
-    - 0.9-fixes
-  variables:
-    GROUP: "$GROUP"
-    BRANCH: "main"
-    BRANCH_BUILD_DEBIAN_BUSTER: "$BRANCH_BUILD_DEBIAN_BUSTER"
-  trigger:
-    project: debian/bullseye-fusiondirectory-orchestrator-fixes
-    branch: "$BRANCH_BUILD_DEBIAN_BUSTER"
+#trigger-ci-debian-bullseye:
+#  stage: trigger
+#  only:
+#    - 0.9-fixes
+#  variables:
+#    GROUP: "$GROUP"
+#    BRANCH: "main"
+#    BRANCH_BUILD_DEBIAN_BUSTER: "$BRANCH_BUILD_DEBIAN_BUSTER"
+#  trigger:
+#    project: debian/bullseye-fusiondirectory-orchestrator-fixes
+#    branch: "$BRANCH_BUILD_DEBIAN_BUSTER"
 
-trigger-ci-centos-7:
-  stage: trigger
-  only:
-    - 0.9-fixes
-  variables:
-    GROUP: "$GROUP"
-    BRANCH: "main"
-    BRANCH_BUILD_CENTOS_7: "main"
-  trigger:
-    project: centos/centos7-fusiondirectory-orchestrator-fixes
-    branch: "$BRANCH_BUILD_CENTOS_7"
+#trigger-ci-centos-7:
+#  stage: trigger
+#  only:
+#    - 0.9-fixes
+#  variables:
+#    GROUP: "$GROUP"
+#    BRANCH: "main"
+#    BRANCH_BUILD_CENTOS_7: "main"
+#  trigger:
+#    project: centos/centos7-fusiondirectory-orchestrator-fixes
+#    branch: "$BRANCH_BUILD_CENTOS_7"
