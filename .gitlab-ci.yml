@@ -57,7 +57,7 @@ build-tarballs:
     - 0.9-fixes
   script:
     - mkdir ../fusiondirectory-orchestrator-0.9.1/
-    - mv ./* ./.htaccess ../fusiondirectory-orchestrator-0.9.1/
+    - mv ./* ../fusiondirectory-orchestrator-0.9.1/
     - mv  ../fusiondirectory-orchestrator-0.9.1/ ./
     - tar -cvzf fusiondirectory-orchestrator-0.9.1.tar.gz *
   artifacts:
