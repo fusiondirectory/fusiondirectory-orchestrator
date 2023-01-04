@@ -56,6 +56,7 @@ build-tarballs:
   only:
     - 0.9-fixes
   script:
+    - test -d ../fusiondirectory-orchestrator-0.9.1/ && rm -Rf ../fusiondirectory-orchestrator-0.9.1/
     - mkdir ../fusiondirectory-orchestrator-0.9.1/
     - mv ./* ../fusiondirectory-orchestrator-0.9.1/
     - mv  ../fusiondirectory-orchestrator-0.9.1/ ./
