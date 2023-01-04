@@ -56,13 +56,13 @@ build-tarballs:
   only:
     - 0.9-fixes
   script:
-    - mkdir ../fusiondirectory-orchestrator-0.9/
-    - mv ./* ./.htaccess ../fusiondirectory-orchestrator-0.9/
-    - mv  ../fusiondirectory-orchestrator-0.9/ ./
-    - tar -cvzf fusiondirectory-orchestrator-0.9.tar.gz *
+    - mkdir ../fusiondirectory-orchestrator-0.9.1/
+    - mv ./* ./.htaccess ../fusiondirectory-orchestrator-0.9.1/
+    - mv  ../fusiondirectory-orchestrator-0.9.1/ ./
+    - tar -cvzf fusiondirectory-orchestrator-0.9.1.tar.gz *
   artifacts:
     paths:
-      - fusiondirectory-orchestrator-0.9.tar.gz
+      - fusiondirectory-orchestrator-0.9.1.tar.gz
     expire_in: 30d
 
 #trigger-ci-debian-bullseye:
