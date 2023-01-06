@@ -24,7 +24,7 @@ abstract class Result
      *
      * @return \PhpOption\Option<T>
      */
-    abstract public function success();
+  abstract public function success();
 
     /**
      * Map over the success value.
@@ -35,7 +35,7 @@ abstract class Result
      *
      * @return \GrahamCampbell\ResultType\Result<S,E>
      */
-    abstract public function map(callable $f);
+  abstract public function map(callable $f);
 
     /**
      * Flat map over the success value.
@@ -47,14 +47,14 @@ abstract class Result
      *
      * @return \GrahamCampbell\ResultType\Result<S,F>
      */
-    abstract public function flatMap(callable $f);
+  abstract public function flatMap(callable $f);
 
     /**
      * Get the error option value.
      *
      * @return \PhpOption\Option<E>
      */
-    abstract public function error();
+  abstract public function error();
 
     /**
      * Map over the error value.
@@ -65,5 +65,5 @@ abstract class Result
      *
      * @return \GrahamCampbell\ResultType\Result<T,F>
      */
-    abstract public function mapError(callable $f);
+  abstract public function mapError(callable $f);
 }

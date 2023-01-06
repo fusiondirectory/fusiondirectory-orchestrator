@@ -16,10 +16,10 @@ final class Lines
      *
      * @return void
      */
-    private function __construct()
-    {
-        //
-    }
+  private function __construct()
+  {
+      //
+  }
 
     /**
      * Process the array of lines of environment variables.
@@ -30,22 +30,22 @@ final class Lines
      *
      * @return string[]
      */
-    public static function process(array $lines)
-    {
-        $output = [];
-        $multiline = false;
-        $multilineBuffer = [];
+  public static function process(array $lines)
+  {
+      $output = [];
+      $multiline = FALSE;
+      $multilineBuffer = [];
 
-        foreach ($lines as $line) {
-            [$multiline, $line, $multilineBuffer] = self::multilineProcess($multiline, $line, $multilineBuffer);
+    foreach ($lines as $line) {
+        [$multiline, $line, $multilineBuffer] = self::multilineProcess($multiline, $line, $multilineBuffer);
 
-            if (!$multiline && !self::isCommentOrWhitespace($line)) {
-                $output[] = $line;
-            }
-        }
-
-        return $output;
+      if (!$multiline && !self::isCommentOrWhitespace($line)) {
+        $output[] = $line;
+      }
     }
+
+      return $output;
+  }
 
     /**
      * Used to make all multiline variable process.
@@ -56,27 +56,27 @@ final class Lines
      *
      * @return array{bool,string,string[]}
      */
-    private static function multilineProcess(bool $multiline, string $line, array $buffer)
-    {
-        $startsOnCurrentLine = $multiline ? false : self::looksLikeMultilineStart($line);
+  private static function multilineProcess(bool $multiline, string $line, array $buffer)
+  {
+      $startsOnCurrentLine = $multiline ? FALSE : self::looksLikeMultilineStart($line);
 
-        // check if $line can be multiline variable
-        if ($startsOnCurrentLine) {
-            $multiline = true;
-        }
-
-        if ($multiline) {
-            \array_push($buffer, $line);
-
-            if (self::looksLikeMultilineStop($line, $startsOnCurrentLine)) {
-                $multiline = false;
-                $line = \implode("\n", $buffer);
-                $buffer = [];
-            }
-        }
-
-        return [$multiline, $line, $buffer];
+      // check if $line can be multiline variable
+    if ($startsOnCurrentLine) {
+        $multiline = TRUE;
     }
+
+    if ($multiline) {
+        \array_push($buffer, $line);
+
+      if (self::looksLikeMultilineStop($line, $startsOnCurrentLine)) {
+          $multiline = FALSE;
+          $line = \implode("\n", $buffer);
+          $buffer = [];
+      }
+    }
+
+      return [$multiline, $line, $buffer];
+  }
 
     /**
      * Determine if the given line can be the start of a multiline variable.
@@ -85,12 +85,12 @@ final class Lines
      *
      * @return bool
      */
-    private static function looksLikeMultilineStart(string $line)
-    {
-        return Str::pos($line, '="')->map(static function () use ($line) {
-            return self::looksLikeMultilineStop($line, true) === false;
-        })->getOrElse(false);
-    }
+  private static function looksLikeMultilineStart(string $line)
+  {
+      return Str::pos($line, '="')->map(static function () use ($line) {
+          return self::looksLikeMultilineStop($line, TRUE) === FALSE;
+      })->getOrElse(FALSE);
+  }
 
     /**
      * Determine if the given line can be the start of a multiline variable.
@@ -100,16 +100,16 @@ final class Lines
      *
      * @return bool
      */
-    private static function looksLikeMultilineStop(string $line, bool $started)
-    {
-        if ($line === '"') {
-            return true;
-        }
-
-        return Regex::occurrences('/(?=([^\\\\]"))/', \str_replace('\\\\', '', $line))->map(static function (int $count) use ($started) {
-            return $started ? $count > 1 : $count >= 1;
-        })->success()->getOrElse(false);
+  private static function looksLikeMultilineStop(string $line, bool $started)
+  {
+    if ($line === '"') {
+        return TRUE;
     }
+
+      return Regex::occurrences('/(?=([^\\\\]"))/', \str_replace('\\\\', '', $line))->map(static function (int $count) use ($started) {
+          return $started ? $count > 1 : $count >= 1;
+      })->success()->getOrElse(FALSE);
+  }
 
     /**
      * Determine if the line in the file is a comment or whitespace.
@@ -118,10 +118,10 @@ final class Lines
      *
      * @return bool
      */
-    private static function isCommentOrWhitespace(string $line)
-    {
-        $line = \trim($line);
+  private static function isCommentOrWhitespace(string $line)
+  {
+      $line = \trim($line);
 
-        return $line === '' || (isset($line[0]) && $line[0] === '#');
-    }
+      return $line === '' || (isset($line[0]) && $line[0] === '#');
+  }
 }

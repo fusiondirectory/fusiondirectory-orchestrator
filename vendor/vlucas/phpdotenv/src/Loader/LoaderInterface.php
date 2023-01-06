@@ -16,5 +16,5 @@ interface LoaderInterface
      *
      * @return array<string,string|null>
      */
-    public function load(RepositoryInterface $repository, array $entries);
+  public function load(RepositoryInterface $repository, array $entries);
 }

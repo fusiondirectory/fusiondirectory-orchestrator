@@ -35,10 +35,10 @@ final class Error extends Result
      *
      * @return void
      */
-    private function __construct($value)
-    {
-        $this->value = $value;
-    }
+  private function __construct($value)
+  {
+      $this->value = $value;
+  }
 
     /**
      * Create a new error value.
@@ -49,20 +49,20 @@ final class Error extends Result
      *
      * @return \GrahamCampbell\ResultType\Result<T,F>
      */
-    public static function create($value)
-    {
-        return new self($value);
-    }
+  public static function create($value)
+  {
+      return new self($value);
+  }
 
     /**
      * Get the success option value.
      *
      * @return \PhpOption\Option<T>
      */
-    public function success()
-    {
-        return None::create();
-    }
+  public function success()
+  {
+      return None::create();
+  }
 
     /**
      * Map over the success value.
@@ -73,10 +73,10 @@ final class Error extends Result
      *
      * @return \GrahamCampbell\ResultType\Result<S,E>
      */
-    public function map(callable $f)
-    {
-        return self::create($this->value);
-    }
+  public function map(callable $f)
+  {
+      return self::create($this->value);
+  }
 
     /**
      * Flat map over the success value.
@@ -88,21 +88,21 @@ final class Error extends Result
      *
      * @return \GrahamCampbell\ResultType\Result<S,F>
      */
-    public function flatMap(callable $f)
-    {
-        /** @var \GrahamCampbell\ResultType\Result<S,F> */
-        return self::create($this->value);
-    }
+  public function flatMap(callable $f)
+  {
+      /** @var \GrahamCampbell\ResultType\Result<S,F> */
+      return self::create($this->value);
+  }
 
     /**
      * Get the error option value.
      *
      * @return \PhpOption\Option<E>
      */
-    public function error()
-    {
-        return Some::create($this->value);
-    }
+  public function error()
+  {
+      return Some::create($this->value);
+  }
 
     /**
      * Map over the error value.
@@ -113,8 +113,8 @@ final class Error extends Result
      *
      * @return \GrahamCampbell\ResultType\Result<T,F>
      */
-    public function mapError(callable $f)
-    {
-        return self::create($f($this->value));
-    }
+  public function mapError(callable $f)
+  {
+      return self::create($f($this->value));
+  }
 }

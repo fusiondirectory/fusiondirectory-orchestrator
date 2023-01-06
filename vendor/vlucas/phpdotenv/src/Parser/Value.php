@@ -30,21 +30,21 @@ final class Value
      *
      * @return void
      */
-    private function __construct(string $chars, array $vars)
-    {
-        $this->chars = $chars;
-        $this->vars = $vars;
-    }
+  private function __construct(string $chars, array $vars)
+  {
+      $this->chars = $chars;
+      $this->vars = $vars;
+  }
 
     /**
      * Create an empty value instance.
      *
      * @return \Dotenv\Parser\Value
      */
-    public static function blank()
-    {
-        return new self('', []);
-    }
+  public static function blank()
+  {
+      return new self('', []);
+  }
 
     /**
      * Create a new value instance, appending the characters.
@@ -54,35 +54,35 @@ final class Value
      *
      * @return \Dotenv\Parser\Value
      */
-    public function append(string $chars, bool $var)
-    {
-        return new self(
-            $this->chars.$chars,
-            $var ? \array_merge($this->vars, [Str::len($this->chars)]) : $this->vars
-        );
-    }
+  public function append(string $chars, bool $var)
+  {
+      return new self(
+          $this->chars.$chars,
+          $var ? \array_merge($this->vars, [Str::len($this->chars)]) : $this->vars
+      );
+  }
 
     /**
      * Get the string representation of the parsed value.
      *
      * @return string
      */
-    public function getChars()
-    {
-        return $this->chars;
-    }
+  public function getChars()
+  {
+      return $this->chars;
+  }
 
     /**
      * Get the locations of the variables in the value.
      *
      * @return int[]
      */
-    public function getVars()
-    {
-        $vars = $this->vars;
+  public function getVars()
+  {
+      $vars = $this->vars;
 
-        \rsort($vars);
+      \rsort($vars);
 
-        return $vars;
-    }
+      return $vars;
+  }
 }

@@ -6,70 +6,70 @@ namespace Composer\Autoload;
 
 class ComposerStaticInit302e19ebcb32b8dc69a48adf85644a09
 {
-    public static $files = array (
+  public static $files = [
         '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
         'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
-    );
+    ];
 
-    public static $prefixLengthsPsr4 = array (
-        'S' => 
-        array (
+  public static $prefixLengthsPsr4 = [
+        'S' =>
+         [
             'Symfony\\Polyfill\\Php80\\' => 23,
             'Symfony\\Polyfill\\Mbstring\\' => 26,
             'Symfony\\Polyfill\\Ctype\\' => 23,
-        ),
-        'P' => 
-        array (
+        ],
+        'P' =>
+         [
             'PhpOption\\' => 10,
             'PHPMailer\\PHPMailer\\' => 20,
-        ),
-        'G' => 
-        array (
+        ],
+        'G' =>
+         [
             'GrahamCampbell\\ResultType\\' => 26,
-        ),
-        'D' => 
-        array (
+        ],
+        'D' =>
+         [
             'Dotenv\\' => 7,
-        ),
-    );
+        ],
+    ];
 
-    public static $prefixDirsPsr4 = array (
-        'Symfony\\Polyfill\\Php80\\' => 
-        array (
+  public static $prefixDirsPsr4 = [
+        'Symfony\\Polyfill\\Php80\\' =>
+         [
             0 => __DIR__ . '/..' . '/symfony/polyfill-php80',
-        ),
-        'Symfony\\Polyfill\\Mbstring\\' => 
-        array (
+        ],
+        'Symfony\\Polyfill\\Mbstring\\' =>
+         [
             0 => __DIR__ . '/..' . '/symfony/polyfill-mbstring',
-        ),
-        'Symfony\\Polyfill\\Ctype\\' => 
-        array (
+        ],
+        'Symfony\\Polyfill\\Ctype\\' =>
+         [
             0 => __DIR__ . '/..' . '/symfony/polyfill-ctype',
-        ),
-        'PhpOption\\' => 
-        array (
+        ],
+        'PhpOption\\' =>
+         [
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
-        ),
-        'PHPMailer\\PHPMailer\\' => 
-        array (
+        ],
+        'PHPMailer\\PHPMailer\\' =>
+         [
             0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
-        ),
-        'GrahamCampbell\\ResultType\\' => 
-        array (
+        ],
+        'GrahamCampbell\\ResultType\\' =>
+         [
             0 => __DIR__ . '/..' . '/graham-campbell/result-type/src',
-        ),
-        'Dotenv\\' => 
-        array (
+        ],
+        'Dotenv\\' =>
+         [
             0 => __DIR__ . '/..' . '/vlucas/phpdotenv/src',
-        ),
-    );
+        ],
+    ];
 
-    public static $fallbackDirsPsr4 = array (
+  public static $fallbackDirsPsr4 = [
         0 => __DIR__ . '/../..' . '/library',
-    );
+    ];
 
-    public static $classMap = array (
+  public static $classMap = [
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
         'Auth' => __DIR__ . '/../..' . '/library/Auth.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
@@ -145,16 +145,16 @@ class ComposerStaticInit302e19ebcb32b8dc69a48adf85644a09
         'UnhandledMatchError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',
         'UserGateway' => __DIR__ . '/../..' . '/library/UserGateway.php',
         'ValueError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/ValueError.php',
-    );
+    ];
 
-    public static function getInitializer(ClassLoader $loader)
-    {
-        return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit302e19ebcb32b8dc69a48adf85644a09::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit302e19ebcb32b8dc69a48adf85644a09::$prefixDirsPsr4;
-            $loader->fallbackDirsPsr4 = ComposerStaticInit302e19ebcb32b8dc69a48adf85644a09::$fallbackDirsPsr4;
-            $loader->classMap = ComposerStaticInit302e19ebcb32b8dc69a48adf85644a09::$classMap;
+  public static function getInitializer(ClassLoader $loader)
+  {
+      return \Closure::bind(function () use ($loader) {
+          $loader->prefixLengthsPsr4 = ComposerStaticInit302e19ebcb32b8dc69a48adf85644a09::$prefixLengthsPsr4;
+          $loader->prefixDirsPsr4 = ComposerStaticInit302e19ebcb32b8dc69a48adf85644a09::$prefixDirsPsr4;
+          $loader->fallbackDirsPsr4 = ComposerStaticInit302e19ebcb32b8dc69a48adf85644a09::$fallbackDirsPsr4;
+          $loader->classMap = ComposerStaticInit302e19ebcb32b8dc69a48adf85644a09::$classMap;
 
-        }, null, ClassLoader::class);
-    }
+      }, NULL, ClassLoader::class);
+  }
 }

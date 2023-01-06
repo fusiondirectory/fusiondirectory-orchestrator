@@ -35,12 +35,12 @@ final class ImmutableWriter implements WriterInterface
      *
      * @return void
      */
-    public function __construct(WriterInterface $writer, ReaderInterface $reader)
-    {
-        $this->writer = $writer;
-        $this->reader = $reader;
-        $this->loaded = [];
-    }
+  public function __construct(WriterInterface $writer, ReaderInterface $reader)
+  {
+      $this->writer = $writer;
+      $this->reader = $reader;
+      $this->loaded = [];
+  }
 
     /**
      * Write to an environment variable, if possible.
@@ -50,24 +50,24 @@ final class ImmutableWriter implements WriterInterface
      *
      * @return bool
      */
-    public function write(string $name, string $value)
-    {
-        // Don't overwrite existing environment variables
-        // Ruby's dotenv does this with `ENV[key] ||= value`
-        if ($this->isExternallyDefined($name)) {
-            return false;
-        }
-
-        // Set the value on the inner writer
-        if (!$this->writer->write($name, $value)) {
-            return false;
-        }
-
-        // Record that we have loaded the variable
-        $this->loaded[$name] = '';
-
-        return true;
+  public function write(string $name, string $value)
+  {
+      // Don't overwrite existing environment variables
+      // Ruby's dotenv does this with `ENV[key] ||= value`
+    if ($this->isExternallyDefined($name)) {
+        return FALSE;
     }
+
+      // Set the value on the inner writer
+    if (!$this->writer->write($name, $value)) {
+        return FALSE;
+    }
+
+      // Record that we have loaded the variable
+      $this->loaded[$name] = '';
+
+      return TRUE;
+  }
 
     /**
      * Delete an environment variable, if possible.
@@ -76,23 +76,23 @@ final class ImmutableWriter implements WriterInterface
      *
      * @return bool
      */
-    public function delete(string $name)
-    {
-        // Don't clear existing environment variables
-        if ($this->isExternallyDefined($name)) {
-            return false;
-        }
-
-        // Clear the value on the inner writer
-        if (!$this->writer->delete($name)) {
-            return false;
-        }
-
-        // Leave the variable as fair game
-        unset($this->loaded[$name]);
-
-        return true;
+  public function delete(string $name)
+  {
+      // Don't clear existing environment variables
+    if ($this->isExternallyDefined($name)) {
+        return FALSE;
     }
+
+      // Clear the value on the inner writer
+    if (!$this->writer->delete($name)) {
+        return FALSE;
+    }
+
+      // Leave the variable as fair game
+      unset($this->loaded[$name]);
+
+      return TRUE;
+  }
 
     /**
      * Determine if the given variable is externally defined.
@@ -103,8 +103,8 @@ final class ImmutableWriter implements WriterInterface
      *
      * @return bool
      */
-    private function isExternallyDefined(string $name)
-    {
-        return $this->reader->read($name)->isDefined() && !isset($this->loaded[$name]);
-    }
+  private function isExternallyDefined(string $name)
+  {
+      return $this->reader->read($name)->isDefined() && !isset($this->loaded[$name]);
+  }
 }

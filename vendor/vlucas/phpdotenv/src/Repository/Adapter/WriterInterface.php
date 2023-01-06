@@ -14,7 +14,7 @@ interface WriterInterface
      *
      * @return bool
      */
-    public function write(string $name, string $value);
+  public function write(string $name, string $value);
 
     /**
      * Delete an environment variable, if possible.
@@ -23,5 +23,5 @@ interface WriterInterface
      *
      * @return bool
      */
-    public function delete(string $name);
+  public function delete(string $name);
 }

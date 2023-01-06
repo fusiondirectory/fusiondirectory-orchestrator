@@ -20,10 +20,10 @@ final class MultiWriter implements WriterInterface
      *
      * @return void
      */
-    public function __construct(array $writers)
-    {
-        $this->writers = $writers;
-    }
+  public function __construct(array $writers)
+  {
+      $this->writers = $writers;
+  }
 
     /**
      * Write to an environment variable, if possible.
@@ -33,16 +33,16 @@ final class MultiWriter implements WriterInterface
      *
      * @return bool
      */
-    public function write(string $name, string $value)
-    {
-        foreach ($this->writers as $writers) {
-            if (!$writers->write($name, $value)) {
-                return false;
-            }
-        }
-
-        return true;
+  public function write(string $name, string $value)
+  {
+    foreach ($this->writers as $writers) {
+      if (!$writers->write($name, $value)) {
+        return FALSE;
+      }
     }
+
+      return TRUE;
+  }
 
     /**
      * Delete an environment variable, if possible.
@@ -51,14 +51,14 @@ final class MultiWriter implements WriterInterface
      *
      * @return bool
      */
-    public function delete(string $name)
-    {
-        foreach ($this->writers as $writers) {
-            if (!$writers->delete($name)) {
-                return false;
-            }
-        }
-
-        return true;
+  public function delete(string $name)
+  {
+    foreach ($this->writers as $writers) {
+      if (!$writers->delete($name)) {
+        return FALSE;
+      }
     }
+
+      return TRUE;
+  }
 }

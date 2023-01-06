@@ -11,5 +11,5 @@ interface AdapterInterface extends ReaderInterface, WriterInterface
      *
      * @return \PhpOption\Option<\Dotenv\Repository\Adapter\AdapterInterface>
      */
-    public static function create();
+  public static function create();
 }

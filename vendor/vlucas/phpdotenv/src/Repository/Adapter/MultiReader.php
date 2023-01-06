@@ -22,10 +22,10 @@ final class MultiReader implements ReaderInterface
      *
      * @return void
      */
-    public function __construct(array $readers)
-    {
-        $this->readers = $readers;
-    }
+  public function __construct(array $readers)
+  {
+      $this->readers = $readers;
+  }
 
     /**
      * Read an environment variable, if it exists.
@@ -34,15 +34,15 @@ final class MultiReader implements ReaderInterface
      *
      * @return \PhpOption\Option<string>
      */
-    public function read(string $name)
-    {
-        foreach ($this->readers as $reader) {
-            $result = $reader->read($name);
-            if ($result->isDefined()) {
-                return $result;
-            }
-        }
-
-        return None::create();
+  public function read(string $name)
+  {
+    foreach ($this->readers as $reader) {
+        $result = $reader->read($name);
+      if ($result->isDefined()) {
+        return $result;
+      }
     }
+
+      return None::create();
+  }
 }

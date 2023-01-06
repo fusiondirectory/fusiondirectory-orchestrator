@@ -28,11 +28,11 @@ final class GuardedWriter implements WriterInterface
      *
      * @return void
      */
-    public function __construct(WriterInterface $writer, array $allowList)
-    {
-        $this->writer = $writer;
-        $this->allowList = $allowList;
-    }
+  public function __construct(WriterInterface $writer, array $allowList)
+  {
+      $this->writer = $writer;
+      $this->allowList = $allowList;
+  }
 
     /**
      * Write to an environment variable, if possible.
@@ -42,16 +42,16 @@ final class GuardedWriter implements WriterInterface
      *
      * @return bool
      */
-    public function write(string $name, string $value)
-    {
-        // Don't set non-allowed variables
-        if (!$this->isAllowed($name)) {
-            return false;
-        }
-
-        // Set the value on the inner writer
-        return $this->writer->write($name, $value);
+  public function write(string $name, string $value)
+  {
+      // Don't set non-allowed variables
+    if (!$this->isAllowed($name)) {
+        return FALSE;
     }
+
+      // Set the value on the inner writer
+      return $this->writer->write($name, $value);
+  }
 
     /**
      * Delete an environment variable, if possible.
@@ -60,16 +60,16 @@ final class GuardedWriter implements WriterInterface
      *
      * @return bool
      */
-    public function delete(string $name)
-    {
-        // Don't clear non-allowed variables
-        if (!$this->isAllowed($name)) {
-            return false;
-        }
-
-        // Set the value on the inner writer
-        return $this->writer->delete($name);
+  public function delete(string $name)
+  {
+      // Don't clear non-allowed variables
+    if (!$this->isAllowed($name)) {
+        return FALSE;
     }
+
+      // Set the value on the inner writer
+      return $this->writer->delete($name);
+  }
 
     /**
      * Determine if the given variable is allowed.
@@ -78,8 +78,8 @@ final class GuardedWriter implements WriterInterface
      *
      * @return bool
      */
-    private function isAllowed(string $name)
-    {
-        return \in_array($name, $this->allowList, true);
-    }
+  private function isAllowed(string $name)
+  {
+      return \in_array($name, $this->allowList, TRUE);
+  }
 }

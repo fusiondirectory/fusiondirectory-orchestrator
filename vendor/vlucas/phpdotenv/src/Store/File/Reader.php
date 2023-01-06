@@ -20,10 +20,10 @@ final class Reader
      *
      * @return void
      */
-    private function __construct()
-    {
-        //
-    }
+  private function __construct()
+  {
+      //
+  }
 
     /**
      * Read the file(s), and return their raw content.
@@ -40,22 +40,22 @@ final class Reader
      *
      * @return array<string,string>
      */
-    public static function read(array $filePaths, bool $shortCircuit = true, string $fileEncoding = null)
-    {
-        $output = [];
+  public static function read(array $filePaths, bool $shortCircuit = TRUE, string $fileEncoding = NULL)
+  {
+      $output = [];
 
-        foreach ($filePaths as $filePath) {
-            $content = self::readFromFile($filePath, $fileEncoding);
-            if ($content->isDefined()) {
-                $output[$filePath] = $content->get();
-                if ($shortCircuit) {
-                    break;
-                }
-            }
+    foreach ($filePaths as $filePath) {
+        $content = self::readFromFile($filePath, $fileEncoding);
+      if ($content->isDefined()) {
+        $output[$filePath] = $content->get();
+        if ($shortCircuit) {
+            break;
         }
-
-        return $output;
+      }
     }
+
+      return $output;
+  }
 
     /**
      * Read the given file.
@@ -67,15 +67,15 @@ final class Reader
      *
      * @return \PhpOption\Option<string>
      */
-    private static function readFromFile(string $path, string $encoding = null)
-    {
-        /** @var Option<string> */
-        $content = Option::fromValue(@\file_get_contents($path), false);
+  private static function readFromFile(string $path, string $encoding = NULL)
+  {
+      /** @var Option<string> */
+      $content = Option::fromValue(@\file_get_contents($path), FALSE);
 
-        return $content->flatMap(static function (string $content) use ($encoding) {
-            return Str::utf8($content, $encoding)->mapError(static function (string $error) {
-                throw new InvalidEncodingException($error);
-            })->success();
-        });
-    }
+      return $content->flatMap(static function (string $content) use ($encoding) {
+          return Str::utf8($content, $encoding)->mapError(static function (string $error) {
+              throw new InvalidEncodingException($error);
+          })->success();
+      });
+  }
 }

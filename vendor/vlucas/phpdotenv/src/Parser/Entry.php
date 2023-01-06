@@ -30,30 +30,30 @@ final class Entry
      *
      * @return void
      */
-    public function __construct(string $name, Value $value = null)
-    {
-        $this->name = $name;
-        $this->value = $value;
-    }
+  public function __construct(string $name, Value $value = NULL)
+  {
+      $this->name = $name;
+      $this->value = $value;
+  }
 
     /**
      * Get the entry name.
      *
      * @return string
      */
-    public function getName()
-    {
-        return $this->name;
-    }
+  public function getName()
+  {
+      return $this->name;
+  }
 
     /**
      * Get the entry value.
      *
      * @return \PhpOption\Option<\Dotenv\Parser\Value>
      */
-    public function getValue()
-    {
-        /** @var \PhpOption\Option<\Dotenv\Parser\Value> */
-        return Option::fromValue($this->value);
-    }
+  public function getValue()
+  {
+      /** @var \PhpOption\Option<\Dotenv\Parser\Value> */
+      return Option::fromValue($this->value);
+  }
 }

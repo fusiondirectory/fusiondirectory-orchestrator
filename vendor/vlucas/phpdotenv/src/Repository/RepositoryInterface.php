@@ -13,7 +13,7 @@ interface RepositoryInterface
      *
      * @return bool
      */
-    public function has(string $name);
+  public function has(string $name);
 
     /**
      * Get an environment variable.
@@ -24,7 +24,7 @@ interface RepositoryInterface
      *
      * @return string|null
      */
-    public function get(string $name);
+  public function get(string $name);
 
     /**
      * Set an environment variable.
@@ -36,7 +36,7 @@ interface RepositoryInterface
      *
      * @return bool
      */
-    public function set(string $name, string $value);
+  public function set(string $name, string $value);
 
     /**
      * Clear an environment variable.
@@ -47,5 +47,5 @@ interface RepositoryInterface
      *
      * @return bool
      */
-    public function clear(string $name);
+  public function clear(string $name);
 }

@@ -15,5 +15,5 @@ interface ParserInterface
      *
      * @return \Dotenv\Parser\Entry[]
      */
-    public function parse(string $content);
+  public function parse(string $content);
 }

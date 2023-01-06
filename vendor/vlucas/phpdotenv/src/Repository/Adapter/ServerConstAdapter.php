@@ -14,21 +14,21 @@ final class ServerConstAdapter implements AdapterInterface
      *
      * @return void
      */
-    private function __construct()
-    {
-        //
-    }
+  private function __construct()
+  {
+      //
+  }
 
     /**
      * Create a new instance of the adapter, if it is available.
      *
      * @return \PhpOption\Option<\Dotenv\Repository\Adapter\AdapterInterface>
      */
-    public static function create()
-    {
-        /** @var \PhpOption\Option<AdapterInterface> */
-        return Some::create(new self());
-    }
+  public static function create()
+  {
+      /** @var \PhpOption\Option<AdapterInterface> */
+      return Some::create(new self());
+  }
 
     /**
      * Read an environment variable, if it exists.
@@ -37,26 +37,24 @@ final class ServerConstAdapter implements AdapterInterface
      *
      * @return \PhpOption\Option<string>
      */
-    public function read(string $name)
-    {
-        /** @var \PhpOption\Option<string> */
-        return Option::fromArraysValue($_SERVER, $name)
-            ->filter(static function ($value) {
-                return \is_scalar($value);
-            })
-            ->map(static function ($value) {
-                if ($value === false) {
-                    return 'false';
-                }
+  public function read(string $name)
+  {
+      /** @var \PhpOption\Option<string> */
+      return Option::fromArraysValue($_SERVER, $name)->filter(static function ($value) {
+              return \is_scalar($value);
+      })->map(static function ($value) {
+        if ($value === FALSE) {
+            return 'false';
+        }
 
-                if ($value === true) {
-                    return 'true';
-                }
+        if ($value === TRUE) {
+            return 'true';
+        }
 
-                /** @psalm-suppress PossiblyInvalidCast */
-                return (string) $value;
-            });
-    }
+          /** @psalm-suppress PossiblyInvalidCast */
+          return (string) $value;
+      });
+  }
 
     /**
      * Write to an environment variable, if possible.
@@ -66,12 +64,12 @@ final class ServerConstAdapter implements AdapterInterface
      *
      * @return bool
      */
-    public function write(string $name, string $value)
-    {
-        $_SERVER[$name] = $value;
+  public function write(string $name, string $value)
+  {
+      $_SERVER[$name] = $value;
 
-        return true;
-    }
+      return TRUE;
+  }
 
     /**
      * Delete an environment variable, if possible.
@@ -80,10 +78,10 @@ final class ServerConstAdapter implements AdapterInterface
      *
      * @return bool
      */
-    public function delete(string $name)
-    {
-        unset($_SERVER[$name]);
+  public function delete(string $name)
+  {
+      unset($_SERVER[$name]);
 
-        return true;
-    }
+      return TRUE;
+  }
 }

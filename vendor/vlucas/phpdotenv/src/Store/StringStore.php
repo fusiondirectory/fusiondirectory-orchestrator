@@ -20,18 +20,18 @@ final class StringStore implements StoreInterface
      *
      * @return void
      */
-    public function __construct(string $content)
-    {
-        $this->content = $content;
-    }
+  public function __construct(string $content)
+  {
+      $this->content = $content;
+  }
 
     /**
      * Read the content of the environment file(s).
      *
      * @return string
      */
-    public function read()
-    {
-        return $this->content;
-    }
+  public function read()
+  {
+      return $this->content;
+  }
 }

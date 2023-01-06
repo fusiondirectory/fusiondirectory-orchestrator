@@ -48,7 +48,7 @@ use Stevenmaguire\OAuth2\Client\Provider\Microsoft;
 use Greew\OAuth2\Client\Provider\Azure;
 
 if (!isset($_GET['code']) && !isset($_POST['provider'])) {
-    ?>
+  ?>
 <html>
 <body>
 <form method="post">
@@ -116,43 +116,43 @@ $params = [
 ];
 
 $options = [];
-$provider = null;
+$provider = NULL;
 
 switch ($providerName) {
-    case 'Google':
-        $provider = new Google($params);
-        $options = [
-            'scope' => [
-                'https://mail.google.com/'
-            ]
-        ];
-        break;
-    case 'Yahoo':
-        $provider = new Yahoo($params);
-        break;
-    case 'Microsoft':
-        $provider = new Microsoft($params);
-        $options = [
-            'scope' => [
-                'wl.imap',
-                'wl.offline_access'
-            ]
-        ];
-        break;
-    case 'Azure':
-        $params['tenantId'] = $tenantId;
+  case 'Google':
+      $provider = new Google($params);
+      $options = [
+          'scope' => [
+              'https://mail.google.com/'
+          ]
+      ];
+    break;
+  case 'Yahoo':
+      $provider = new Yahoo($params);
+    break;
+  case 'Microsoft':
+      $provider = new Microsoft($params);
+      $options = [
+          'scope' => [
+              'wl.imap',
+              'wl.offline_access'
+          ]
+      ];
+    break;
+  case 'Azure':
+      $params['tenantId'] = $tenantId;
 
-        $provider = new Azure($params);
-        $options = [
-            'scope' => [
-                'https://outlook.office.com/SMTP.Send',
-                'offline_access'
-            ]
-        ];
-        break;
+      $provider = new Azure($params);
+      $options = [
+          'scope' => [
+              'https://outlook.office.com/SMTP.Send',
+              'offline_access'
+          ]
+      ];
+    break;
 }
 
-if (null === $provider) {
+if (NULL === $provider) {
     exit('Provider missing');
 }
 

@@ -11,7 +11,7 @@ final class StoreBuilder
     /**
      * The of default name.
      */
-    private const DEFAULT_NAME = '.env';
+  private const DEFAULT_NAME = '.env';
 
     /**
      * The paths to search within.
@@ -51,33 +51,33 @@ final class StoreBuilder
      *
      * @return void
      */
-    private function __construct(array $paths = [], array $names = [], bool $shortCircuit = false, string $fileEncoding = null)
-    {
-        $this->paths = $paths;
-        $this->names = $names;
-        $this->shortCircuit = $shortCircuit;
-        $this->fileEncoding = $fileEncoding;
-    }
+  private function __construct(array $paths = [], array $names = [], bool $shortCircuit = FALSE, string $fileEncoding = NULL)
+  {
+      $this->paths = $paths;
+      $this->names = $names;
+      $this->shortCircuit = $shortCircuit;
+      $this->fileEncoding = $fileEncoding;
+  }
 
     /**
      * Create a new store builder instance with no names.
      *
      * @return \Dotenv\Store\StoreBuilder
      */
-    public static function createWithNoNames()
-    {
-        return new self();
-    }
+  public static function createWithNoNames()
+  {
+      return new self();
+  }
 
     /**
      * Create a new store builder instance with the default name.
      *
      * @return \Dotenv\Store\StoreBuilder
      */
-    public static function createWithDefaultName()
-    {
-        return new self([], [self::DEFAULT_NAME]);
-    }
+  public static function createWithDefaultName()
+  {
+      return new self([], [self::DEFAULT_NAME]);
+  }
 
     /**
      * Creates a store builder with the given path added.
@@ -86,10 +86,10 @@ final class StoreBuilder
      *
      * @return \Dotenv\Store\StoreBuilder
      */
-    public function addPath(string $path)
-    {
-        return new self(\array_merge($this->paths, [$path]), $this->names, $this->shortCircuit, $this->fileEncoding);
-    }
+  public function addPath(string $path)
+  {
+      return new self(\array_merge($this->paths, [$path]), $this->names, $this->shortCircuit, $this->fileEncoding);
+  }
 
     /**
      * Creates a store builder with the given name added.
@@ -98,20 +98,20 @@ final class StoreBuilder
      *
      * @return \Dotenv\Store\StoreBuilder
      */
-    public function addName(string $name)
-    {
-        return new self($this->paths, \array_merge($this->names, [$name]), $this->shortCircuit, $this->fileEncoding);
-    }
+  public function addName(string $name)
+  {
+      return new self($this->paths, \array_merge($this->names, [$name]), $this->shortCircuit, $this->fileEncoding);
+  }
 
     /**
      * Creates a store builder with short circuit mode enabled.
      *
      * @return \Dotenv\Store\StoreBuilder
      */
-    public function shortCircuit()
-    {
-        return new self($this->paths, $this->names, true, $this->fileEncoding);
-    }
+  public function shortCircuit()
+  {
+      return new self($this->paths, $this->names, TRUE, $this->fileEncoding);
+  }
 
     /**
      * Creates a store builder with the specified file encoding.
@@ -120,22 +120,22 @@ final class StoreBuilder
      *
      * @return \Dotenv\Store\StoreBuilder
      */
-    public function fileEncoding(string $fileEncoding = null)
-    {
-        return new self($this->paths, $this->names, $this->shortCircuit, $fileEncoding);
-    }
+  public function fileEncoding(string $fileEncoding = NULL)
+  {
+      return new self($this->paths, $this->names, $this->shortCircuit, $fileEncoding);
+  }
 
     /**
      * Creates a new store instance.
      *
      * @return \Dotenv\Store\StoreInterface
      */
-    public function make()
-    {
-        return new FileStore(
-            Paths::filePaths($this->paths, $this->names),
-            $this->shortCircuit,
-            $this->fileEncoding
-        );
-    }
+  public function make()
+  {
+      return new FileStore(
+          Paths::filePaths($this->paths, $this->names),
+          $this->shortCircuit,
+          $this->fileEncoding
+      );
+  }
 }

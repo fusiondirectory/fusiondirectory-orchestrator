@@ -16,10 +16,10 @@ final class Paths
      *
      * @return void
      */
-    private function __construct()
-    {
-        //
-    }
+  private function __construct()
+  {
+      //
+  }
 
     /**
      * Returns the full paths to the files.
@@ -29,16 +29,16 @@ final class Paths
      *
      * @return string[]
      */
-    public static function filePaths(array $paths, array $names)
-    {
-        $files = [];
+  public static function filePaths(array $paths, array $names)
+  {
+      $files = [];
 
-        foreach ($paths as $path) {
-            foreach ($names as $name) {
-                $files[] = \rtrim($path, \DIRECTORY_SEPARATOR).\DIRECTORY_SEPARATOR.$name;
-            }
-        }
-
-        return $files;
+    foreach ($paths as $path) {
+      foreach ($names as $name) {
+        $files[] = \rtrim($path, \DIRECTORY_SEPARATOR).\DIRECTORY_SEPARATOR.$name;
+      }
     }
+
+      return $files;
+  }
 }

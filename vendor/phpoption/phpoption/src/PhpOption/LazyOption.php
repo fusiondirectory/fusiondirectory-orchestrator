@@ -43,133 +43,133 @@ final class LazyOption extends Option
      *
      * @return LazyOption<S>
      */
-    public static function create($callback, array $arguments = []): self
-    {
-        return new self($callback, $arguments);
-    }
+  public static function create($callback, array $arguments = []): self
+  {
+      return new self($callback, $arguments);
+  }
 
     /**
      * @param callable(mixed...):(Option<T>) $callback
      * @param array<int, mixed>              $arguments
      */
-    public function __construct($callback, array $arguments = [])
-    {
-        if (!is_callable($callback)) {
-            throw new \InvalidArgumentException('Invalid callback given');
-        }
-
-        $this->callback = $callback;
-        $this->arguments = $arguments;
+  public function __construct($callback, array $arguments = [])
+  {
+    if (!is_callable($callback)) {
+        throw new \InvalidArgumentException('Invalid callback given');
     }
 
-    public function isDefined(): bool
-    {
-        return $this->option()->isDefined();
-    }
+      $this->callback = $callback;
+      $this->arguments = $arguments;
+  }
 
-    public function isEmpty(): bool
-    {
-        return $this->option()->isEmpty();
-    }
+  public function isDefined(): bool
+  {
+      return $this->option()->isDefined();
+  }
 
-    public function get()
-    {
-        return $this->option()->get();
-    }
+  public function isEmpty(): bool
+  {
+      return $this->option()->isEmpty();
+  }
 
-    public function getOrElse($default)
-    {
-        return $this->option()->getOrElse($default);
-    }
+  public function get()
+  {
+      return $this->option()->get();
+  }
 
-    public function getOrCall($callable)
-    {
-        return $this->option()->getOrCall($callable);
-    }
+  public function getOrElse($default)
+  {
+      return $this->option()->getOrElse($default);
+  }
 
-    public function getOrThrow(\Exception $ex)
-    {
-        return $this->option()->getOrThrow($ex);
-    }
+  public function getOrCall($callable)
+  {
+      return $this->option()->getOrCall($callable);
+  }
 
-    public function orElse(Option $else)
-    {
-        return $this->option()->orElse($else);
-    }
+  public function getOrThrow(\Exception $ex)
+  {
+      return $this->option()->getOrThrow($ex);
+  }
 
-    public function ifDefined($callable)
-    {
-        $this->option()->forAll($callable);
-    }
+  public function orElse(Option $else)
+  {
+      return $this->option()->orElse($else);
+  }
 
-    public function forAll($callable)
-    {
-        return $this->option()->forAll($callable);
-    }
+  public function ifDefined($callable)
+  {
+      $this->option()->forAll($callable);
+  }
 
-    public function map($callable)
-    {
-        return $this->option()->map($callable);
-    }
+  public function forAll($callable)
+  {
+      return $this->option()->forAll($callable);
+  }
 
-    public function flatMap($callable)
-    {
-        return $this->option()->flatMap($callable);
-    }
+  public function map($callable)
+  {
+      return $this->option()->map($callable);
+  }
 
-    public function filter($callable)
-    {
-        return $this->option()->filter($callable);
-    }
+  public function flatMap($callable)
+  {
+      return $this->option()->flatMap($callable);
+  }
 
-    public function filterNot($callable)
-    {
-        return $this->option()->filterNot($callable);
-    }
+  public function filter($callable)
+  {
+      return $this->option()->filter($callable);
+  }
 
-    public function select($value)
-    {
-        return $this->option()->select($value);
-    }
+  public function filterNot($callable)
+  {
+      return $this->option()->filterNot($callable);
+  }
 
-    public function reject($value)
-    {
-        return $this->option()->reject($value);
-    }
+  public function select($value)
+  {
+      return $this->option()->select($value);
+  }
+
+  public function reject($value)
+  {
+      return $this->option()->reject($value);
+  }
 
     /**
      * @return Traversable<T>
      */
-    public function getIterator(): Traversable
-    {
-        return $this->option()->getIterator();
-    }
+  public function getIterator(): Traversable
+  {
+      return $this->option()->getIterator();
+  }
 
-    public function foldLeft($initialValue, $callable)
-    {
-        return $this->option()->foldLeft($initialValue, $callable);
-    }
+  public function foldLeft($initialValue, $callable)
+  {
+      return $this->option()->foldLeft($initialValue, $callable);
+  }
 
-    public function foldRight($initialValue, $callable)
-    {
-        return $this->option()->foldRight($initialValue, $callable);
-    }
+  public function foldRight($initialValue, $callable)
+  {
+      return $this->option()->foldRight($initialValue, $callable);
+  }
 
     /**
      * @return Option<T>
      */
-    private function option(): Option
-    {
-        if (null === $this->option) {
-            /** @var mixed */
-            $option = call_user_func_array($this->callback, $this->arguments);
-            if ($option instanceof Option) {
-                $this->option = $option;
-            } else {
-                throw new \RuntimeException(sprintf('Expected instance of %s', Option::class));
-            }
-        }
-
-        return $this->option;
+  private function option(): Option
+  {
+    if (NULL === $this->option) {
+        /** @var mixed */
+        $option = call_user_func_array($this->callback, $this->arguments);
+      if ($option instanceof Option) {
+        $this->option = $option;
+      } else {
+          throw new \RuntimeException(sprintf('Expected instance of %s', Option::class));
+      }
     }
+
+      return $this->option;
+  }
 }

@@ -13,5 +13,5 @@ interface ReaderInterface
      *
      * @return \PhpOption\Option<string>
      */
-    public function read(string $name);
+  public function read(string $name);
 }
