@@ -46,7 +46,7 @@ $user_gateway = new UserGateway($ldap_connect);
 $codec = new JWTCodec($_ENV["SECRET_KEY"]);
 
 // Verify User With Related Token Access
-$auth = new Auth($user_gateway, $codec);
+$auth = new Authentication($user_gateway, $codec);
 
 // Quit script execution if access token is invalid or expired
 if (!$auth->authenticateAccessToken()) {

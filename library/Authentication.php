@@ -1,6 +1,6 @@
 <?php
 
-class Auth
+class Authentication
 {
   private $user_id;
   private $user_gateway;
