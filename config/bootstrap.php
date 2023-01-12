@@ -40,7 +40,7 @@ spl_autoload_register('autoload');
 set_error_handler("ErrorHandler::handleError");
 set_exception_handler("ErrorHandler::handleException");
 
-$dotenv = Dotenv\Dotenv::create('/etc/orchestrator', 'orchestrator.conf');
+$dotenv = new Dotenv\Dotenv('/etc/fusiondirectory-orchestrator', 'orchestrator.conf');
 $dotenv->load();
 
 header("Content-type: application/json; charset=UTF-8");
