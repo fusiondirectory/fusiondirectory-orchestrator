@@ -73,7 +73,7 @@ trigger-ci-debian-bullseye:
     - 0.9-fixes
   variables:
     GROUP: "$GROUP"
-    BRANCH: "main"
+    BRANCH: "0.9-fixes"
     BRANCH_BUILD_DEBIAN_BUSTER: "$BRANCH_BUILD_DEBIAN_BUSTER"
   trigger:
     project: debian/bullseye-fusiondirectory-orchestrator-fixes
@@ -85,7 +85,7 @@ trigger-ci-centos-7:
     - 0.9-fixes
   variables:
     GROUP: "$GROUP"
-    BRANCH: "main"
+    BRANCH: "0.9-fixes"
     BRANCH_BUILD_CENTOS_7: "main"
   trigger:
     project: centos/centos7-fusiondirectory-orchestrator-fixes
