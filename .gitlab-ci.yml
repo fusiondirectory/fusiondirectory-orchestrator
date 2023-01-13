@@ -77,7 +77,7 @@ trigger-ci-debian-bullseye:
     BRANCH_BUILD_DEBIAN_BUSTER: "$BRANCH_BUILD_DEBIAN_BUSTER"
   trigger:
     project: debian/bullseye-fusiondirectory-orchestrator-fixes
-    branch: "$BRANCH_BUILD_DEBIAN_BUSTER"
+    branch: "main"
 
 trigger-ci-centos-7:
   stage: trigger
@@ -89,4 +89,4 @@ trigger-ci-centos-7:
     BRANCH_BUILD_CENTOS_7: "main"
   trigger:
     project: centos/centos7-fusiondirectory-orchestrator-fixes
-    branch: "$BRANCH_BUILD_CENTOS_7"
+    branch: "main"
