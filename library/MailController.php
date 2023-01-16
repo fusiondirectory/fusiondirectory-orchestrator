@@ -21,7 +21,7 @@ class MailController
     ?string $replyTo,
     array $recipients,
     string $body,
-    string $signature,
+    ?string $signature  = NULL,
     string $subject,
     bool $receipt      = NULL,
     array $attachments = NULL
@@ -66,7 +66,10 @@ class MailController
 
     $this->mail->Subject = $this->subject;
     $this->mail->Body    = $this->body;
-    $this->mail->Body    .= $this->signature;
+
+    if (isset($this->signature) && !empty($this->signature)) {
+      $this->mail->Body .= $this->signature;
+    }
 
     // add it to keep SMTP connection open after each email sent
     $this->mail->SMTPKeepAlive = TRUE;
