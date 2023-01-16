@@ -67,7 +67,7 @@ class TaskGateway
           $replyTo     = $mail["fdtasksemailreplyto"][0] ?? NULL;
           $recipients  = $mail["fdtasksgranularmail"];
           $body        = $mail_content[0]["fdmailtemplatebody"][0];
-          $signature   = $mail_content[0]["fdmailtemplatesignature"][0];
+          $signature   = $mail_content[0]["fdmailtemplatesignature"][0] ?? NULL;
           $subject     = $mail_content[0]["fdmailtemplatesubject"][0];
           $receipt     = $mail_content[0]["fdmailtemplatereadreceipt"][0];
           $attachments = $mail_content[0]["fdmailtemplateattachment"] ?? NULL;
