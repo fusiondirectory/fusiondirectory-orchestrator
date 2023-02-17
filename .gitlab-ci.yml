@@ -34,20 +34,20 @@ create_php_code_sniffer_rapport:
     - /root/.composer/vendor/bin/phpcs --standard=PHPCompatibility --runtime-set testVersion 7.3-7.4 --file-list=./filelist
 
 # phpstan
-#create_phpstan_rapport:
-#  image: registry.fusiondirectory.org/fusiondirectory/fd/phpstan:buster
-#  stage: codestyle
-#  only:
-#    - branches
-#  script:
-#    - test -d ../dev-tools/ && rm -Rf ../dev-tools/
-#    - git clone --depth 1 https://gitlab.fusiondirectory.org/fusiondirectory/dev-tools.git ../dev-tools
-#    - apt install libphp-phpmailer
-#    - composer global require vlucas/phpdotenv=3.6.7
-#    - composer global require phpstan/phpstan=0.12.94
-#    - cp ../dev-tools/phpstan/fusiondirectory-orchestrator/*.neon .
-#    - composer global require phpstan/phpstan=0.12.94
-#    - /root/.composer/vendor/bin/phpstan analyse -c phpstan.neon
+create_phpstan_rapport:
+  image: registry.fusiondirectory.org/fusiondirectory/fd/phpstan:buster
+  stage: codestyle
+  only:
+    - branches
+  script:
+    - test -d ../dev-tools/ && rm -Rf ../dev-tools/
+    - git clone --depth 1 https://gitlab.fusiondirectory.org/fusiondirectory/dev-tools.git ../dev-tools
+    - apt install libphp-phpmailer
+    - composer global require vlucas/phpdotenv=3.6.7
+    - composer global require phpstan/phpstan=0.12.94
+    - cp ../dev-tools/phpstan/fusiondirectory-orchestrator/*.neon .
+    - composer global require phpstan/phpstan=0.12.94
+    - /root/.composer/vendor/bin/phpstan analyse -c phpstan.neon
 
 build-tarballs:
   stage: tarballs
