@@ -48,7 +48,7 @@ create_phpstan_rapport:
 build-tarballs:
   stage: tarballs
   only:
-    - 0.9-fixes
+    - $TARBALLS_TRIGGER_VERSION
   script:
     - mkdir ../fusiondirectory-orchestrator-$VERSION/
     - mv ./* ../fusiondirectory-orchestrator-$VERSION/
@@ -62,7 +62,7 @@ build-tarballs:
 trigger-ci-debian-bullseye:
   stage: trigger
   only:
-    - 0.9-fixes
+    - $TARBALLS_TRIGGER_VERSION
   variables:
     GROUP: "$GROUP"
     BRANCH: "0.9-fixes"
@@ -74,7 +74,7 @@ trigger-ci-debian-bullseye:
 trigger-ci-centos-7:
   stage: trigger
   only:
-    - 0.9-fixes
+    - $TARBALLS_TRIGGER_VERSION
   variables:
     GROUP: "$GROUP"
     BRANCH: "0.9-fixes"
