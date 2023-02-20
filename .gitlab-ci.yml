@@ -28,40 +28,35 @@ create_php_code_sniffer_rapport:
     - git clone --depth 1 https://gitlab.fusiondirectory.org/fusiondirectory/dev-tools.git ../dev-tools
     - find . -type f -name '*.php' -o -name '*.inc' > ./filelist
     - /root/.composer/vendor/bin/phpcs --standard=../dev-tools/php-codesniffer-rules/FDStandard/ruleset.xml --file-list=./filelist
-    - git clone --depth 1 https://gitlab.fusiondirectory.org/php-tools/PHPCompatibility.git ../PHPCompatibility
-    - git clone --depth 1 https://gitlab.fusiondirectory.org/php-tools/PHPCSUtils.git ../PHPCSUtils
-    - /root/.composer/vendor/bin/phpcs --config-set installed_paths /builds/fusiondirectory/PHPCompatibility,/builds/fusiondirectory/PHPCSUtils
+    - /root/.composer/vendor/bin/phpcs --config-set installed_paths /PHPCompatibility,/PHPCSUtils
     - /root/.composer/vendor/bin/phpcs --standard=PHPCompatibility --runtime-set testVersion 7.3-7.4 --file-list=./filelist
 
 # phpstan
-#create_phpstan_rapport:
-#  image: registry.fusiondirectory.org/fusiondirectory/fd/phpstan:buster
-#  stage: codestyle
-#  only:
-#    - branches
-#  script:
-#    - test -d ../dev-tools/ && rm -Rf ../dev-tools/
-#    - git clone --depth 1 https://gitlab.fusiondirectory.org/fusiondirectory/dev-tools.git ../dev-tools
-#    - apt install libphp-phpmailer
-#    - composer global require vlucas/phpdotenv=3.6.7
-#    - composer global require phpstan/phpstan=0.12.94
-#    - cp ../dev-tools/phpstan/fusiondirectory-orchestrator/*.neon .
-#    - composer global require phpstan/phpstan=0.12.94
-#    - /root/.composer/vendor/bin/phpstan analyse -c phpstan.neon
+create_phpstan_rapport:
+  image: registry.fusiondirectory.org/fusiondirectory/fd/phpstan-cli:buster
+  stage: codestyle
+  only:
+    - branches
+  script:
+    - test -d ../dev-tools/ && rm -Rf ../dev-tools/
+    - git clone --depth 1 https://gitlab.fusiondirectory.org/fusiondirectory/dev-tools.git ../dev-tools
+    - apt install libphp-phpmailer
+    - composer global require vlucas/phpdotenv=3.6.7
+    - cp ../dev-tools/phpstan/fusiondirectory-orchestrator/*.neon .
+    - /root/.composer/vendor/bin/phpstan analyse -c phpstan.neon
 
 build-tarballs:
   stage: tarballs
   only:
     - 0.9-fixes
   script:
-    - test -d ../fusiondirectory-orchestrator-0.9.1/ && rm -Rf ../fusiondirectory-orchestrator-0.9.1/
-    - mkdir ../fusiondirectory-orchestrator-0.9.1/
-    - mv ./* ../fusiondirectory-orchestrator-0.9.1/
-    - mv  ../fusiondirectory-orchestrator-0.9.1/ ./
-    - tar -cvzf fusiondirectory-orchestrator-0.9.1.tar.gz *
+    - mkdir ../fusiondirectory-orchestrator-$VERSION/
+    - mv ./* ../fusiondirectory-orchestrator-$VERSION/
+    - mv  ../fusiondirectory-orchestrator-$VERSION/ ./
+    - tar -cvzf fusiondirectory-orchestrator-$VERSION.tar.gz *
   artifacts:
     paths:
-      - fusiondirectory-orchestrator-0.9.1.tar.gz
+      - fusiondirectory-orchestrator-$VERSION.tar.gz
     expire_in: 30d
 
 trigger-ci-debian-bullseye:
