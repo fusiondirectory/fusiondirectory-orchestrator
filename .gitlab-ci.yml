@@ -48,6 +48,7 @@ create_phpstan_rapport:
 build-tarballs:
   stage: tarballs
   only:
+    variables:
     - $TARBALLS_TRIGGER_VERSION
   script:
     - mkdir ../fusiondirectory-orchestrator-$VERSION/
