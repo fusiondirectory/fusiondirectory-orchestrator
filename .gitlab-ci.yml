@@ -63,6 +63,7 @@ build-tarballs:
 trigger-ci-debian-bullseye:
   stage: trigger
   only:
+    variables:
     - $TARBALLS_TRIGGER_VERSION
   variables:
     GROUP: "$GROUP"
@@ -75,6 +76,7 @@ trigger-ci-debian-bullseye:
 trigger-ci-centos-7:
   stage: trigger
   only:
+    variables:
     - $TARBALLS_TRIGGER_VERSION
   variables:
     GROUP: "$GROUP"
