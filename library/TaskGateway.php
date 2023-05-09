@@ -87,7 +87,7 @@ class TaskGateway
 
             // The third arguments "2" is the status code of success for mail as of now 18/11/22
             $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], "2");
-            $result[] = 'PROCESSED';
+            $result[] = 'mail : '.$mail["dn"]. ' was sucessfully sent';
             $this->updateLastMailExecTime($fdTasksConf[0]["dn"] );
 
           } else {
