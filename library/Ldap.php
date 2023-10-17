@@ -17,7 +17,7 @@ class Ldap
   //return type can be ldap\connection
   static public function getConnection ()
   {
-    $ds = ldap_connect('ldap://'.$_ENV["LDAP_HOST"])
+    $ds = ldap_connect('ldaps://'.$_ENV["LDAP_HOST"])
           or die("Could no connect to ".$_ENV["LDAP_HOST"]);
 
     // Set ldap version
