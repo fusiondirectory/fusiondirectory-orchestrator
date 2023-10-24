@@ -58,17 +58,26 @@ class MailController
     $this->mail->Port       = $_ENV["MAIL_PORT"];
     $this->mail->AuthType   = 'LOGIN';
 
+    // Incremental ID for naming attachments. Proper naming should be used.
+    $id = 0;
+    // Remove the key 'count' from array.
+    unset($this->attachments['count']);
+    foreach($this->attachments as $attachment) {
+      $this->mail->addStringAttachment($attachment, 'attachment'.$id.'.pdf');
+      $id += 1;
+    }
+
     $this->mail->setFrom($this->setFrom);
 
-    if (isset($this->replyTo) && !empty($this->replyTo)) {
+    if (!empty($this->replyTo)) {
       $this->mail->addReplyTo($this->replyTo);
     }
 
     $this->mail->Subject = $this->subject;
     $this->mail->Body    = $this->body;
 
-    if (isset($this->signature) && !empty($this->signature)) {
-      $this->mail->Body .= $this->signature;
+    if (!empty($this->signature)) {
+      $this->mail->Body .= "\n". $this->signature;
     }
 
     // add it to keep SMTP connection open after each email sent
