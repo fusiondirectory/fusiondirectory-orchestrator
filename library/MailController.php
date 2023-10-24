@@ -59,7 +59,7 @@ class MailController
     $this->mail->AuthType   = 'LOGIN';
 
     // Incremental ID for naming attachments. Proper naming should be used.
-    $id = 0;
+    $id = 1;
     // Remove the key 'count' from array.
     unset($this->attachments['count']);
     foreach($this->attachments as $attachment) {
