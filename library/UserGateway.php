@@ -21,19 +21,18 @@ class UserGateway
     * A default empty array used as default in case no user is found
     */
     $empty_array = [];
-    $user_password = [];
-    $filter = "(|(uid=$username*))";
-    $attrs = ["uid", "userPassword"];
+    $filter = "(|(cn=$username*))";
+    $attrs = ["cn", "userPassword"];
 
-    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_USER"], $filter, $attrs);
+    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_DSA"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
     ldap_unbind($this->ds);
 
     if (is_array($info) && $info["count"] >= 1 ) {
 
-      // Format array for easier use aftewards and removes uid by substring
-      $info['uid'] = $info[0]['uid'][0];
+      // Format array for easier use afterward and removes uid by substring
+      $info['uid'] = $info[0]['cn'][0];
       $info['cn'] = "cn=".substr($info[0]['dn'], 4);
       $info['password_hash'] = $info[0]['userpassword'][0];
 
@@ -44,7 +43,7 @@ class UserGateway
   }
 
   // Is used by the refresh token endpoint as ID is recovered from the refresh token
-  // Allowing verification if the user has still proper priveleges.
+  // Allowing verification if the user has still proper privileges.
   public function getByID (string $uid): array
   {
     /* This ID was taken from the token payload passed during refresh.
@@ -52,12 +51,12 @@ class UserGateway
     * A default empty array used as default in case no user is found
     */
     $empty_array = [];
-    $filter = "(|(uid=$uid*))";
-    $attrs = ["uid"];
+    $filter = "(|(cn=$uid*))";
+    $attrs = ["cn"];
 
-    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_USER"], $filter, $attrs);
+    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_DSA"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
-    $info['uid'] = $info[0]['uid'][0];
+    $info['uid'] = $info[0]['cn'][0];
     $info['cn'] = "cn=".substr($info[0]['dn'], 4);
 
     ldap_unbind($this->ds);
@@ -72,7 +71,7 @@ class UserGateway
 
   // Inspired by https://blog.michael.kuron-germany.de/2012/07/hashing-and-verifying-ldap-passwords-in-php/comment-page-1/
   // Can be made in switch mode. Only MD5 SHA SSHA and clear text are managed for now.
-  //  !! To be removed to use the FD LDAP library already existing !!
+  //  !! To be removed in order to use the FD LDAP library already existing !!
   public function check_password ($password, $hash)
   {
     if ($hash == '') { //No Password

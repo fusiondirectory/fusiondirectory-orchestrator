@@ -59,7 +59,7 @@ class RefreshTokenGateway
     $filter = "(|(fdRefreshToken=$hash*))";
     $attrs = ["fdRefreshToken"];
 
-    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_USER"], $filter, $attrs);
+    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_DSA"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
     if (isset($info[0]) && !empty($info[0])) {
@@ -76,7 +76,7 @@ class RefreshTokenGateway
     return $result;
   }
 
-  // Refresh token is stored in LDAP - PHP 8.0 returns the token or false it not existent.
+  // Refresh token is stored in LDAP - PHP 8.0 returns the token or false if not existent.
   public function getByToken (string $token): array
   {
     $hash = hash_hmac("sha256", $token, $this->key);
@@ -85,7 +85,7 @@ class RefreshTokenGateway
     $filter = "(|(fdRefreshToken=$hash*))";
     $attrs = ["fdRefreshToken"];
 
-    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_USER"], $filter, $attrs);
+    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_DSA"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
     if (is_array($info) && $info["count"] >= 1 ) {
@@ -97,12 +97,12 @@ class RefreshTokenGateway
   }
 
   /*
-   * Method to be developped.
+   * Method to be developed.
    */
   public function deleteExpired (): int
   {
     // LDAP request should "DELETE FROM refresh_token WHERE expires_at < UNIX_TIMESTAMP()"
-    // Methode delete exist already which could be re-used. Design to be tought of.
+    // Methode delete exist already which could be re-used. Design to be thought of.
 
     // testing purposes
     return 1;

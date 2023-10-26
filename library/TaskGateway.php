@@ -144,10 +144,10 @@ class TaskGateway
     $empty_array = [];
 
     // Copy the existing DCs from the passed DN
-    if (preg_match('/(dc=.*)/', $_ENV["LDAP_OU_USER"], $match)) {
+    if (preg_match('/(dc=.*)/', $_ENV["LDAP_OU_DSA"], $match)) {
       $dn = $match[0];
     } else {
-      $dn = $_ENV["LDAP_OU_USER"];
+      $dn = $_ENV["LDAP_OU_DSA"];
     }
 
     $sr = ldap_search($this->ds, $dn, $filter, $attrs);
