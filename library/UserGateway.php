@@ -33,7 +33,8 @@ class UserGateway
 
       // Format array for easier use afterward and removes uid by substring
       $info['uid'] = $info[0]['cn'][0];
-      $info['cn'] = "cn=".substr($info[0]['dn'], 4);
+      // Using DSA, the UID does not exist and only CN is used. Below line is not required anymore - logic to be revised.
+      $info['cn'] = "cn=".substr($info[0]['dn'], 3);
       $info['password_hash'] = $info[0]['userpassword'][0];
 
       return $info;
@@ -57,7 +58,7 @@ class UserGateway
     $sr = ldap_search($this->ds, $_ENV["LDAP_OU_DSA"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
     $info['uid'] = $info[0]['cn'][0];
-    $info['cn'] = "cn=".substr($info[0]['dn'], 4);
+    $info['cn'] = "cn=".substr($info[0]['dn'], 3);
 
     ldap_unbind($this->ds);
 

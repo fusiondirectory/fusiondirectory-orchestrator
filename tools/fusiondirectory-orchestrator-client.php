@@ -64,8 +64,8 @@ class OrchestratorClient
   // Method managing the authentication mechanism of JWT.
   private function manageAuthentication (): void
   {
-    // 1.Read from auth file and set the access token
-    // 2.Test current access token and refresh it if expired using refresh token
+    // 1.Read from LDAP to get the refresh token for the specific dsa
+    // 2.Use the refresh token to get new access token
     // 3.If refresh token expired -> normal authentication.
 
     // Should only be executed if access_token is empty
