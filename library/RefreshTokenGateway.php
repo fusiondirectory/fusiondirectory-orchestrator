@@ -32,13 +32,14 @@ class RefreshTokenGateway
     // Try to create new CN and if not update it.
     try {
 
-      $result = ldap_add($this->ds, $this->user["cn"], $ldap_entry);
+      $result = ldap_add($this->ds, $this->user["dn"], $ldap_entry);
+      print_r($this->user['dn']);
     } catch (Exception $e) {
       try {
         // Note : ObjectClass and CN cannot be modified
         unset($ldap_entry["objectclass"]);
         unset($ldap_entry["cn"]);
-        $result = ldap_modify($this->ds, $this->user["cn"], $ldap_entry);
+        $result = ldap_modify($this->ds, $this->user["dn"], $ldap_entry);
       } catch (Exception $e) {
         echo json_encode(["Ldap Error" => "$e"]);
       }

@@ -34,7 +34,7 @@ class UserGateway
       // CN is modified with '-jwt' in order to create a new entry in LDAP (Modifying existing CN is not allowed).
       // The existing CN does not contain the same objectClass and therefore cannot be updated properly.
       $info['cn'] = $info[0]['cn'][0].'-jwt';
-      $info['dn'] = str_replace($info[0]['cn'][0], $info['cn'], $info[0]['dn'][0]);
+      $info['dn'] = str_replace($info[0]['cn'][0], $info['cn'], $info[0]['dn']);
       $info['password_hash'] = $info[0]['userpassword'][0];
 
       return $info;

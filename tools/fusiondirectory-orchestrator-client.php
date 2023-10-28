@@ -54,10 +54,10 @@ class OrchestratorClient
     // Check for errors if verbose args is passed
     if ($this->verbose === TRUE) {
       if (curl_errno($ch)) {
-        echo 'cURL error: ' . curl_error($ch);
+        echo 'cURL error: ' . curl_error($ch) .PHP_EOL;
       }
       // Print cURL verbose output
-      echo 'cURL verbose output: ' . curl_multi_getcontent($ch);
+      echo 'cURL verbose output: ' .PHP_EOL. curl_multi_getcontent($ch) .PHP_EOL;
     }
   }
 
@@ -141,7 +141,7 @@ $orchestratorClient = new OrchestratorClient();
 try {
   $status = $orchestratorClient->run($argv);
 } catch (Exception $e) {
-  echo 'An error occurred: ' . $e->getMessage();
+  echo 'An error occurred: ' . $e->getMessage() .PHP_EOL;
 }
 
 // Exit with the status code returned
