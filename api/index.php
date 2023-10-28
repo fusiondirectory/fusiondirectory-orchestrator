@@ -7,7 +7,7 @@ $path = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
 
 $parts = explode("/", $path);
 
-// We only need the name of the ressource
+// We only need the name of the resource
 $resource = $parts[3];
 // And the tasks object required Ex: http://orchestrator/api/task(3)/object(4)/
 // Example : mail is an object type of tasks

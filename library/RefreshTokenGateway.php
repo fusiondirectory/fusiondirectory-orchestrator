@@ -29,17 +29,15 @@ class RefreshTokenGateway
     $ldap_entry["fdRefreshTokenExpiry"] = $expiry;
     $ldap_entry["objectclass"]          = "fdJWT";
 
-    // Add data to LDAP
+    // Try to create new CN and if not update it.
     try {
 
       $result = ldap_add($this->ds, $this->user["cn"], $ldap_entry);
     } catch (Exception $e) {
       try {
-
         // Note : ObjectClass and CN cannot be modified
         unset($ldap_entry["objectclass"]);
         unset($ldap_entry["cn"]);
-
         $result = ldap_modify($this->ds, $this->user["cn"], $ldap_entry);
       } catch (Exception $e) {
         echo json_encode(["Ldap Error" => "$e"]);

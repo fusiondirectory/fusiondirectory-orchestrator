@@ -36,7 +36,7 @@ $ldap_connect = new Ldap($_ENV["LDAP_HOST"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PW
 
 $user_gateway = new UserGateway($ldap_connect);
 
-$user = $user_gateway->getByID($user_uid);
+$user = $user_gateway->getDSAInfo($user_uid);
 if ($user == FALSE) {
 
   http_response_code(401);
