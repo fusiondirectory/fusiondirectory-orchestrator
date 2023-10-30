@@ -77,7 +77,7 @@ class MailController
     $this->mail->Body    = $this->body;
 
     if (!empty($this->signature)) {
-      $this->mail->Body .= "\n". $this->signature;
+      $this->mail->Body .= "\n\n". $this->signature;
     }
 
     // add it to keep SMTP connection open after each email sent
