@@ -18,13 +18,13 @@ class OrchestratorClient
     $this->verbose = FALSE;
     $this->debug = FALSE;
 
-    $this->listOfArguments = ['--help', '-h', '--verbose', '-v', '--debug', '-d', '--emails' ,'-m', '--tasks', '-t'];
+    $this->listOfArguments = ['--help', '-h', '--verbose', '-v', '--debug', '-d', '--emails', '-m', '--tasks', '-t'];
 
     $orchestratorFQDN = $_ENV["ORCHESTRATOR_FQDN"];
     $this->loginEndPoint = 'https://' . $orchestratorFQDN . '/api/login';
     $this->tasksEndPoint = 'https://' . $orchestratorFQDN . '/api/tasks/';
-    $this->emailEndPoint = $this->tasksEndPoint.'mail';
-    
+    $this->emailEndPoint = $this->tasksEndPoint . 'mail';
+
 
     $this->loginData = array(
       'username' => $_ENV["DSA_LOGIN"],
@@ -55,12 +55,12 @@ class OrchestratorClient
     // Check for errors if verbose args is passed
     if ($this->debug === TRUE) {
       if (curl_errno($ch)) {
-        echo 'cURL error: ' . curl_error($ch) .PHP_EOL;
+        echo 'cURL error: ' . curl_error($ch) . PHP_EOL;
       }
     }
-    if ($this->verbose === TRUE){
+    if ($this->verbose === TRUE) {
       // Print cURL verbose output
-      echo PHP_EOL.'cURL verbose output: ' .PHP_EOL. curl_multi_getcontent($ch) .PHP_EOL;
+      echo PHP_EOL . 'cURL verbose output: ' . PHP_EOL . curl_multi_getcontent($ch) . PHP_EOL;
     }
   }
 
@@ -136,7 +136,7 @@ class OrchestratorClient
 
   public function run ($args): int
   {
-    if (in_array('--help', $args) || count($args) < 2 || (in_array('--verbose', $args) && count($args) == 2)) {
+    if (in_array('--help', $args) || count($args) < 2 || in_array('-h', $args)) {
       $this->printUsage();
       return 1; // Return error code
     }
@@ -157,8 +157,8 @@ class OrchestratorClient
           break;
         case '--debug':
         case '-d':
-            $this->debug = TRUE;
-            break;
+          $this->debug = TRUE;
+          break;
         case '--emails':
         case '-m':
           $tasksToBeExecuted[] = 'emails';
@@ -172,14 +172,14 @@ class OrchestratorClient
 
     // Execute methods passed in arguments
     foreach ($tasksToBeExecuted as $task)
-    switch ($task) {
-      case 'emails' :
+      switch ($task) {
+        case 'emails' :
           $this->subTaskEmails();
           break;
-      case 'tasks' :
+        case 'tasks' :
           $this->showTasks();
           break;
-    }
+      }
 
     return 0; // Return success code
   }
@@ -190,7 +190,7 @@ class OrchestratorClient
     --help (-h)     : Show this helper message." . PHP_EOL . "
     --verbose (-v)  : Show curl returned messages." . PHP_EOL . "
     --debug (-d)    : Show debug and errors messages." . PHP_EOL . "
-    --emails (-m)   : Execute subtasks of type emails." . PHP_EOL ."
+    --emails (-m)   : Execute subtasks of type emails." . PHP_EOL . "
     --tasks (-t)    : Show all tasks." . PHP_EOL;
   }
 
@@ -201,7 +201,7 @@ $orchestratorClient = new OrchestratorClient();
 try {
   $status = $orchestratorClient->run($argv);
 } catch (Exception $e) {
-  echo 'An error occurred: ' . $e->getMessage() .PHP_EOL;
+  echo 'An error occurred: ' . $e->getMessage() . PHP_EOL;
 }
 
 // Exit with the status code returned
