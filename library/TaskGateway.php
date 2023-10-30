@@ -11,13 +11,9 @@ class TaskGateway
     $this->ds = $ldap_connect->getConnection();
   }
 
-  // Return the task specified by object type for specific user ID
-  // Subject to removal as user_uid might not be useful anymore.
-  public function getTask (string $user_uid, ?string $object_type): array
+  // Return the task specified by object type.
+  public function getTask (?string $object_type): array
   {
-    $list_tasks = [];
-    // if id - mail, change filter and search/return for task mail only
-
     switch ($object_type) {
       case "mail":
         $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Mail Object))");

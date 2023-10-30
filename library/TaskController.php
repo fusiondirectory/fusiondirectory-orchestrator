@@ -5,11 +5,11 @@ class TaskController
   private $gateway;
 
   // To be used later on for granularity.
-  private $user_uid;
+  private $dsaCN;
 
-  public function __construct (TaskGateway $gateway, string $user_uid)
+  public function __construct (TaskGateway $gateway, string $dsaCN)
   {
-    $this->user_uid = $user_uid;
+    $this->dsaCN = $dsaCN;
     $this->gateway  = $gateway;
   }
 
@@ -18,7 +18,7 @@ class TaskController
     // If no specific tasks object specified, return all tasks
     if ($object_type === NULL) {
       if ($method == "GET") {
-        echo json_encode($this->gateway->getTask($this->user_uid, ''));
+        echo json_encode($this->gateway->getTask(NULL));
 
       } else {
         $this->respondMethodAllowed("GET");
@@ -26,7 +26,7 @@ class TaskController
 
       // Otherwise return the tasks object specified
     } else {
-      $task = $this->gateway->getTask($this->user_uid, $object_type);
+      $task = $this->gateway->getTask($object_type);
       if ($task == FALSE) {
 
         $this->respondNotFound($object_type);

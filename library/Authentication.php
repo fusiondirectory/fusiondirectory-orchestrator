@@ -2,7 +2,7 @@
 
 class Authentication
 {
-  private $user_id;
+  private $dsaCN;
   private $user_gateway;
   private $codec;
 
@@ -12,9 +12,9 @@ class Authentication
     $this->codec        = $codec;
   }
 
-  public function getUserID (): string
+  public function getDSAcn (): string
   {
-      return $this->user_id;
+      return $this->dsaCN;
   }
 
   // Note: PHP8.0 will let pass the Exception without variables. PHP 7.4 requires variable assignment.
@@ -55,7 +55,7 @@ class Authentication
         return FALSE;
     }
 
-    $this->user_id = $data["sub"];
+    $this->dsaCN = $data["sub"];
 
     return TRUE;
   }

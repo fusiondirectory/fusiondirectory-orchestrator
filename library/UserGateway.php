@@ -21,6 +21,10 @@ class UserGateway
     * A default empty array used as default in case no user is found
     */
     $emptyArray = [];
+
+    // During refreshEndPoint, dsaLogin already contains -jwt, it must be removed.
+    $dsaLogin = str_replace('-jwt', '', $dsaLogin);
+
     $filter = "(|(cn=$dsaLogin))";
     $attrs = ["cn", "userPassword"];
 
@@ -30,11 +34,11 @@ class UserGateway
     ldap_unbind($this->ds);
 
     if (is_array($info) && $info["count"] >= 1 ) {
-
       // CN is modified with '-jwt' in order to create a new entry in LDAP (Modifying existing CN is not allowed).
-      // The existing CN does not contain the same objectClass and therefore cannot be updated properly.
       $info['cn'] = $info[0]['cn'][0].'-jwt';
       $info['dn'] = str_replace($info[0]['cn'][0], $info['cn'], $info[0]['dn']);
+
+      // During
       $info['password_hash'] = $info[0]['userpassword'][0];
 
       return $info;

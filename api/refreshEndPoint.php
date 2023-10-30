@@ -30,13 +30,14 @@ try {
   exit;
 }
 
-$user_uid = $payload["sub"];
+$dsaCN = $payload["sub"];
 
 $ldap_connect = new Ldap($_ENV["LDAP_HOST"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
 
 $user_gateway = new UserGateway($ldap_connect);
 
-$user = $user_gateway->getDSAInfo($user_uid);
+$user = $user_gateway->getDSAInfo($dsaCN);
+
 if ($user == FALSE) {
 
   http_response_code(401);

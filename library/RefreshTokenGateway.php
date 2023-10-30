@@ -19,7 +19,7 @@ class RefreshTokenGateway
     $this->user = $user;
   }
 
-  public function create (string $token, int $expiry): bool
+  public function create (?string $token, int $expiry): bool
   {
     $hash = hash_hmac("sha256", $token, $this->key);
 
