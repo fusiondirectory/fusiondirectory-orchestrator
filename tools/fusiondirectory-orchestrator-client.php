@@ -9,12 +9,14 @@ class OrchestratorClient
   private bool $verbose, $debug;
   private string $loginEndPoint, $emailEndPoint, $tasksEndPoint;
   private array $loginData, $listOfArguments;
-  private ?string $accessToken, $refreshToken;
+  private ?string $accessToken;
 
   public function __construct ()
   {
+    // Tokens details
     $this->accessToken = NULL;
-    $this->refreshToken = NULL;
+
+    // App details
     $this->verbose = FALSE;
     $this->debug = FALSE;
 
@@ -67,22 +69,14 @@ class OrchestratorClient
   // Method managing the authentication mechanism of JWT.
   private function manageAuthentication (): void
   {
-    // 1.Read from LDAP to get the refresh token for the specific dsa
-    // 2.Use the refresh token to get new access token
-    // 3.If refresh token expired -> normal authentication.
-
-    // Should only be executed if access_token is empty
-    if ($this->accessToken == NULL) {
+      if (empty($this->accessToken)) {
       $tokens = $this->getAccessToken();
       // Create an object from the JSON string received.
       $tokens = json_decode($tokens);
 
       $this->accessToken = $tokens->access_token;
-      $this->refreshToken = $tokens->refresh_token;
     }
-
   }
-
   private function showTasks (): void
   {
     // Retrieve or refresh access tokens
