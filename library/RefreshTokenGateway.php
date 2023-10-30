@@ -1,15 +1,10 @@
 <?php
 
-/*
- * RefreshToken class should be called periodically via cron job or specific trigger
- * in order to remove unrequired tokens from LDAP after expiration.
- * As of 18/11 method delete expired must be developped.
- */
 class RefreshTokenGateway
 {
   private $ds;
-  private $key;
-  private $user;
+  private string $key;
+  private ?array $user;
 
   // Ldap_connect could be of typed Ldap - enhancement.
   public function __construct ($ldap_connect, string $key, array $user = NULL)
@@ -19,7 +14,7 @@ class RefreshTokenGateway
     $this->user = $user;
   }
 
-  public function create (?string $token, int $expiry): bool
+  public function create ($token, int $expiry): bool
   {
     $hash = hash_hmac("sha256", $token, $this->key);
 
@@ -61,7 +56,7 @@ class RefreshTokenGateway
     $sr = ldap_search($this->ds, $_ENV["LDAP_OU_DSA"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
-    if (isset($info[0]) && !empty($info[0])) {
+    if (!empty($info[0])) {
       // Delete Hash from LDAP by passing empty array.
       try {
 
@@ -94,29 +89,4 @@ class RefreshTokenGateway
 
     return $empty_array;
   }
-
-  /*
-   * Method to be developed.
-   */
-  public function deleteExpired (): int
-  {
-    // LDAP request should "DELETE FROM refresh_token WHERE expires_at < UNIX_TIMESTAMP()"
-    // Methode delete exist already which could be re-used. Design to be thought of.
-
-    // testing purposes
-    return 1;
-  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
