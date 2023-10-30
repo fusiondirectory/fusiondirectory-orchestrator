@@ -88,12 +88,3 @@ class UserGateway
     return FALSE;
   }
 }
-
-
-
-
-
-
-
-
-

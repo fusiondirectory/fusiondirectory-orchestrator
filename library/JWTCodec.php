@@ -2,7 +2,7 @@
 
 class JWTCodec
 {
-  private $key;
+  private string $key;
 
   public function __construct (string $key)
   {
@@ -23,6 +23,10 @@ class JWTCodec
     return $header . "." . $payload . "." . $signature;
   }
 
+  /**
+   * @throws InvalidSignatureException
+   * @throws TokenExpiredException
+   */
   public function decode (string $token): array
   {
     if (preg_match("/^(?<header>.+)\.(?<payload>.+)\.(?<signature>.+)$/", $token, $matches) !== 1) {
@@ -59,12 +63,3 @@ class JWTCodec
       return base64_decode(str_replace(["-", "_"], ["+", "/"], $text));
   }
 }
-
-
-
-
-
-
-
-
-

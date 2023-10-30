@@ -9,7 +9,7 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
   exit;
 }
 
-$data = (array) json_decode(file_get_contents("php://input"), TRUE);
+$data = (array)json_decode(file_get_contents("php://input"), TRUE);
 
 if (!array_key_exists("username", $data) || !array_key_exists("password", $data)) {
 
@@ -41,15 +41,6 @@ require __DIR__ . "/../config/tokens.php";
 
 $refresh_token_gateway = new RefreshTokenGateway($ldap_connect, $_ENV["SECRET_KEY"], $user);
 
-$refresh_token_gateway->create($refresh_token, $refresh_token_expiry);
-
-
-
-
-
-
-
-
-
-
-
+if (!empty($refresh_token) && !empty($refresh_token_expiry)) {
+  $refresh_token_gateway->create($refresh_token, $refresh_token_expiry);
+}

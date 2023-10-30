@@ -7,21 +7,22 @@ use PHPMailer\PHPMailer\Exception;
 class MailController
 {
 
-  protected $setFrom;
-  protected $replyTo;
-  protected $recipients;
-  protected $body;
-  protected $signature;
-  protected $subject;
-  protected $receipt;
-  protected $attachments;
+  protected string $setFrom;
+  protected ?string $replyTo;
+  protected array $recipients;
+  protected string $body;
+  protected ?string $signature;
+  protected string $subject;
+  protected ?bool $receipt;
+  protected ?array $attachments;
+  private PHPMailer $mail;
 
   function __construct (
     string $setFrom,
     ?string $replyTo,
     array $recipients,
     string $body,
-    ?string $signature  = NULL,
+    ?string $signature,
     string $subject,
     bool $receipt      = NULL,
     array $attachments = NULL
@@ -108,5 +109,4 @@ class MailController
     $this->mail->smtpClose();
     return $errors;
   }
-
 }

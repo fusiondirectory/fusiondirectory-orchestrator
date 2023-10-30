@@ -2,14 +2,10 @@
 
 class TaskController
 {
-  private $gateway;
+  private TaskGateway $gateway;
 
-  // To be used later on for granularity.
-  private $dsaCN;
-
-  public function __construct (TaskGateway $gateway, string $dsaCN)
+  public function __construct (TaskGateway $gateway)
   {
-    $this->dsaCN = $dsaCN;
     $this->gateway  = $gateway;
   }
 
@@ -27,7 +23,7 @@ class TaskController
       // Otherwise return the tasks object specified
     } else {
       $task = $this->gateway->getTask($object_type);
-      if ($task == FALSE) {
+      if (!$task) {
 
         $this->respondNotFound($object_type);
         return;
@@ -68,18 +64,8 @@ class TaskController
   private function respondNotFound (string $object_type): void
   {
     http_response_code(404);
-    // Task ID is easier to be used - requires unique ID attributes during task creation (FD-Intefarce)
+    // Task ID is easier to be used - requires unique ID attributes during task creation (FD-Interface)
     echo json_encode(["message" => "Task object type : $object_type not found"]);
   }
 
 }
-
-
-
-
-
-
-
-
-
-

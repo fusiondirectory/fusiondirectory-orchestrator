@@ -46,7 +46,7 @@ $user_gateway = new UserGateway($ldap_connect);
 $codec = new JWTCodec($_ENV["SECRET_KEY"]);
 
 // Verify User With Related Token Access
-$auth = new Authentication($user_gateway, $codec);
+$auth = new Authentication($codec);
 
 // Quit script execution if access token is invalid or expired
 if (!$auth->authenticateAccessToken()) {
@@ -57,7 +57,7 @@ if (!$auth->authenticateAccessToken()) {
 $dsaCN = $auth->getDSAcn();
 
 $task_gateway = new TaskGateway($ldap_connect);
-$controller = new TaskController($task_gateway, $dsaCN);
+$controller = new TaskController($task_gateway);
 
 // Process Request Passing Resources Attributes Values ($id)
 $controller->processRequest($_SERVER['REQUEST_METHOD'], $object_type);

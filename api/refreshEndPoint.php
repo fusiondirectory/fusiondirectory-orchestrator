@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
   http_response_code(405);
@@ -38,7 +36,7 @@ $user_gateway = new UserGateway($ldap_connect);
 
 $user = $user_gateway->getDSAInfo($dsaCN);
 
-if ($user == FALSE) {
+if (!$user) {
 
   http_response_code(401);
   echo json_encode(["message" => "invalid authentication"]);
@@ -49,7 +47,7 @@ $refresh_token_gateway = new RefreshTokenGateway($ldap_connect, $_ENV["SECRET_KE
 
 $refresh_token = $refresh_token_gateway->getByToken($data["token"]);
 
-if ($refresh_token == FALSE) {
+if (!$refresh_token) {
 
     http_response_code(400);
     echo json_encode(["message" => "invalid token (not on whitelist)"]);
@@ -59,4 +57,6 @@ if ($refresh_token == FALSE) {
 require __DIR__ . "/../config/tokens.php";
 
 $refresh_token_gateway->delete($data["token"]);
-$refresh_token_gateway->create($refresh_token, $refresh_token_expiry);
+if (!empty($refresh_token_expiry)) {
+  $refresh_token_gateway->create($refresh_token, $refresh_token_expiry);
+}

@@ -192,6 +192,8 @@ class OrchestratorClient
     --debug (-d)    : Show debug and errors messages." . PHP_EOL . "
     --emails (-m)   : Execute subtasks of type emails." . PHP_EOL . "
     --tasks (-t)    : Show all tasks." . PHP_EOL;
+
+    exit;
   }
 
 }

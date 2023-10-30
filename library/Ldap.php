@@ -3,9 +3,9 @@
 class Ldap
 {
 
-  private $ldap_host;
-  private $ldap_admin;
-  private $ldap_pwd;
+  private string $ldap_host;
+  private string $ldap_admin;
+  private string $ldap_pwd;
 
   public function __construct (string $ldap_host, string $ldap_admin, string $ldap_pwd)
   {
@@ -15,15 +15,15 @@ class Ldap
   }
 
   //return type can be ldap\connection
-  static public function getConnection ()
+  public function getConnection ()
   {
-    $ds = ldap_connect('ldaps://'.$_ENV["LDAP_HOST"])
-          or die("Could no connect to ".$_ENV["LDAP_HOST"]);
+    $ds = ldap_connect('ldaps://'.$this->ldap_host)
+          or die("Could no connect to ".$this->ldap_host);
 
     // Set ldap version
     ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3);
 
-    $ldapbind = ldap_bind($ds, $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
+    $ldapbind = ldap_bind($ds, $this->ldap_admin, $this->ldap_pwd);
 
     if (!$ldapbind) {
       echo json_encode(["Message" => "Fail connection to LDAP in admin"]);
@@ -33,14 +33,3 @@ class Ldap
     return $ds;
   }
 }
-
-
-
-
-
-
-
-
-
-
-

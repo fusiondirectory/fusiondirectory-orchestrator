@@ -52,7 +52,7 @@ class TaskGateway
 
         $maxMailsIncrement = 0;
 
-        // verify status before processing (to be check with schedule as well).
+        // verify status before processing (to be checked with schedule as well).
         if ($mail["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($mail["fdtasksgranularschedule"][0])) {
 
           // Search for the related attached mail object.
@@ -195,14 +195,3 @@ class TaskGateway
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-

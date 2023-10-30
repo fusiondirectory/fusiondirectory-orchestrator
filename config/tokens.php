@@ -12,20 +12,24 @@ if (!empty($user)) {
   ];
 }
 
-if (!empty($codec) && !empty($payload)){
+if (!empty($codec) && !empty($payload)) {
   $access_token = $codec->encode($payload);
 
 
 // To be adapted (in Seconds) Equals 5 days
-$refresh_token_expiry = time() + $_ENV['REFRESH_EXPIRY'];
+  $refresh_token_expiry = time() + $_ENV['REFRESH_EXPIRY'];
 
-$refresh_token = $codec->encode([
-  "sub" => $user["cn"],
-  "exp" => $refresh_token_expiry
-]);
+  if (!empty($user)) {
+    $refresh_token = $codec->encode([
+      "sub" => $user["cn"],
+      "exp" => $refresh_token_expiry
+    ]);
+  }
 
-echo json_encode([
-  "access_token"  => $access_token,
-  "refresh_token" => $refresh_token
-]).PHP_EOL;
+  if (!empty($refresh_token)) {
+    echo json_encode([
+        "access_token" => $access_token,
+        "refresh_token" => $refresh_token
+      ]) . PHP_EOL;
+  }
 }
