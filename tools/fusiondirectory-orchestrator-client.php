@@ -99,10 +99,17 @@ class OrchestratorClient
     $printTasks = [];
 
     foreach ($tasks as $task) {
-      $printTasks[] = $task['cn'][0];
+      if (!empty($task['cn'])) {
+        $printTasks[] = $task['cn'][0];
+      }
     }
+
     // Print the existing tasks list
-    print_r(array_unique($printTasks));
+    if (!empty($printTasks)) {
+      print_r(array_unique($printTasks));
+    } else {
+        echo json_encode('No tasks available.').PHP_EOL;
+    }
 
     $this->showCurlDetails($ch);
     curl_close($ch);
