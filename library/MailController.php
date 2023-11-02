@@ -59,13 +59,8 @@ class MailController
     $this->mail->Port       = $_ENV["MAIL_PORT"];
     $this->mail->AuthType   = 'LOGIN';
 
-    // Incremental ID for naming attachments. Proper naming should be used.
-    $id = 1;
-    // Remove the key 'count' from array.
-    unset($this->attachments['count']);
     foreach($this->attachments as $attachment) {
-      $this->mail->addStringAttachment($attachment, 'attachment'.$id.'.pdf');
-      $id += 1;
+      $this->mail->addStringAttachment($attachment['content'], $attachment['cn']);
     }
 
     $this->mail->setFrom($this->setFrom);

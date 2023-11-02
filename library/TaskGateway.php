@@ -35,7 +35,7 @@ class TaskGateway
     return $list_tasks;
   }
 
-  public function processMailTasks (array $list_tasks) : array
+  public function processMailTasks (array $list_tasks): array
   {
     $result = [];
 
@@ -57,25 +57,42 @@ class TaskGateway
 
           // Search for the related attached mail object.
           $cn = $mail["fdtasksgranularref"][0];
-          $mail_content = $this->getLdapTasks("(&(objectClass=fdMailTemplate)(cn=$cn))");
+          $mailInfos = $this->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $cn);
+          $mailContent = $mailInfos[0];
 
-          $setFrom     = $mail["fdtasksgranularmailfrom"][0];
-          $replyTo     = $mail["fdtasksemailreplyto"][0] ?? NULL;
-          $recipients  = $mail["fdtasksgranularmail"];
-          $body        = $mail_content[0]["fdmailtemplatebody"][0];
-          $signature   = $mail_content[0]["fdmailtemplatesignature"][0] ?? NULL;
-          $subject     = $mail_content[0]["fdmailtemplatesubject"][0];
-          $receipt     = $mail_content[0]["fdmailtemplatereadreceipt"][0];
-          $attachments = $mail_content[0]["fdmailtemplateattachment"] ?? NULL;
+          // Only takes arrays related to files attachments for the mail template selected
+          unset($mailInfos[0]);
+          // Re-order keys
+          unset($mailInfos['count']);
+          $mailAttachments = array_values($mailInfos);
+
+          $setFrom = $mail["fdtasksgranularmailfrom"][0];
+          $replyTo = $mail["fdtasksemailreplyto"][0] ?? NULL;
+          $recipients = $mail["fdtasksgranularmail"];
+          $body = $mailContent["fdmailtemplatebody"][0];
+          $signature = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+          $subject = $mailContent["fdmailtemplatesubject"][0];
+          $receipt = $mailContent["fdmailtemplatereadreceipt"][0];
+
+          foreach ($mailAttachments as $file){
+            $fileInfo['cn'] = $file['cn'][0];
+            $fileInfo['content'] = $file['fdmailattachmentscontent'][0];
+            $attachments[] = $fileInfo;
+          }
+
+          // Required before passing the array to the constructor mail.
+          if (empty($attachments)) {
+            $attachments = NULL;
+          }
 
           $mail_controller = new MailController($setFrom,
-                                            $replyTo,
-                                            $recipients,
-                                            $body,
-                                            $signature,
-                                            $subject,
-                                            $receipt,
-                                            $attachments);
+            $replyTo,
+            $recipients,
+            $body,
+            $signature,
+            $subject,
+            $receipt,
+            $attachments);
 
           $mailSentResult = $mail_controller->sendMail();
 
@@ -83,8 +100,8 @@ class TaskGateway
 
             // The third arguments "2" is the status code of success for mail as of now 18/11/22
             $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], "2");
-            $result[] = 'mail : '.$mail["dn"]. ' was sucessfully sent';
-            $this->updateLastMailExecTime($fdTasksConf[0]["dn"] );
+            $result[] = 'mail : ' . $mail["dn"] . ' was successfully sent';
+            $this->updateLastMailExecTime($fdTasksConf[0]["dn"]);
 
           } else {
             $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0]);
@@ -108,14 +125,14 @@ class TaskGateway
    * Method which verify the last executed e-mails sent
    * Verify if the time interval is respected in order to protect from SPAM.
    */
-  public function verifySpamProtection (array $fdTasksConf) : BOOL
+  public function verifySpamProtection (array $fdTasksConf): bool
   {
-    $lastExec     = $fdTasksConf[0]["fdtasksconflastexectime"][0] ?? NULL;
+    $lastExec = $fdTasksConf[0]["fdtasksconflastexectime"][0] ?? NULL;
     $spamInterval = $fdTasksConf[0]["fdtasksconfintervalemails"][0] ?? NULL;
 
     // Multiplication is required to have the seconds
     $spamInterval = $spamInterval * 60;
-    $antispam     = $lastExec + $spamInterval;
+    $antispam = $lastExec + $spamInterval;
     if ($antispam <= time()) {
       return TRUE;
     }
@@ -125,7 +142,7 @@ class TaskGateway
 
 
   // Verification of the schedule in complete string format and compare.
-  public function verifySchedule (string $schedule) : bool
+  public function verifySchedule (string $schedule): bool
   {
     $schedule = strtotime($schedule);
     if ($schedule < time()) {
@@ -135,7 +152,7 @@ class TaskGateway
     return FALSE;
   }
 
-  public function getLdapTasks (string $filter, array $attrs = []): array
+  public function getLdapTasks (string $filter, array $attrs = [], string $attachmentsCN = NULL): array
   {
     $empty_array = [];
 
@@ -146,10 +163,15 @@ class TaskGateway
       $dn = $_ENV["LDAP_OU_DSA"];
     }
 
+    // This is the logic in order to get sub nodes attachments based on the mailTemplate parent cn.
+    if (!empty($attachmentsCN)) {
+      $dn = 'cn='.$attachmentsCN.',ou=mailTemplate,'.$dn;
+    }
+
     $sr = ldap_search($this->ds, $dn, $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
-    if (is_array($info) && $info["count"] >= 1 ) {
+    if (is_array($info) && $info["count"] >= 1) {
       return $info;
     }
 
@@ -162,7 +184,7 @@ class TaskGateway
   public function updateTaskMailStatus (string $dn, string $cn, string $status): void
   {
     // prepare data
-    $ldap_entry["cn"]                    = $cn;
+    $ldap_entry["cn"] = $cn;
     // Status subject to change
     $ldap_entry["fdTasksGranularStatus"] = $status;
 
@@ -172,7 +194,7 @@ class TaskGateway
       $result = ldap_modify($this->ds, $dn, $ldap_entry);
     } catch (Exception $e) {
 
-        echo json_encode(["Ldap Error" => "$e"]);
+      echo json_encode(["Ldap Error" => "$e"]);
     }
   }
 
@@ -190,7 +212,7 @@ class TaskGateway
       $result = ldap_modify($this->ds, $dn, $ldap_entry);
     } catch (Exception $e) {
 
-        echo json_encode(["Ldap Error" => "$e"]);
+      echo json_encode(["Ldap Error" => "$e"]);
     }
   }
 
