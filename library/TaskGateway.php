@@ -67,7 +67,7 @@ class TaskGateway
           $mailAttachments = array_values($mailInfos);
 
           $setFrom = $mail["fdtasksgranularmailfrom"][0];
-          $replyTo = $mail["fdtasksemailreplyto"][0] ?? NULL;
+          $setBCC = $mail["fdtasksgranularmailbcc"][0] ?? NULL;
           $recipients = $mail["fdtasksgranularmail"];
           $body = $mailContent["fdmailtemplatebody"][0];
           $signature = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
@@ -86,7 +86,7 @@ class TaskGateway
           }
 
           $mail_controller = new MailController($setFrom,
-            $replyTo,
+            $setBCC,
             $recipients,
             $body,
             $signature,

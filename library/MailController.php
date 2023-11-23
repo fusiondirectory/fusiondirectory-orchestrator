@@ -8,7 +8,7 @@
   {
 
     protected string $setFrom;
-    protected ?string $replyTo;
+    protected ?string $setBCC;
     protected array $recipients;
     protected string $body;
     protected ?string $signature;
@@ -19,7 +19,7 @@
 
     function __construct (
       string $setFrom,
-      ?string $replyTo,
+      ?string $setBCC,
       array $recipients,
       string $body,
       ?string $signature,
@@ -32,7 +32,7 @@
       $this->mail = new PHPMailer(TRUE);
 
       $this->setFrom     = $setFrom;
-      $this->replyTo     = $replyTo;
+      $this->setBCC     =  $setBCC;
       $this->recipients  = $recipients;
       $this->body        = $body;
       $this->signature   = $signature;
@@ -67,8 +67,8 @@
 
       $this->mail->setFrom($this->setFrom);
 
-      if (!empty($this->replyTo)) {
-        $this->mail->addReplyTo($this->replyTo);
+      if (!empty($this->setBCC)) {
+        $this->mail->addBCC($this->setBCC);
       }
 
       if (!empty($this->receipt)) {
