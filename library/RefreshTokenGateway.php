@@ -9,14 +9,15 @@ class RefreshTokenGateway
   // Ldap_connect could be of typed Ldap - enhancement.
   public function __construct ($ldap_connect, string $key, array $user = NULL)
   {
-    $this->ds = $ldap_connect->getConnection();
-    $this->key = $key;
+    $this->ds   = $ldap_connect->getConnection();
+    $this->key  = $key;
     $this->user = $user;
   }
 
   public function create ($token, int $expiry): bool
   {
-    $hash = hash_hmac("sha256", $token, $this->key);
+    $result = NULL;
+    $hash   = hash_hmac("sha256", $token, $this->key);
 
     // prepare data
     $ldap_entry["cn"]                   = $this->user["cn"];
@@ -46,12 +47,12 @@ class RefreshTokenGateway
   public function delete (string $token): bool
   {
     $result = FALSE;
-    $hash = hash_hmac("sha256", $token, $this->key);
+    $hash   = hash_hmac("sha256", $token, $this->key);
 
     $filter = "(|(fdRefreshToken=$hash*))";
-    $attrs = ["fdRefreshToken"];
+    $attrs  = ["fdRefreshToken"];
 
-    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_DSA"], $filter, $attrs);
+    $sr   = ldap_search($this->ds, $_ENV["LDAP_OU_DSA"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
     if (!empty($info[0])) {
@@ -61,7 +62,7 @@ class RefreshTokenGateway
         $result = ldap_mod_del($this->ds, $info[0]["dn"], ["fdRefreshToken" => []]);
       } catch (Exception $e) {
 
-          echo json_encode(["Ldap Error" => "$e"]);
+        echo json_encode(["Ldap Error" => "$e"]);
       }
     }
 
@@ -74,13 +75,13 @@ class RefreshTokenGateway
     $hash = hash_hmac("sha256", $token, $this->key);
 
     $empty_array = [];
-    $filter = "(|(fdRefreshToken=$hash*))";
-    $attrs = ["fdRefreshToken"];
+    $filter      = "(|(fdRefreshToken=$hash*))";
+    $attrs       = ["fdRefreshToken"];
 
-    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_DSA"], $filter, $attrs);
+    $sr   = ldap_search($this->ds, $_ENV["LDAP_OU_DSA"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
-    if (is_array($info) && $info["count"] >= 1 ) {
+    if (is_array($info) && $info["count"] >= 1) {
 
       return $info;
     }

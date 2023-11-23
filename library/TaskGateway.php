@@ -56,8 +56,8 @@ class TaskGateway
         if ($mail["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($mail["fdtasksgranularschedule"][0])) {
 
           // Search for the related attached mail object.
-          $cn = $mail["fdtasksgranularref"][0];
-          $mailInfos = $this->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $cn);
+          $cn          = $mail["fdtasksgranularref"][0];
+          $mailInfos   = $this->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $cn);
           $mailContent = $mailInfos[0];
 
           // Only takes arrays related to files attachments for the mail template selected
@@ -66,18 +66,18 @@ class TaskGateway
           unset($mailInfos['count']);
           $mailAttachments = array_values($mailInfos);
 
-          $setFrom = $mail["fdtasksgranularmailfrom"][0];
-          $setBCC = $mail["fdtasksgranularmailbcc"][0] ?? NULL;
+          $setFrom    = $mail["fdtasksgranularmailfrom"][0];
+          $setBCC     = $mail["fdtasksgranularmailbcc"][0] ?? NULL;
           $recipients = $mail["fdtasksgranularmail"];
-          $body = $mailContent["fdmailtemplatebody"][0];
-          $signature = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
-          $subject = $mailContent["fdmailtemplatesubject"][0];
-          $receipt = $mailContent["fdmailtemplatereadreceipt"][0];
+          $body       = $mailContent["fdmailtemplatebody"][0];
+          $signature  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+          $subject    = $mailContent["fdmailtemplatesubject"][0];
+          $receipt    = $mailContent["fdmailtemplatereadreceipt"][0];
 
-          foreach ($mailAttachments as $file){
-            $fileInfo['cn'] = $file['cn'][0];
+          foreach ($mailAttachments as $file) {
+            $fileInfo['cn']      = $file['cn'][0];
             $fileInfo['content'] = $file['fdmailattachmentscontent'][0];
-            $attachments[] = $fileInfo;
+            $attachments[]       = $fileInfo;
           }
 
           // Required before passing the array to the constructor mail.
@@ -127,12 +127,12 @@ class TaskGateway
    */
   public function verifySpamProtection (array $fdTasksConf): bool
   {
-    $lastExec = $fdTasksConf[0]["fdtasksconflastexectime"][0] ?? NULL;
+    $lastExec     = $fdTasksConf[0]["fdtasksconflastexectime"][0] ?? NULL;
     $spamInterval = $fdTasksConf[0]["fdtasksconfintervalemails"][0] ?? NULL;
 
     // Multiplication is required to have the seconds
     $spamInterval = $spamInterval * 60;
-    $antispam = $lastExec + $spamInterval;
+    $antispam     = $lastExec + $spamInterval;
     if ($antispam <= time()) {
       return TRUE;
     }
@@ -165,10 +165,10 @@ class TaskGateway
 
     // This is the logic in order to get sub nodes attachments based on the mailTemplate parent cn.
     if (!empty($attachmentsCN)) {
-      $dn = 'cn='.$attachmentsCN.',ou=mailTemplate,'.$dn;
+      $dn = 'cn=' . $attachmentsCN . ',ou=mailTemplate,' . $dn;
     }
 
-    $sr = ldap_search($this->ds, $dn, $filter, $attrs);
+    $sr   = ldap_search($this->ds, $dn, $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
     if (is_array($info) && $info["count"] >= 1) {

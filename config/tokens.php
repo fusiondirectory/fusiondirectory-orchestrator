@@ -6,9 +6,9 @@
 
 if (!empty($user)) {
   $payload = [
-    "sub" => $user["cn"],
+    "sub"  => $user["cn"],
     "name" => $user["cn"],
-    "exp" => time() + $_ENV['TOKEN_EXPIRY']
+    "exp"  => time() + $_ENV['TOKEN_EXPIRY']
   ];
 }
 
@@ -16,7 +16,7 @@ if (!empty($codec) && !empty($payload)) {
   $access_token = $codec->encode($payload);
 
 
-// To be adapted (in Seconds) Equals 5 days
+  // To be adapted (in Seconds) Equals 5 days
   $refresh_token_expiry = time() + $_ENV['REFRESH_EXPIRY'];
 
   if (!empty($user)) {
@@ -28,7 +28,7 @@ if (!empty($codec) && !empty($payload)) {
 
   if (!empty($refresh_token)) {
     echo json_encode([
-        "access_token" => $access_token,
+        "access_token"  => $access_token,
         "refresh_token" => $refresh_token
       ]) . PHP_EOL;
   }

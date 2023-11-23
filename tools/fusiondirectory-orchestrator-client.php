@@ -18,20 +18,20 @@ class OrchestratorClient
 
     // App details
     $this->verbose = FALSE;
-    $this->debug = FALSE;
+    $this->debug   = FALSE;
 
     $this->listOfArguments = ['--help', '-h', '--verbose', '-v', '--debug', '-d', '--emails', '-m', '--tasks', '-t'];
 
-    $orchestratorFQDN = $_ENV["ORCHESTRATOR_FQDN"];
+    $orchestratorFQDN    = $_ENV["ORCHESTRATOR_FQDN"];
     $this->loginEndPoint = 'https://' . $orchestratorFQDN . '/api/login';
     $this->tasksEndPoint = 'https://' . $orchestratorFQDN . '/api/tasks/';
     $this->emailEndPoint = $this->tasksEndPoint . 'mail';
 
 
-    $this->loginData = array(
+    $this->loginData = [
       'username' => $_ENV["DSA_LOGIN"],
       'password' => $_ENV["DSA_PASS"]
-    );
+    ];
   }
 
   private function getAccessToken (): string
@@ -40,9 +40,9 @@ class OrchestratorClient
     $loginData = json_encode($this->loginData);
 
     $ch = curl_init($this->loginEndPoint);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $loginData);
-    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POST, TRUE);
 
     $response = curl_exec($ch);
 
@@ -69,7 +69,7 @@ class OrchestratorClient
   // Method managing the authentication mechanism of JWT.
   private function manageAuthentication (): void
   {
-      if (empty($this->accessToken)) {
+    if (empty($this->accessToken)) {
       $tokens = $this->getAccessToken();
       // Create an object from the JSON string received.
       $tokens = json_decode($tokens);
@@ -77,6 +77,7 @@ class OrchestratorClient
       $this->accessToken = $tokens->access_token;
     }
   }
+
   private function showTasks (): void
   {
     // Retrieve or refresh access tokens
@@ -108,7 +109,7 @@ class OrchestratorClient
     if (!empty($printTasks)) {
       print_r(array_unique($printTasks));
     } else {
-        echo json_encode('No tasks available.').PHP_EOL;
+      echo json_encode('No tasks available.') . PHP_EOL;
     }
 
     $this->showCurlDetails($ch);
@@ -172,7 +173,7 @@ class OrchestratorClient
     }
 
     // Execute methods passed in arguments
-    foreach ($tasksToBeExecuted as $task)
+    foreach ($tasksToBeExecuted as $task) {
       switch ($task) {
         case 'emails' :
           $this->subTaskEmails();
@@ -181,6 +182,7 @@ class OrchestratorClient
           $this->showTasks();
           break;
       }
+    }
 
     return 0; // Return success code
   }

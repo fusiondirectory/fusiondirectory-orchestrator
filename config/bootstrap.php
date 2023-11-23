@@ -37,7 +37,12 @@ function autoload ($class)
 
 spl_autoload_register('autoload');
 
-set_error_handler("ErrorHandler::handleError");
+set_error_handler(static function (int $errno, string $errstr, string $errfile, int $errline): bool {
+  ErrorHandler::handleError($errno, $errstr, $errfile, $errline);
+  return TRUE; // This statement is unreachable but required for satisfying phpstan callable return required...
+});
+
+
 set_exception_handler("ErrorHandler::handleException");
 
 $dotenv = Dotenv\Dotenv::create('/etc/fusiondirectory-orchestrator', 'orchestrator.conf');
