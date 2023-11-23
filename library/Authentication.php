@@ -37,22 +37,13 @@ class Authentication
       echo json_encode(["message" => "invalid signature"]);
 
       return FALSE;
-
     } catch (TokenExpiredException $e) {
 
       http_response_code(401);
       echo json_encode(["message" => "token has expired"]);
 
       return FALSE;
-
-    } catch (Exception $e) {
-
-      http_response_code(400);
-      echo json_encode(["message" => $e->getMessage()]);
-
-      return FALSE;
     }
-
     $this->dsaCN = $data["sub"];
 
     return TRUE;
