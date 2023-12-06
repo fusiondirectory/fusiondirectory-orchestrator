@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
   http_response_code(405);
@@ -37,18 +35,3 @@ $refresh_token_gateway = new RefreshTokenGateway($ldap_connect, $_ENV["SECRET_KE
 if (!$refresh_token_gateway->delete($data["token"])) {
   echo json_encode(["message" => "Error logging out, either wrong refresh token passed or already logged out!"]);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -7,31 +7,31 @@ use PHPMailer\PHPMailer\Exception;
 class MailController
 {
 
-  protected $setFrom;
-  protected $replyTo;
-  protected $recipients;
-  protected $body;
-  protected $signature;
-  protected $subject;
-  protected $receipt;
-  protected $attachments;
+  protected string $setFrom;
+  protected ?string $setBCC;
+  protected array $recipients;
+  protected string $body;
+  protected ?string $signature;
+  protected string $subject;
+  protected ?bool $receipt;
+  protected ?array $attachments;
+  private PHPMailer $mail;
 
   function __construct (
-    string $setFrom,
-    ?string $replyTo,
-    array $recipients,
-    string $body,
-    ?string $signature  = NULL,
-    string $subject,
-    bool $receipt      = NULL,
-    array $attachments = NULL
+    string  $setFrom,
+    ?string $setBCC,
+    array   $recipients,
+    string  $body,
+    ?string $signature,
+    string  $subject,
+    bool    $receipt     = NULL,
+    array   $attachments = NULL
   )
   {
     // The TRUE value passed it to enable the exception handling properly.
-    $this->mail = new PHPMailer(TRUE);
-
+    $this->mail        = new PHPMailer(TRUE);
     $this->setFrom     = $setFrom;
-    $this->replyTo     = $replyTo;
+    $this->setBCC      = $setBCC;
     $this->recipients  = $recipients;
     $this->body        = $body;
     $this->signature   = $signature;
@@ -41,7 +41,7 @@ class MailController
 
   }
 
-  public function sendMail () : array
+  public function sendMail (): array
   {
     $this->mail->isSMTP();
     $this->mail->Host = $_ENV["MAIL_HOST"];
@@ -58,17 +58,26 @@ class MailController
     $this->mail->Port       = $_ENV["MAIL_PORT"];
     $this->mail->AuthType   = 'LOGIN';
 
-    $this->mail->setFrom($this->setFrom);
-
-    if (isset($this->replyTo) && !empty($this->replyTo)) {
-      $this->mail->addReplyTo($this->replyTo);
+    if (!empty($this->attachments)) {
+      foreach ($this->attachments as $attachment) {
+        $this->mail->addStringAttachment($attachment['content'], $attachment['cn']);
+      }
     }
 
+    $this->mail->setFrom($this->setFrom);
+
+    if (!empty($this->setBCC)) {
+      $this->mail->addBCC($this->setBCC);
+    }
+
+    if (!empty($this->receipt)) {
+      $this->mail->addCustomHeader('Disposition-Notification-To', $this->setFrom);
+    }
     $this->mail->Subject = $this->subject;
     $this->mail->Body    = $this->body;
 
-    if (isset($this->signature) && !empty($this->signature)) {
-      $this->mail->Body .= $this->signature;
+    if (!empty($this->signature)) {
+      $this->mail->Body .= "\n\n" . $this->signature;
     }
 
     // add it to keep SMTP connection open after each email sent
@@ -99,5 +108,4 @@ class MailController
     $this->mail->smtpClose();
     return $errors;
   }
-
 }

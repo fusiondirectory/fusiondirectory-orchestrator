@@ -2,14 +2,10 @@
 
 class TaskController
 {
-  private $gateway;
+  private TaskGateway $gateway;
 
-  // To be used later on for granularity.
-  private $user_uid;
-
-  public function __construct (TaskGateway $gateway, string $user_uid)
+  public function __construct (TaskGateway $gateway)
   {
-    $this->user_uid = $user_uid;
     $this->gateway  = $gateway;
   }
 
@@ -18,7 +14,7 @@ class TaskController
     // If no specific tasks object specified, return all tasks
     if ($object_type === NULL) {
       if ($method == "GET") {
-        echo json_encode($this->gateway->getTask($this->user_uid, ''));
+        echo json_encode($this->gateway->getTask(NULL));
 
       } else {
         $this->respondMethodAllowed("GET");
@@ -26,8 +22,8 @@ class TaskController
 
       // Otherwise return the tasks object specified
     } else {
-      $task = $this->gateway->getTask($this->user_uid, $object_type);
-      if ($task == FALSE) {
+      $task = $this->gateway->getTask($object_type);
+      if (!$task) {
 
         $this->respondNotFound($object_type);
         return;
@@ -68,18 +64,8 @@ class TaskController
   private function respondNotFound (string $object_type): void
   {
     http_response_code(404);
-    // Task ID is easier to be used - requires unique ID attributes during task creation (FD-Intefarce)
+    // Task ID is easier to be used - requires unique ID attributes during task creation (FD-Interface)
     echo json_encode(["message" => "Task object type : $object_type not found"]);
   }
 
 }
-
-
-
-
-
-
-
-
-
-
