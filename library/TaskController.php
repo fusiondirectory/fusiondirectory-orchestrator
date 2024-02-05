@@ -6,7 +6,7 @@ class TaskController
 
   public function __construct (TaskGateway $gateway)
   {
-    $this->gateway  = $gateway;
+    $this->gateway = $gateway;
   }
 
   public function processRequest (string $method, ?string $object_type): void
@@ -35,7 +35,12 @@ class TaskController
           break;
 
         case "PATCH":
-          $result = $this->gateway->processMailTasks($task);
+          if ($object_type === 'mail') {
+            $result = $this->gateway->processMailTasks($task);
+          }
+          if ($object_type === 'lifeCycle') {
+            $result = $this->gateway->processLifeCycleTasks($task);
+          }
 
           if (!empty($result)) {
             echo json_encode($result);

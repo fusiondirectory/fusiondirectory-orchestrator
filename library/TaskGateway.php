@@ -20,6 +20,11 @@ class TaskGateway
         unset($list_tasks["count"]);
         break;
 
+      case "lifeCycle":
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Life Cycle))");
+        unset($list_tasks["count"]);
+        break;
+
       // If no tasks object type declared , return all tasks
       case NULL:
         $list_tasks = $this->getLdapTasks("(objectClass=fdTasks)", ["cn", "objectClass"]);
@@ -120,6 +125,14 @@ class TaskGateway
 
     return $result;
   }
+
+  public function processLifeCycleTasks (array $list_tasks): array
+  {
+    json_encode('Testing LifeCycle Process');
+
+    return ['yeayh'];
+  }
+
 
   /*
    * Method which verify the last executed e-mails sent

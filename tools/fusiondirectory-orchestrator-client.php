@@ -7,7 +7,7 @@ require "/usr/share/fusiondirectory-orchestrator/config/bootstrap.php";
 class OrchestratorClient
 {
   private bool $verbose, $debug;
-  private string $loginEndPoint, $emailEndPoint, $tasksEndPoint;
+  private string $loginEndPoint, $emailEndPoint, $tasksEndPoint, $lifeCycleEndPoint;
   private array $loginData, $listOfArguments;
   private ?string $accessToken;
 
@@ -20,12 +20,14 @@ class OrchestratorClient
     $this->verbose = FALSE;
     $this->debug   = FALSE;
 
-    $this->listOfArguments = ['--help', '-h', '--verbose', '-v', '--debug', '-d', '--emails', '-m', '--tasks', '-t'];
+    $this->listOfArguments = ['--help', '-h', '--verbose', '-v', '--debug', '-d', '--emails', '-m', '--tasks', '-t',
+      '--lifeCycle', '-lc'];
 
-    $orchestratorFQDN    = $_ENV["ORCHESTRATOR_FQDN"];
-    $this->loginEndPoint = 'https://' . $orchestratorFQDN . '/api/login';
-    $this->tasksEndPoint = 'https://' . $orchestratorFQDN . '/api/tasks/';
-    $this->emailEndPoint = $this->tasksEndPoint . 'mail';
+    $orchestratorFQDN        = $_ENV["ORCHESTRATOR_FQDN"];
+    $this->loginEndPoint     = 'https://' . $orchestratorFQDN . '/api/login';
+    $this->tasksEndPoint     = 'https://' . $orchestratorFQDN . '/api/tasks/';
+    $this->emailEndPoint     = $this->tasksEndPoint . 'mail';
+    $this->lifeCycleEndPoint = $this->tasksEndPoint . 'lifeCycle';
 
 
     $this->loginData = [
@@ -116,24 +118,33 @@ class OrchestratorClient
     curl_close($ch);
   }
 
-  private function subTaskEmails (): void
+  private function subTaskExec (string $taskType): void
   {
     // Retrieve or refresh access tokens
     $this->manageAuthentication();
-    $ch = curl_init($this->emailEndPoint);
+    switch ($taskType) {
+      case 'mail':
+        $ch = curl_init($this->emailEndPoint);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+        break;
+      case 'lifeCycle':
+        $ch = curl_init($this->lifeCycleEndPoint);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+        break;
+    }
 
     //headers for the patch curl method containing the access_token
     $headers = [
       "Authorization: Bearer $this->accessToken",
       "Content-Type: application/json"
     ];
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-    curl_exec($ch);
-    $this->showCurlDetails($ch);
-    curl_close($ch);
+    if (!empty($ch)) {
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+      curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+      curl_exec($ch);
+      $this->showCurlDetails($ch);
+      curl_close($ch);
+    }
   }
 
   public function run ($args): int
@@ -165,6 +176,10 @@ class OrchestratorClient
         case '-m':
           $tasksToBeExecuted[] = 'emails';
           break;
+        case '--lifeCycle':
+        case '-lc':
+          $tasksToBeExecuted[] = 'lifeCycle';
+          break;
         case '--tasks':
         case '-t':
           $tasksToBeExecuted[] = 'tasks';
@@ -176,7 +191,10 @@ class OrchestratorClient
     foreach ($tasksToBeExecuted as $task) {
       switch ($task) {
         case 'emails' :
-          $this->subTaskEmails();
+          $this->subTaskExec('mail');
+          break;
+        case 'lifeCycle' :
+          $this->subTaskExec('lifeCycle');
           break;
         case 'tasks' :
           $this->showTasks();
@@ -194,7 +212,9 @@ class OrchestratorClient
     --verbose (-v)  : Show curl returned messages." . PHP_EOL . "
     --debug (-d)    : Show debug and errors messages." . PHP_EOL . "
     --emails (-m)   : Execute subtasks of type emails." . PHP_EOL . "
+    --lifeCycle (-lc) : Execute subtasks of type lifeCycle." . PHP_EOL . "
     --tasks (-t)    : Show all tasks." . PHP_EOL;
+
 
     exit;
   }
