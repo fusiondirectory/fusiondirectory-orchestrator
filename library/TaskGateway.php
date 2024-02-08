@@ -139,22 +139,95 @@ class TaskGateway
   /**
    * @param array $list_tasks
    * @return array
+   * Note : Verify the status and schedule as well as searching for the correct life cycle behavior from main task.
    */
   public function processLifeCycleTasks (array $list_tasks): array
   {
+    // Array representing the status of the subtask.
     $result = [];
     foreach ($list_tasks as $task) {
-      // If the tasks must be treated - status and scheduled
+      // If the tasks must be treated - status and scheduled - process the sub-tasks
       if ($task["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($task["fdtasksgranularschedule"][0])) {
 
-        $dn                = $task['fdtasksgranularmaster'][0];
+        // Simply retrieve the lifeCycle behavior from the main related tasks, sending the dns and desired attributes
         $lifeCycleBehavior = $this->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
           'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
           'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState'],
-          '', $dn);
-        $result[]          = $lifeCycleBehavior;
+          '', $task['fdtasksgranularmaster'][0]);
+
+        // Simply retrieve the current supannStatus of the user DN related to the task at hand.
+        $currentUserLifeCycle = $this->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate'],
+          '', $task['fdtasksgranulardn'][0]);
+
+        // Compare both the required schedule and the current user status - returning TRUE if modification is required.
+        if ($this->isLifeCycleRequiringModification($lifeCycleBehavior, $currentUserLifeCycle)) {
+          echo json_encode('DN requires supann updates');
+          //remove
+          exit;
+          // This will call a method to modify the ressourcesSupannEtatDate of the DN linked to the subTask
+          $result = $this->updateLifeCycleAndTaskStatus($task);
+        } else {
+          //remove
+          exit;
+          // Simply remove the subTask which does not require any life cycle modifications.
+          $result = $this->removeSubTask($task['fdtasksgranulardn'][0]);
+        }
       }
     }
+    return $result;
+  }
+
+  protected function removeSubTask($subTaskDn) : bool
+  {
+    // Simple perform an ldapRemove on the received DN.
+    //remove
+    return TRUE;
+  }
+
+  /**
+   * @param array $lifeCycleBehavior
+   * @param array $currentUserLifeCycle
+   * @return bool
+   * Note receive the life cycle behavior desired and compare it the received current user life cycle, returning TRUE
+   * if there is indeed a difference and therefore must update the user information.
+   * In case the comparison is impossible due to the use not having a status listed, it will report false.
+   */
+  protected function isLifeCycleRequiringModification (array $lifeCycleBehavior, array $currentUserLifeCycle): bool
+  {
+    $result = FALSE;
+    // Regular expression in order to extract the supann format within an array
+    $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
+
+    // Perform the regular expression match
+    preg_match($pattern, $currentUserLifeCycle[0]['supannressourceetatdate'][0], $matches);
+
+    // Extracting values of current user
+    $userSupann['Resource'] = $matches[1] ?? '';
+    $userSupann['State']    = $matches[2] ?? '';
+    $userSupann['SubState'] = $matches[3] ?? '';
+    // Array index 4 is skipped, we only use end date to apply our life cycle logic. Start date has no use here.
+    $userSupann['EndDate'] = $matches[5] ?? '';
+
+    // Extracting values of desired pre-state behavior
+    $preStateSupann['Resource'] = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0];
+    $preStateSupann['State']    = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0];
+    $preStateSupann['SubState'] = $lifeCycleBehavior[0]['fdtaskslifecyclepresubstate'][0] ?? ''; //SubState is optional
+
+    //  Verifying if the user end date for selected resource is overdue
+    if (!empty($userSupann['EndDate']) && strtotime($userSupann['EndDate']) <= time()) {
+      // Comparing value in a nesting conditions
+      if ($userSupann['Resource'] == $preStateSupann['Resource']) {
+        if ($userSupann['State'] == $preStateSupann['State']) {
+          // as SubState is optional, if both resource and state match at this point, modification is allowed.
+          if (empty($preStateSupann['SubState'])) {
+            $result = TRUE;
+          } else if ($preStateSupann['SubState'] == $userSupann['SubState']) {
+            $result = TRUE;
+          }
+        }
+      }
+    }
+
     return $result;
   }
 
