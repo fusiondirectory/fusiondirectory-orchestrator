@@ -1,6 +1,8 @@
 <?php
 
-// Class to Get / Create FD Tasks
+/**
+ * Note : Tasks engine for FusionDirectory.
+ */
 class TaskGateway
 {
   private $ds;
@@ -11,7 +13,11 @@ class TaskGateway
     $this->ds = $ldap_connect->getConnection();
   }
 
-  // Return the task specified by object type.
+  /**
+   * @param string|null $object_type
+   * @return array
+   * Note : Return the task specified by object type.
+   */
   public function getTask (?string $object_type): array
   {
     switch ($object_type) {
@@ -40,6 +46,10 @@ class TaskGateway
     return $list_tasks;
   }
 
+  /**
+   * @param array $list_tasks
+   * @return array
+   */
   public function processMailTasks (array $list_tasks): array
   {
     $result = [];
@@ -126,17 +136,33 @@ class TaskGateway
     return $result;
   }
 
+  /**
+   * @param array $list_tasks
+   * @return array
+   */
   public function processLifeCycleTasks (array $list_tasks): array
   {
-    json_encode('Testing LifeCycle Process');
+    $result = [];
+    foreach ($list_tasks as $task) {
+      // If the tasks must be treated - status and scheduled
+      if ($task["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($task["fdtasksgranularschedule"][0])) {
 
-    return ['yeayh'];
+        $dn                = $task['fdtasksgranularmaster'][0];
+        $lifeCycleBehavior = $this->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
+          'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
+          'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState'],
+          '', $dn);
+        $result[]          = $lifeCycleBehavior;
+      }
+    }
+    return $result;
   }
 
-
-  /*
-   * Method which verify the last executed e-mails sent
-   * Verify if the time interval is respected in order to protect from SPAM.
+  /**
+   * @param array $fdTasksConf
+   * @return bool
+   * Note : Method which verify the last executed e-mails sent
+   *  Verify if the time interval is respected in order to protect from SPAM
    */
   public function verifySpamProtection (array $fdTasksConf): bool
   {
@@ -153,7 +179,10 @@ class TaskGateway
     return FALSE;
   }
 
-
+  /**
+   * @param string $schedule
+   * @return bool
+   */
   // Verification of the schedule in complete string format and compare.
   public function verifySchedule (string $schedule): bool
   {
@@ -165,15 +194,21 @@ class TaskGateway
     return FALSE;
   }
 
-  public function getLdapTasks (string $filter, array $attrs = [], string $attachmentsCN = NULL): array
+  /**
+   * @param string $filter
+   * @param array $attrs
+   * @param string|NULL $attachmentsCN
+   * @param string|NULL $dn
+   * @return array
+   * NOTE : Filter in ldap_search cannot be an empty string or NULL, if not filters are required, use (objectClass=*).
+   */
+  public function getLdapTasks (string $filter = '', array $attrs = [], string $attachmentsCN = NULL, string $dn = NULL): array
   {
-    $empty_array = [];
+    $result = [];
 
-    // Copy the existing DCs from the passed DN
-    if (preg_match('/(dc=.*)/', $_ENV["LDAP_OU_DSA"], $match)) {
-      $dn = $match[0];
-    } else {
-      $dn = $_ENV["LDAP_OU_DSA"];
+    // Verify if an optional DN is passed, set de default if not.
+    if (empty($dn)) {
+      $dn = $_ENV["LDAP_BASE"];
     }
 
     // This is the logic in order to get sub nodes attachments based on the mailTemplate parent cn.
@@ -188,11 +223,15 @@ class TaskGateway
       return $info;
     }
 
-    return $empty_array;
+    return $result;
   }
 
-  /*
-   * Update the status of the tasks.
+  /**
+   * @param string $dn
+   * @param string $cn
+   * @param string $status
+   * @return void
+   * Note : Update the status of the tasks.
    */
   public function updateTaskMailStatus (string $dn, string $cn, string $status): void
   {
@@ -211,9 +250,11 @@ class TaskGateway
     }
   }
 
-  /*
-  * Update the attribute lastExecTime from fdTasksConf.
-  */
+  /**
+   * @param string $dn
+   * @return void
+   * Note: Update the attribute lastExecTime from fdTasksConf.
+   */
   public function updateLastMailExecTime (string $dn): void
   {
     // prepare data
