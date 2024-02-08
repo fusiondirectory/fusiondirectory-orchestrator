@@ -162,10 +162,8 @@ class TaskGateway
         // Compare both the required schedule and the current user status - returning TRUE if modification is required.
         if ($this->isLifeCycleRequiringModification($lifeCycleBehavior, $currentUserLifeCycle)) {
           echo json_encode('DN requires supann updates');
-          //remove
-          exit;
           // This will call a method to modify the ressourcesSupannEtatDate of the DN linked to the subTask
-          $result = $this->updateLifeCycleAndTaskStatus($task);
+          $result = $this->updateLifeCycle($lifeCycleBehavior, $task['fdtasksgranulardn'][0]);
         } else {
           //remove
           exit;
@@ -177,7 +175,12 @@ class TaskGateway
     return $result;
   }
 
-  protected function removeSubTask($subTaskDn) : bool
+  protected function updateLifeCycle (array $lifeCycleBehavior, string $userDN): array
+  {
+    // Apply the logic of ldapModify on the DN with the life cycle behavior desired.
+  }
+
+  protected function removeSubTask ($subTaskDn): bool
   {
     // Simple perform an ldapRemove on the received DN.
     //remove
