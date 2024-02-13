@@ -209,9 +209,9 @@ class TaskGateway
     $newEntry['EndDate']  = $lifeCycleBehavior[0]['fdtaskslifecyclepostenddate'][0] ?? 0; //EndDate is optional
 
     // Require the date of today to update the start of the new resources (If change of status).
-    $currentDate  = new DateTime();
+    $currentDate = new DateTime();
     // Date of today + numbers of days to add for end date.
-    $newEndDate   = new DateTime();
+    $newEndDate = new DateTime();
     $newEndDate->modify("+" . $newEntry['EndDate'] . " days");
 
     // Prepare the ldap entry to be modified
@@ -351,10 +351,19 @@ class TaskGateway
       $dn = 'cn=' . $attachmentsCN . ',ou=mailTemplate,' . $dn;
     }
 
-    $sr   = ldap_search($this->ds, $dn, $filter, $attrs);
-    $info = ldap_get_entries($this->ds, $sr);
+    /** Verification if the search report a FALSE, possible in case of non-existing DN passed in sub-tasks from a past
+     *members registration which is now obsolete. (Array of members with non-existing DN reported in FD).
+     */
+    try {
+      $sr   = ldap_search($this->ds, $dn, $filter, $attrs);
+      $info = ldap_get_entries($this->ds, $sr);
+    } catch (Exception $e) {
+      // build array for return response
+      $result = [json_encode(["Ldap Error" => "$e"])]; // string returned
+    }
 
-    if (is_array($info) && $info["count"] >= 1) {
+    // Verify if the above ldap search succeeded.
+    if (!empty($info) && is_array($info) && $info["count"] >= 1) {
       return $info;
     }
 
