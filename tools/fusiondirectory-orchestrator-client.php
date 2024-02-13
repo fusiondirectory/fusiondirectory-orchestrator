@@ -21,7 +21,7 @@ class OrchestratorClient
     $this->debug   = FALSE;
 
     $this->listOfArguments = ['--help', '-h', '--verbose', '-v', '--debug', '-d', '--emails', '-m', '--tasks', '-t',
-      '--lifeCycle', '-lc'];
+      '--lifeCycle', '-c'];
 
     $orchestratorFQDN        = $_ENV["ORCHESTRATOR_FQDN"];
     $this->loginEndPoint     = 'https://' . $orchestratorFQDN . '/api/login';
@@ -177,7 +177,7 @@ class OrchestratorClient
           $tasksToBeExecuted[] = 'emails';
           break;
         case '--lifeCycle':
-        case '-lc':
+        case '-c':
           $tasksToBeExecuted[] = 'lifeCycle';
           break;
         case '--tasks':
@@ -212,7 +212,7 @@ class OrchestratorClient
     --verbose (-v)  : Show curl returned messages." . PHP_EOL . "
     --debug (-d)    : Show debug and errors messages." . PHP_EOL . "
     --emails (-m)   : Execute subtasks of type emails." . PHP_EOL . "
-    --lifeCycle (-lc) : Execute subtasks of type lifeCycle." . PHP_EOL . "
+    --lifeCycle (-c) : Execute subtasks of type lifeCycle." . PHP_EOL . "
     --tasks (-t)    : Show all tasks." . PHP_EOL;
 
 

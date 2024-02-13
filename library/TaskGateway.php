@@ -114,13 +114,13 @@ class TaskGateway
           if ($mailSentResult[0] == "SUCCESS") {
 
             // The third arguments "2" is the status code of success for mail as of now 18/11/22
-            $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], "2");
-            $result[] = 'mail : ' . $mail["dn"] . ' was successfully sent';
-            $this->updateLastMailExecTime($fdTasksConf[0]["dn"]);
+            $result[$mail["dn"]]['statusUpdate']   = $this->updateTaskStatus($mail["dn"], $mail["cn"][0], "2");
+            $result[$mail["dn"]]                   = 'mail : ' . $mail["dn"] . ' was successfully sent';
+            $result[$mail["dn"]]['updateLastExec'] = $this->updateLastMailExecTime($fdTasksConf[0]["dn"]);
 
           } else {
-            $this->updateTaskMailStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0]);
-            $result[] = $mailSentResult;
+            $result[$mail["dn"]]['statusUpdate'] = $this->updateTaskStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0]);
+            $result[$mail["dn"]]                 = $mailSentResult;
           }
 
           // Verification anti-spam max mails to be sent and quit loop if matched
@@ -152,7 +152,7 @@ class TaskGateway
         // Simply retrieve the lifeCycle behavior from the main related tasks, sending the dns and desired attributes
         $lifeCycleBehavior = $this->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
           'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
-          'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState'],
+          'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate'],
           '', $task['fdtasksgranularmaster'][0]);
 
         // Simply retrieve the current supannStatus of the user DN related to the task at hand.
@@ -161,30 +161,85 @@ class TaskGateway
 
         // Compare both the required schedule and the current user status - returning TRUE if modification is required.
         if ($this->isLifeCycleRequiringModification($lifeCycleBehavior, $currentUserLifeCycle)) {
-          echo json_encode('DN requires supann updates');
+
           // This will call a method to modify the ressourcesSupannEtatDate of the DN linked to the subTask
-          $result = $this->updateLifeCycle($lifeCycleBehavior, $task['fdtasksgranulardn'][0]);
+          $lifeCycleResult = $this->updateLifeCycle($lifeCycleBehavior, $task['fdtasksgranulardn'][0]);
+          if ($lifeCycleResult === TRUE) {
+
+            $result[$task['dn']]['results'] = json_encode("Account states have been successfully modified for " . $task['fdtasksgranulardn'][0]);
+            // Status of the task must be updated to success
+            $updateResult = $this->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+
+            // In case the modification failed
+          } else {
+            $result[$task['dn']]['results'] = json_encode("Error updating " . $task['fdtasksgranulardn'][0] . "-" . $lifeCycleResult);
+            // Update of the task status error message
+            $updateResult = $this->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult);
+          }
+          // Verification if the sub-task status has been updated correctly
+          if ($updateResult === TRUE) {
+            $result[$task['dn']]['statusUpdate'] = 'Success';
+          } else {
+            $result[$task['dn']]['statusUpdate'] = $updateResult;
+          }
+          // Remove the subtask has it is not required to update it nor to process it.
         } else {
-          //remove
-          exit;
-          // Simply remove the subTask which does not require any life cycle modifications.
-          $result = $this->removeSubTask($task['fdtasksgranulardn'][0]);
+          $result[$task['dn']]['delete'] = $this->removeSubTask($task['dn']);
         }
       }
     }
-    return $result;
+    // If array is empty, no tasks of type life cycle needs to be treated.
+    if (empty($result)) {
+      $result = 'No tasks of type "Life Cycle" requires processing.';
+    }
+    return [$result];
   }
 
-  protected function updateLifeCycle (array $lifeCycleBehavior, string $userDN): array
+  /**
+   * @param array $lifeCycleBehavior
+   * @param string $userDN
+   * @return bool|string
+   */
+  protected function updateLifeCycle (array $lifeCycleBehavior, string $userDN)
   {
-    // Apply the logic of ldapModify on the DN with the life cycle behavior desired.
+    // Extracting values of desired post-state behavior
+    $newEntry['Resource'] = $lifeCycleBehavior[0]['fdtaskslifecyclepostresource'][0];
+    $newEntry['State']    = $lifeCycleBehavior[0]['fdtaskslifecyclepoststate'][0];
+    $newEntry['SubState'] = $lifeCycleBehavior[0]['fdtaskslifecyclepostsubstate'][0] ?? ''; //SubState is optional
+    $newEntry['EndDate']  = $lifeCycleBehavior[0]['fdtaskslifecyclepostenddate'][0] ?? 0; //EndDate is optional
+
+    // Require the date of today to update the start of the new resources (If change of status).
+    $currentDate  = new DateTime();
+    // Date of today + numbers of days to add for end date.
+    $newEndDate   = new DateTime();
+    $newEndDate->modify("+" . $newEntry['EndDate'] . " days");
+
+    // Prepare the ldap entry to be modified
+    $ldapEntry                            = [];
+    $ldapEntry['supannRessourceEtatDate'] = "{" . $newEntry['Resource'] . "}"
+      . $newEntry['State'] . ":"
+      . $newEntry['SubState'] . ":" .
+      $currentDate->format('Ymd') . ":"
+      . $newEndDate->format('Ymd');
+
+    try {
+      $result = ldap_modify($this->ds, $userDN, $ldapEntry);
+    } catch (Exception $e) {
+      $result = json_encode(["Ldap Error" => "$e"]);
+    }
+
+    return $result;
   }
 
   protected function removeSubTask ($subTaskDn): bool
   {
-    // Simple perform an ldapRemove on the received DN.
-    //remove
-    return TRUE;
+    try {
+      $result = ldap_delete($this->ds, $subTaskDn);
+    } catch (Exception $e) {
+      $result = json_encode(["Ldap Error" => "$e"]);
+    }
+
+    return $result;
   }
 
   /**
@@ -201,6 +256,10 @@ class TaskGateway
     // Regular expression in order to extract the supann format within an array
     $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
 
+    // In case the tasks is launched without supann being activated on the user account, return error
+    if (empty($currentUserLifeCycle[0]['supannressourceetatdate'][0])) {
+      return FALSE;
+    }
     // Perform the regular expression match
     preg_match($pattern, $currentUserLifeCycle[0]['supannressourceetatdate'][0], $matches);
 
@@ -306,44 +365,44 @@ class TaskGateway
    * @param string $dn
    * @param string $cn
    * @param string $status
-   * @return void
+   * @return bool|string
    * Note : Update the status of the tasks.
    */
-  public function updateTaskMailStatus (string $dn, string $cn, string $status): void
+  public function updateTaskStatus (string $dn, string $cn, string $status)
   {
     // prepare data
     $ldap_entry["cn"] = $cn;
     // Status subject to change
     $ldap_entry["fdTasksGranularStatus"] = $status;
 
-    // Add data to LDAP
+    // Add status to LDAP
     try {
-
-      $result = ldap_modify($this->ds, $dn, $ldap_entry);
+      $result = ldap_modify($this->ds, $dn, $ldap_entry); // bool returned
     } catch (Exception $e) {
-
-      echo json_encode(["Ldap Error" => "$e"]);
+      $result = json_encode(["Ldap Error" => "$e"]); // string returned
     }
+
+    return $result;
   }
 
   /**
    * @param string $dn
-   * @return void
+   * @return bool|string
    * Note: Update the attribute lastExecTime from fdTasksConf.
    */
-  public function updateLastMailExecTime (string $dn): void
+  public function updateLastMailExecTime (string $dn)
   {
     // prepare data
     $ldap_entry["fdTasksConfLastExecTime"] = time();
 
     // Add data to LDAP
     try {
-
       $result = ldap_modify($this->ds, $dn, $ldap_entry);
     } catch (Exception $e) {
 
-      echo json_encode(["Ldap Error" => "$e"]);
+      $result = json_encode(["Ldap Error" => "$e"]);
     }
+    return $result;
   }
 
 }
