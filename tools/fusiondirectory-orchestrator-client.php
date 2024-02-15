@@ -36,7 +36,10 @@ class OrchestratorClient
     ];
   }
 
-  private function getAccessToken (): string
+  /**
+   * @return bool|string
+   */
+  private function getAccessToken ()
   {
     // The login endpoint is waiting a json format.
     $loginData = json_encode($this->loginData);
@@ -51,6 +54,16 @@ class OrchestratorClient
     // Show curl errors or details if necessary
     $this->showCurlDetails($ch);
     curl_close($ch);
+
+    // String is returned on success but a boolean on error.
+    if (!is_string($response)) {
+      $error = array(
+        'Error  ' => 'Error during process of authentication, enable debug and verbose!',
+        'Status' => $response,
+      );
+        echo json_encode($error,JSON_PRETTY_PRINT);
+        exit;
+    }
     return $response;
   }
 
