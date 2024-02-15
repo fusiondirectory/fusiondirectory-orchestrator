@@ -184,7 +184,9 @@ class TaskGateway
           }
           // Remove the subtask has it is not required to update it nor to process it.
         } else {
-          $result[$task['dn']]['delete'] = $this->removeSubTask($task['dn']);
+          $result[$task['dn']]['results'] = 'Sub-task removed for : ' . $task['fdtasksgranulardn'][0] . ' with result : '
+            . $this->removeSubTask($task['dn']);
+          $result[$task['dn']]['statusUpdate'] = 'No updates required, sub-task will be removed.';
         }
       }
     }

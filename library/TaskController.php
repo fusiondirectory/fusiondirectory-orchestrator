@@ -43,7 +43,7 @@ class TaskController
           }
 
           if (!empty($result)) {
-            echo json_encode($result);
+            echo json_encode($result, JSON_PRETTY_PRINT);
 
           } else {
             echo json_encode("No emails were sent.");
