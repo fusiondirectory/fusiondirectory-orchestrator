@@ -21,13 +21,15 @@ class OrchestratorClient
     $this->debug   = FALSE;
 
     $this->listOfArguments = ['--help', '-h', '--verbose', '-v', '--debug', '-d', '--emails', '-m', '--tasks', '-t',
-      '--lifeCycle', '-c'];
+      '--lifeCycle', '-c', '--remove', '-r'];
 
     $orchestratorFQDN        = $_ENV["ORCHESTRATOR_FQDN"];
     $this->loginEndPoint     = 'https://' . $orchestratorFQDN . '/api/login';
     $this->tasksEndPoint     = 'https://' . $orchestratorFQDN . '/api/tasks/';
     $this->emailEndPoint     = $this->tasksEndPoint . 'mail';
     $this->lifeCycleEndPoint = $this->tasksEndPoint . 'lifeCycle';
+    // Only remove completed sub-tasks
+    $this->removeSubTasksEndPoint = $this->tasksEndPoint . 'removeSubTasks';
 
 
     $this->loginData = [
@@ -59,10 +61,10 @@ class OrchestratorClient
     if (!is_string($response)) {
       $error = array(
         'Error  ' => 'Error during process of authentication, enable debug and verbose!',
-        'Status' => $response,
+        'Status'  => $response,
       );
-        echo json_encode($error,JSON_PRETTY_PRINT);
-        exit;
+      echo json_encode($error, JSON_PRETTY_PRINT);
+      exit;
     }
     return $response;
   }
@@ -144,6 +146,10 @@ class OrchestratorClient
         $ch = curl_init($this->lifeCycleEndPoint);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
         break;
+      case 'removeSubTasks':
+        $ch = curl_init($this->removeSubTasksEndPoint);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+        break;
     }
 
     //headers for the patch curl method containing the access_token
@@ -197,6 +203,10 @@ class OrchestratorClient
         case '-t':
           $tasksToBeExecuted[] = 'tasks';
           break;
+        case '--removeSubTasks':
+        case '-r':
+          $tasksToBeExecuted[] = 'removeSubTasks';
+          break;
       }
     }
 
@@ -212,6 +222,9 @@ class OrchestratorClient
         case 'tasks' :
           $this->showTasks();
           break;
+        case 'removeSubTasks' :
+          $this->subTaskExec('removeSubTasks');
+          break;
       }
     }
 
@@ -221,13 +234,13 @@ class OrchestratorClient
   private function printUsage ()
   {
     echo "Usage: php fusiondirectory-orchestrator-client.php --args" . PHP_EOL . "
-    --help (-h)     : Show this helper message." . PHP_EOL . "
-    --verbose (-v)  : Show curl returned messages." . PHP_EOL . "
-    --debug (-d)    : Show debug and errors messages." . PHP_EOL . "
-    --emails (-m)   : Execute subtasks of type emails." . PHP_EOL . "
+    --help (-h)      : Show this helper message." . PHP_EOL . "
+    --verbose (-v)   : Show curl returned messages." . PHP_EOL . "
+    --debug (-d)     : Show debug and errors messages." . PHP_EOL . "
+    --emails (-m)    : Execute subtasks of type emails." . PHP_EOL . "
     --lifeCycle (-c) : Execute subtasks of type lifeCycle." . PHP_EOL . "
-    --tasks (-t)    : Show all tasks." . PHP_EOL;
-
+    --remove (-r)    : Remove all completed sub-tasks." . PHP_EOL . "
+    --tasks (-t)     : Show all tasks." . PHP_EOL;
 
     exit;
   }

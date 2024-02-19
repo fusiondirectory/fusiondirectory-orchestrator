@@ -35,13 +35,17 @@ class TaskController
           break;
 
         case "PATCH":
-          if ($object_type === 'mail') {
-            $result = $this->gateway->processMailTasks($task);
+          switch ($object_type) {
+            case "mail":
+              $result = $this->gateway->processMailTasks($task);
+              break;
+            case 'lifeCycle':
+              $result = $this->gateway->processLifeCycleTasks($task);
+              break;
+            case 'removeSubTasks':
+              $result = $this->gateway->removeCompletedTasks();
+              break;
           }
-          if ($object_type === 'lifeCycle') {
-            $result = $this->gateway->processLifeCycleTasks($task);
-          }
-
           if (!empty($result)) {
             echo json_encode($result, JSON_PRETTY_PRINT);
 

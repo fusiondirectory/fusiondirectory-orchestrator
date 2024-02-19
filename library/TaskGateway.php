@@ -31,6 +31,11 @@ class TaskGateway
         unset($list_tasks["count"]);
         break;
 
+      case "removeSubTasks":
+        // No need to get any parent tasks here, but to note break logic - we will return an array.
+        $list_tasks = ['removeSubTasks'];
+        break;
+
       // If no tasks object type declared , return all tasks
       case NULL:
         $list_tasks = $this->getLdapTasks("(objectClass=fdTasks)", ["cn", "objectClass"]);
@@ -184,7 +189,7 @@ class TaskGateway
           }
           // Remove the subtask has it is not required to update it nor to process it.
         } else {
-          $result[$task['dn']]['results'] = 'Sub-task removed for : ' . $task['fdtasksgranulardn'][0] . ' with result : '
+          $result[$task['dn']]['results']      = 'Sub-task removed for : ' . $task['fdtasksgranulardn'][0] . ' with result : '
             . $this->removeSubTask($task['dn']);
           $result[$task['dn']]['statusUpdate'] = 'No updates required, sub-task will be removed.';
         }
@@ -233,12 +238,36 @@ class TaskGateway
     return $result;
   }
 
-  protected function removeSubTask ($subTaskDn): bool
+  /**
+   * @param $subTaskDn
+   * return bool on success or string on failure.
+   */
+  protected function removeSubTask ($subTaskDn)
   {
     try {
       $result = ldap_delete($this->ds, $subTaskDn);
     } catch (Exception $e) {
       $result = json_encode(["Ldap Error" => "$e"]);
+    }
+
+    return $result;
+  }
+
+  public function removeCompletedTasks (): array
+  {
+    $result = [];
+    $subTasksCompleted = $this->getLdapTasks(
+      "(&(objectClass=fdTasksGranular)(fdTasksGranularStatus=2))",
+      ["dn"]
+    );
+    // remove the count key from the arrays, keeping only DN.
+    unset($subTasksCompleted['count']);
+    if (!empty($subTasksCompleted)) {
+      foreach ($subTasksCompleted as $subTasks) {
+        $result[$subTasks['dn']]['result'] = $this->removeSubTask($subTasks['dn']);
+      }
+    } else {
+      $result[] = 'No completed sub-tasks were removed.';
     }
 
     return $result;
