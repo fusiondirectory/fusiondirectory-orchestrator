@@ -7,7 +7,7 @@ require "/usr/share/fusiondirectory-orchestrator/config/bootstrap.php";
 class OrchestratorClient
 {
   private bool $verbose, $debug;
-  private string $loginEndPoint, $emailEndPoint, $tasksEndPoint, $lifeCycleEndPoint;
+  private string $loginEndPoint, $emailEndPoint, $tasksEndPoint, $lifeCycleEndPoint, $logging, $removeSubTasksEndPoint;
   private array $loginData, $listOfArguments;
   private ?string $accessToken;
 
@@ -20,8 +20,11 @@ class OrchestratorClient
     $this->verbose = FALSE;
     $this->debug   = FALSE;
 
+    // App logging
+    $this->logging = '/var/log/orchestrator/orchestrator.log';
+
     $this->listOfArguments = ['--help', '-h', '--verbose', '-v', '--debug', '-d', '--emails', '-m', '--tasks', '-t',
-      '--lifeCycle', '-c', '--remove', '-r'];
+      '--lifeCycle', '-c', '--remove', '-r', '--log', '-l'];
 
     $orchestratorFQDN        = $_ENV["ORCHESTRATOR_FQDN"];
     $this->loginEndPoint     = 'https://' . $orchestratorFQDN . '/api/login';
@@ -39,7 +42,8 @@ class OrchestratorClient
   }
 
   /**
-   * @return bool|string
+   * @return string|void
+   * Note : Simply authenticate to the API and get the access token to be used.
    */
   private function getAccessToken ()
   {
@@ -71,16 +75,26 @@ class OrchestratorClient
 
   private function showCurlDetails ($ch): void
   {
-    // Check for errors if verbose args is passed
-    if ($this->debug === TRUE) {
-      if (curl_errno($ch)) {
+    if (curl_errno($ch)) {
+      // Check for errors if verbose args is passed
+      if ($this->debug === TRUE) {
         echo 'cURL error: ' . curl_error($ch) . PHP_EOL;
       }
+      $this->logToFile(curl_error($ch));
     }
+
     if ($this->verbose === TRUE) {
       // Print cURL verbose output
       echo PHP_EOL . 'cURL verbose output: ' . PHP_EOL . curl_multi_getcontent($ch) . PHP_EOL;
     }
+    // Always log returned data from curl content.
+    $this->logToFile(curl_multi_getcontent($ch));
+  }
+
+  private function logToFile ($message): void
+  {
+    file_put_contents($this->logging, date('Y-m-d H:i:s') . ' ' . $message . PHP_EOL,
+      FILE_APPEND | LOCK_EX);
   }
 
   // Method managing the authentication mechanism of JWT.
@@ -177,7 +191,17 @@ class OrchestratorClient
 
     // Array of methods to be processed
     $tasksToBeExecuted = [];
-    foreach ($args as $arg) {
+    // skip is a logic employed when data must be passed to an argument, avoiding wrongly verifying if is a valid arg.
+    $skipNext = FALSE;
+    // set the default logging mechanism by passing the default pre-defined path
+    $this->setLogConfig($this->logging);
+
+    foreach ($args as $index => $arg) {
+      if ($skipNext) {
+        // Skip this iteration as the current argument is a value for a recognized argument
+        $skipNext = FALSE;
+        continue; //Skip the next foreach iteration and continue with the next arg.
+      }
       if (!in_array($arg, $this->listOfArguments)) {
         echo 'Error, the following argument : ' . $arg . ' is not recognised!' . PHP_EOL;
         $this->printUsage();
@@ -207,9 +231,23 @@ class OrchestratorClient
         case '-r':
           $tasksToBeExecuted[] = 'removeSubTasks';
           break;
+        case '--log':
+        case '-l':
+          // Simply verify if the argument is the last and does not contain a possible argument starting with '-'
+          if (isset($args[$index + 1]) && !isset($args[$index + 2]) && substr($args[$index + 1], 0, 1) !== "-") {
+            $this->setLogConfig($args[$index + 1]);
+          } else {
+            if ($this->verbose === TRUE) {
+              echo 'The --log or -l must be followed by a valid path and be the last argument' . PHP_EOL;
+            }
+            exit;
+          }
+          // Allow to skip the verification of a valid argument in case of passed data to an argument. (E.g --log).
+          $skipNext = TRUE;
+          break;
       }
-    }
 
+    }
     // Execute methods passed in arguments
     foreach ($tasksToBeExecuted as $task) {
       switch ($task) {
@@ -231,6 +269,27 @@ class OrchestratorClient
     return 0; // Return success code
   }
 
+  /**
+   * @param $path
+   * @return void
+   * Note : Receive a path and first verify if parent dir is writable, if not fallback to default already set.
+   */
+  private function setLogConfig ($path)
+  {
+    if (is_writable(dirname($path))) {
+      // Check if the directory path received is writable
+      $this->logging = $path;
+      if ($this->verbose === TRUE) {
+        echo PHP_EOL . 'Logging to file : ' . $path . PHP_EOL;
+      }
+      // Fallback to default logging path and verify if the file exists.
+    } else if (!file_exists(dirname($this->logging))) {
+      // Create the parent directory if it doesn't exist
+      mkdir(dirname($this->logging), 0400, TRUE); // 0400 gives read permissions to the owner
+      chmod(dirname($this->logging), 0700); // Set directory permissions to rwx for owner
+    }
+  }
+
   private function printUsage ()
   {
     echo "Usage: php fusiondirectory-orchestrator-client.php --args" . PHP_EOL . "
@@ -240,6 +299,7 @@ class OrchestratorClient
     --emails (-m)    : Execute subtasks of type emails." . PHP_EOL . "
     --lifeCycle (-c) : Execute subtasks of type lifeCycle." . PHP_EOL . "
     --remove (-r)    : Remove all completed sub-tasks." . PHP_EOL . "
+    --log (-l)       : Allows different logging path (Default is /var/log/orchestrator/orchestrator.log." . PHP_EOL . "
     --tasks (-t)     : Show all tasks." . PHP_EOL;
 
     exit;
