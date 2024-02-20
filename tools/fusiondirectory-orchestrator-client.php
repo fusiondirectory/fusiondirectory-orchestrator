@@ -8,8 +8,10 @@ class OrchestratorClient
 {
   private bool $verbose, $debug;
   private string $loginEndPoint, $emailEndPoint, $tasksEndPoint, $lifeCycleEndPoint, $logging, $removeSubTasksEndPoint;
+  private string $activateCyclicTasksEndPoint;
   private array $loginData, $listOfArguments;
   private ?string $accessToken;
+
 
   public function __construct ()
   {
@@ -24,7 +26,7 @@ class OrchestratorClient
     $this->logging = '/var/log/orchestrator/orchestrator.log';
 
     $this->listOfArguments = ['--help', '-h', '--verbose', '-v', '--debug', '-d', '--emails', '-m', '--tasks', '-t',
-      '--lifeCycle', '-c', '--remove', '-r', '--log', '-l'];
+      '--lifeCycle', '-c', '--remove', '-r', '--log', '-l', '--activateCyclicTasks', '-a'];
 
     $orchestratorFQDN        = $_ENV["ORCHESTRATOR_FQDN"];
     $this->loginEndPoint     = 'https://' . $orchestratorFQDN . '/api/login';
@@ -33,6 +35,8 @@ class OrchestratorClient
     $this->lifeCycleEndPoint = $this->tasksEndPoint . 'lifeCycle';
     // Only remove completed sub-tasks
     $this->removeSubTasksEndPoint = $this->tasksEndPoint . 'removeSubTasks';
+    // Only activate required cyclic tasks
+    $this->activateCyclicTasksEndPoint = $this->tasksEndPoint . 'activateCyclicTasks';
 
 
     $this->loginData = [
@@ -164,6 +168,10 @@ class OrchestratorClient
         $ch = curl_init($this->removeSubTasksEndPoint);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
         break;
+      case 'activateCyclicTasks':
+        $ch = curl_init($this->activateCyclicTasksEndPoint);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+        break;
     }
 
     //headers for the patch curl method containing the access_token
@@ -231,6 +239,10 @@ class OrchestratorClient
         case '-r':
           $tasksToBeExecuted[] = 'removeSubTasks';
           break;
+        case '--activateCyclicTasks':
+        case '-a':
+          $tasksToBeExecuted[] = 'activateCyclicTasks';
+          break;
         case '--log':
         case '-l':
           // Simply verify if the argument is the last and does not contain a possible argument starting with '-'
@@ -263,6 +275,9 @@ class OrchestratorClient
         case 'removeSubTasks' :
           $this->subTaskExec('removeSubTasks');
           break;
+        case 'activateCyclicTasks' :
+          $this->subTaskExec('activateCyclicTasks');
+          break;
       }
     }
 
@@ -293,14 +308,15 @@ class OrchestratorClient
   private function printUsage ()
   {
     echo "Usage: php fusiondirectory-orchestrator-client.php --args" . PHP_EOL . "
-    --help (-h)      : Show this helper message." . PHP_EOL . "
-    --verbose (-v)   : Show curl returned messages." . PHP_EOL . "
-    --debug (-d)     : Show debug and errors messages." . PHP_EOL . "
-    --emails (-m)    : Execute subtasks of type emails." . PHP_EOL . "
-    --lifeCycle (-c) : Execute subtasks of type lifeCycle." . PHP_EOL . "
-    --remove (-r)    : Remove all completed sub-tasks." . PHP_EOL . "
-    --log (-l)       : Allows different logging path (Default is /var/log/orchestrator/orchestrator.log." . PHP_EOL . "
-    --tasks (-t)     : Show all tasks." . PHP_EOL;
+    --help (-h)                 : Show this helper message." . PHP_EOL . "
+    --verbose (-v)              : Show curl returned messages." . PHP_EOL . "
+    --debug (-d)                : Show debug and errors messages." . PHP_EOL . "
+    --emails (-m)               : Execute subtasks of type emails." . PHP_EOL . "
+    --lifeCycle (-c)            : Execute subtasks of type lifeCycle." . PHP_EOL . "
+    --activateCyclicTasks (-a)  : Activate all due cyclic tasks." . PHP_EOL . "
+    --remove (-r)               : Remove all completed sub-tasks." . PHP_EOL . "
+    --log (-l)                  : Allows different logging path (Default is /var/log/orchestrator/orchestrator.log." . PHP_EOL . "
+    --tasks (-t)                : Show all tasks." . PHP_EOL;
 
     exit;
   }

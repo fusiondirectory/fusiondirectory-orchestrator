@@ -32,8 +32,9 @@ class TaskGateway
         break;
 
       case "removeSubTasks":
+      case "activateCyclicTasks":
         // No need to get any parent tasks here, but to note break logic - we will return an array.
-        $list_tasks = ['removeSubTasks'];
+        $list_tasks = ['Generic tasks execution'];
         break;
 
       // If no tasks object type declared , return all tasks
@@ -175,6 +176,8 @@ class TaskGateway
             // Status of the task must be updated to success
             $updateResult = $this->updateTaskStatus($task['dn'], $task['cn'][0], '2');
 
+            // Here the user should be refreshed in order to potentially activate methods based on supann Status changes.
+
             // In case the modification failed
           } else {
             $result[$task['dn']]['results'] = json_encode("Error updating " . $task['fdtasksgranulardn'][0] . "-" . $lifeCycleResult);
@@ -253,9 +256,13 @@ class TaskGateway
     return $result;
   }
 
+  /**
+   * @return array
+   * Note Search for all sub-tasks having status equals to 2 (completed).
+   */
   public function removeCompletedTasks (): array
   {
-    $result = [];
+    $result            = [];
     $subTasksCompleted = $this->getLdapTasks(
       "(&(objectClass=fdTasksGranular)(fdTasksGranularStatus=2))",
       ["dn"]
@@ -268,6 +275,35 @@ class TaskGateway
       }
     } else {
       $result[] = 'No completed sub-tasks were removed.';
+    }
+
+    return $result;
+  }
+
+  /**
+   * @return array
+   * Note : Call the webservice for each DN of a cyclic tasks and activate it.
+   */
+  public function activateCyclicTasks (): array
+  {
+    $result = [];
+    $tasks  = $this->getLdapTasks(
+      "(&(objectClass=fdTasks)(fdTasksRepeatable=TRUE))",
+      ["dn", "fdTasksRepeatableSchedule"]
+    );
+    // remove the count key from the arrays, keeping only DN.
+    unset($tasks['count']);
+    if (!empty($tasks)) {
+      // Initiate the object webservice.
+      $webservice = new WebServiceCall($_ENV['FD_WEBSERVICE_FQDN'], 'POST');
+      // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
+      $webservice->setCurlSettings();
+
+      foreach ($tasks as $task) {
+        $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+      }
+    } else {
+      $result[] = 'No cyclic tasks require activation.';
     }
 
     return $result;

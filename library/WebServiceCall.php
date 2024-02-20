@@ -15,7 +15,7 @@ class WebServiceCall
    * @param string $method
    * @param array|NULL $authData
    */
-  public function __construct (string $URL, array $data = NULL, string $method, array $authData = NULL)
+  public function __construct (string $URL, string $method, array $data = NULL, array $authData = NULL)
   {
     $this->URL      = $URL;
     $this->data     = $data;
@@ -30,7 +30,7 @@ class WebServiceCall
    * @return void
    * Note : Allows setting custom curl parameters, if none passed it will use the object defined curl parameters.
    */
-  protected function setCurlSettings (string $URL = NULL, array $data = NULL, string $method = NULL)
+  public function setCurlSettings (string $URL = NULL, array $data = NULL, string $method = NULL)
   {
     $this->ch = !empty($URL) ? curl_init($URL) : curl_init($this->URL);
 
@@ -133,7 +133,7 @@ class WebServiceCall
    * @return string
    * Note : receive the DN of the main task and execute it, creating related sub-tasks.
    */
-  protected function activateCyclicTasks (string $dn): string
+  public function activateCyclicTasks (string $dn): string
   {
     $data = array(
       "Tasks" => array(

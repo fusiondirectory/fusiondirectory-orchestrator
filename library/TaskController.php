@@ -45,6 +45,9 @@ class TaskController
             case 'removeSubTasks':
               $result = $this->gateway->removeCompletedTasks();
               break;
+            case 'activateCyclicTasks':
+              $result = $this->gateway->activateCyclicTasks();
+              break;
           }
           if (!empty($result)) {
             echo json_encode($result, JSON_PRETTY_PRINT);
