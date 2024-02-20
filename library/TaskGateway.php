@@ -289,18 +289,24 @@ class TaskGateway
     $result = [];
     $tasks  = $this->getLdapTasks(
       "(&(objectClass=fdTasks)(fdTasksRepeatable=TRUE))",
-      ["dn", "fdTasksRepeatableSchedule"]
+      ["dn", "fdTasksRepeatableSchedule", "fdTasksLastExec", "fdTasksScheduleDate"]
     );
     // remove the count key from the arrays, keeping only DN.
     unset($tasks['count']);
     if (!empty($tasks)) {
       // Initiate the object webservice.
-      $webservice = new WebServiceCall($_ENV['FD_WEBSERVICE_FQDN'], 'POST');
+      $webservice = new WebServiceCall($_ENV['FD_WEBSERVICE_FQDN'].'/login', 'POST');
       // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
       $webservice->setCurlSettings();
 
       foreach ($tasks as $task) {
-        $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+        // Case where the tasks were never run before
+        if (empty($task['fdTasksLastExec']) && $task['fdTasksScheduleDate'] <= time()) {
+          $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+        } else {
+          // Execute here the verification of the type of cyclic schedule and the current time + last exec.
+        }
+
       }
     } else {
       $result[] = 'No cyclic tasks require activation.';

@@ -15,7 +15,7 @@ class WebServiceCall
    * @param string $method
    * @param array|NULL $authData
    */
-  public function __construct (string $URL, string $method, array $data = NULL, array $authData = NULL)
+  public function __construct (string $URL, string $method, array $data = [], array $authData = [])
   {
     $this->URL      = $URL;
     $this->data     = $data;
@@ -97,14 +97,16 @@ class WebServiceCall
       'username' => $user,
       'password' => $password
     ];
-    $auth     = json_encode($loginData);
 
-    $ch = curl_init($this->URL);
+    $auth = $loginData;
+    $ch   = curl_init($this->URL);
+
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $auth);
     curl_setopt($ch, CURLOPT_POST, TRUE);
 
     $response = curl_exec($ch);
+
     $this->handleCurlError($response);
     curl_close($ch);
 
@@ -120,8 +122,8 @@ class WebServiceCall
     // String is returned on success but a boolean on error.
     if (!is_string($response)) {
       $error = array(
-        'Error  ' => 'Error during process of authentication!',
-        'Status'  => $response,
+        'Error'  => 'Error during process of authentication to FusionDirectory web-service!',
+        'Status' => $response,
       );
       echo json_encode($error, JSON_PRETTY_PRINT);
       exit;
