@@ -297,6 +297,7 @@ class TaskGateway
     if (!empty($tasks)) {
       // Initiate the object webservice.
       $webservice = new WebServiceCall($_ENV['FD_WEBSERVICE_FQDN'] . '/login', 'POST');
+
       // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
       $webservice->setCurlSettings();
       // Is used to verify cyclic schedule with date format.
