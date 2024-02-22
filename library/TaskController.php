@@ -53,6 +53,7 @@ class TaskController
             echo json_encode($result, JSON_PRETTY_PRINT);
 
           } else {
+            // To be modified and enhance, no results does not always mean no emails in current logic.
             echo json_encode("No emails were sent.");
           }
 

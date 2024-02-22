@@ -45,38 +45,40 @@ class WebServiceCall
       switch (strtolower($this->method)) {
         case 'patch' :
           curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
-          curl_setopt($this->ch, CURLOPT_POSTFIELDS, $this->data);
+          curl_setopt($this->ch, CURLOPT_POSTFIELDS, json_encode($this->data));
           break;
         case 'get' :
           // No curl_setopt required
           break;
         case 'put':
           curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, 'PUT');
-          curl_setopt($this->ch, CURLOPT_POSTFIELDS, $this->data);
+          curl_setopt($this->ch, CURLOPT_POSTFIELDS, json_encode($this->data));
           break;
         case 'delete':
           curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
           break;
         case 'post':
           curl_setopt($this->ch, CURLOPT_POST, TRUE);
-          curl_setopt($this->ch, CURLOPT_POSTFIELDS, $this->data);
+          curl_setopt($this->ch, CURLOPT_POSTFIELDS, json_encode($this->data));
           break;
       }
     }
 
     // Handle token retrieval via basic user/pass authentication.
+
+
+
     if (empty($this->token)) {
       if (empty($this->authData)) {
         $this->token = $this->getAccessToken($_ENV['WEB_LOGIN'], $_ENV['WEB_PASS']);
       } else {
         $this->token = $this->getAccessToken($this->authData['username'], $this->authData['password']);
       }
-
     }
+
     // Headers for the patch curl method containing the access_token
     $headers = [
-      "SESSION-TOKEN: " . $this->token,
-      "Content-Type: application/json"
+      "SESSION-TOKEN" => $this->token
     ];
 
     // Set up the basic and default curl options
@@ -94,18 +96,21 @@ class WebServiceCall
   {
     // The login endpoint is waiting a json format.
     $loginData = [
-      'username' => $user,
+      'user' => $user,
       'password' => $password
     ];
 
-    $auth = $loginData;
     $ch   = curl_init($this->URL);
 
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $auth);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($loginData));
     curl_setopt($ch, CURLOPT_POST, TRUE);
 
     $response = curl_exec($ch);
+    if (json_decode($response) === 'Invalid credentials') {
+      echo json_encode('Error during FD webservice authentication :' . $response);
+      exit;
+    }
 
     $this->handleCurlError($response);
     curl_close($ch);
@@ -142,13 +147,16 @@ class WebServiceCall
         "fdSubTasksActivation" => "TRUE"
       )
     );
-    json_encode($data);
-    $this->setCurlSettings($_ENV['FD_WEBSERVICE_FQDN'] . '/objects/tasks/' . $dn, $data, 'patch');
+
+    $this->setCurlSettings($_ENV['FD_WEBSERVICE_FQDN'] . '/objects/tasks/' .$dn, $data, 'PATCH');
 
     $response = curl_exec($this->ch);
+    print_r($this->token);
+    print_r($response);
     $this->handleCurlError($response);
 
     $response = json_decode(curl_multi_getcontent($this->ch), TRUE);
+
     curl_close($this->ch);
 
     return $response;

@@ -293,23 +293,66 @@ class TaskGateway
     );
     // remove the count key from the arrays, keeping only DN.
     unset($tasks['count']);
+
     if (!empty($tasks)) {
       // Initiate the object webservice.
-      $webservice = new WebServiceCall($_ENV['FD_WEBSERVICE_FQDN'].'/login', 'POST');
+      $webservice = new WebServiceCall($_ENV['FD_WEBSERVICE_FQDN'] . '/login', 'POST');
       // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
       $webservice->setCurlSettings();
+      // Is used to verify cyclic schedule with date format.
+      $now = new DateTime();
 
       foreach ($tasks as $task) {
-        // Case where the tasks were never run before
-        if (empty($task['fdTasksLastExec']) && $task['fdTasksScheduleDate'] <= time()) {
-          $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
-        } else {
-          // Execute here the verification of the type of cyclic schedule and the current time + last exec.
-        }
+        // Transform schedule time (it is a simple string)
+        $schedule = DateTime::createFromFormat("YmdHis", $task['fdtasksscheduledate'][0]);
 
+        // First verification of the schedule of the task itself.
+        if ($schedule <= $now) {
+          // Case where the tasks were never run before but schedule is met, execute tasks.
+          if (empty($task['fdtaskslastexec'][0])) {
+            $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+
+            // Case where the tasks were once run, verification of the cyclic schedule and last exec.
+          } else if (!empty($task['fdtasksrepeatableschedule'][0])) {
+            $lastExec = new DateTime($task['fdtaskslastexec'][0]);
+            // Efficient way to verify timelapse
+            $interval = $now->diff($lastExec);
+
+            switch ($task['fdtasksrepeatableschedule'][0]) {
+              case 'Yearly' :
+                if ($interval->y >= 1) {
+                  $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+                }
+                break;
+              case 'Monthly' :
+                if ($interval->m >= 1) {
+                  $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+                }
+                break;
+              case 'Weekly' :
+                if ($interval->d >= 7) {
+                  $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+                }
+                break;
+              case 'Daily' :
+                if ($interval->d >= 1) {
+                  $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+                }
+                break;
+              case 'Hourly' :
+                if ($interval->h >= 7) {
+                  $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+                }
+                break;
+            }
+          }
+          // Case where cyclic tasks where found but the schedule is no ready.
+        } else {
+          $result[] = 'No cyclic tasks have yet reached their schedule date.';
+        }
       }
     } else {
-      $result[] = 'No cyclic tasks require activation.';
+      $result[] = 'No tasks require activation.';
     }
 
     return $result;
