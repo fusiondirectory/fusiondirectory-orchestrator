@@ -349,7 +349,7 @@ class TaskGateway
           }
           // Case where cyclic tasks where found but the schedule is no ready.
         } else {
-          $result[] = 'No cyclic tasks have yet reached their schedule date.';
+          $result[$task['dn']]['Status'] = 'This cyclic task have yet reached its scheduled date.';
         }
       }
     } else {
