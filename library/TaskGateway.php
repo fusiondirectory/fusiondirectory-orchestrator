@@ -176,7 +176,7 @@ class TaskGateway
             // Status of the task must be updated to success
             $updateResult = $this->updateTaskStatus($task['dn'], $task['cn'][0], '2');
 
-            // Here the user should be refreshed in order to potentially activate methods based on supann Status changes.
+            // Here the user mst be refreshed in order to potentially activate methods based on supann Status changes.
 
             // In case the modification failed
           } else {
@@ -282,7 +282,7 @@ class TaskGateway
 
   /**
    * @return array
-   * Note : Call the webservice for each DN of a cyclic tasks and activate it.
+   * @throws Exception
    */
   public function activateCyclicTasks (): array
   {
@@ -323,33 +323,43 @@ class TaskGateway
               case 'Yearly' :
                 if ($interval->y >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+                } else {
+                  $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
               case 'Monthly' :
                 if ($interval->m >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+                } else {
+                  $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
               case 'Weekly' :
                 if ($interval->d >= 7) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+                } else {
+                  $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
               case 'Daily' :
                 if ($interval->d >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+                } else {
+                  $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
               case 'Hourly' :
                 if ($interval->h >= 7) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+                } else {
+                  $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
             }
           }
           // Case where cyclic tasks where found but the schedule is no ready.
         } else {
-          $result[$task['dn']]['Status'] = 'This cyclic task have yet reached its scheduled date.';
+          $result[$task['dn']]['Status'] = 'This cyclic task has yet to reach its scheduled date.';
         }
       }
     } else {
@@ -371,7 +381,7 @@ class TaskGateway
   {
     $result = FALSE;
     // Regular expression in order to extract the supann format within an array
-    $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
+    $pattern = '/\{(\w+)(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
 
     // In case the tasks is launched without supann being activated on the user account, return error
     if (empty($currentUserLifeCycle[0]['supannressourceetatdate'][0])) {

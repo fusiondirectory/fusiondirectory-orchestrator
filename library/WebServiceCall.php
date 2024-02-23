@@ -114,7 +114,7 @@ class WebServiceCall
   }
 
   /**
-   * @param $response
+   * @param $ch
    * @return void
    */
   private function handleCurlError ($ch): void
@@ -143,7 +143,7 @@ class WebServiceCall
     );
 
     $this->setCurlSettings($_ENV['FD_WEBSERVICE_FQDN'] . '/objects/tasks/' .$dn, $data, 'PATCH');
-    $response = curl_exec($this->ch);
+    curl_exec($this->ch);
 
     $this->handleCurlError($this->ch);
     $response = json_decode(curl_multi_getcontent($this->ch), TRUE);
