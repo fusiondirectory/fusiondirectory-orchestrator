@@ -1,34 +1,34 @@
 # FusionDirectory Orchestrator 
 
-FusionDirectory Orchestrator is an REST API orchestrator.
+FusionDirectory Orchestrator is a REST API orchestrator.
 It is a part of our new workflow management system defined in FusionDirectory
 Is purpose is to execute tasks defined in FusionDirectory.
 
-# Features
+## Features
 
 * Tasks management.
 * Tasks execution.
 
 ## Tasks management
 
-FusionDirectory Orchestrator REST API allows the retrieval of existing created Tasks.
-It offer simple view on the status of each tasks. 
+FusionDirectory Orchestrator REST API allows the retrieval of existing created tasks.
+It offers a simple view on the status of each task. 
 
 It is possible to retrieve specialized tasks and see their content.
 
-#Tasks execution
+## Tasks execution
 
-One of the main aspect of FusionDirectory Orchestrator is to allow processing of some desired tasks.
+One of the main aspects of FusionDirectory Orchestrator is to allow processing of some desired tasks.
 
-For exemple :
+For example :
 
-In case of a task of type mail, the list of related emails will be sent if scheduled is matched.
+In the case of a task of type mail, the list of related emails will be sent if scheduled is matched.
 
 ## Get help
 
 ### Community support
 
-There are a couple ways you can try [to get help][get help].
+There are a couple of ways you can try [to get help][get help].
 
 ### Professional support
 
@@ -37,14 +37,13 @@ Professional support is provided through of subscription.
 We have two type of subscription :
 
 * [FusionDirectory][subscription-fusiondirectory] : Global subscription for FusionDirectory and all the plugins
-* [FusionDirectory Plus][subscription-fusiondirectory-plus] : Expert Support on Education, Deployement and Infrastructure plugins
+* [FusionDirectory Plus][subscription-fusiondirectory-plus] : Expert Support on Education, Deployment and Infrastructure plugins
 
-The subscription provides access to FusionDirectory's stable enterprise repository, providing reliable software updates and security enhancements,
-as well as technical help and support.
+The subscription provides access to FusionDirectory's stable enterprise repository, providing reliable software updates and security enhancements, as well as technical help and support.
 
 Choose the plan that's right for you. Our subscriptions are flexible and scalable according to your needs
 
-The subscription period is one year from the date of purchase and gives you access to the extensive infrastructure of enterprise-class software and services.
+The subscription period is one year from the date of purchase and provides you with access to the extensive infrastructure of enterprise-class software and services.
 
 ### Best practice badge
 
@@ -52,7 +51,7 @@ The subscription period is one year from the date of purchase and gives you acce
   
 ## Crowfunding
 
-If you like us and want to send us a small contribution you can use the following crowfunding services
+If you like us and want to send us a small contribution, you can use the following crowdfunding services
 
 * [donate-liberapay]
 
@@ -85,4 +84,6 @@ If you like us and want to send us a small contribution you can use the followin
 [donate-opencollective]: https://opencollective.com/fusiondirectory
 
 [donate-communitybridge]: https://funding.communitybridge.org/projects/fusiondirectory
+
+
 
