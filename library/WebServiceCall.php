@@ -28,13 +28,16 @@ class WebServiceCall
    * @param array|NULL $data
    * @param string|NULL $method
    * @return void
-   * Note : Allows setting custom curl parameters, if none passed it will use the object defined curl parameters.
    */
   public function setCurlSettings (string $URL = NULL, array $data = NULL, string $method = NULL)
   {
     $this->ch = !empty($URL) ? curl_init($URL) : curl_init($this->URL);
 
-    if (!empty($data)) {
+    // Manage a trick to perform refresh on user DN
+    if (!empty($data) && array_key_exists('refreshUser', $data)) {
+      // Empty array is required to update the user dn without passing information, json_encode will transform it to {}
+      $this->data = array();
+    } else if (!empty($data)) {
       $this->data = $data;
     }
 
@@ -76,7 +79,7 @@ class WebServiceCall
 
     // Headers for the patch curl method containing the access_token
     $headers = [
-      "session-token: ".$this->token
+      "session-token: " . $this->token
     ];
 
     // Set up the basic and default curl options
@@ -94,7 +97,7 @@ class WebServiceCall
   {
     // The login endpoint is waiting a json format.
     $loginData = [
-      'user' => $user,
+      'user'     => $user,
       'password' => $password
     ];
 
@@ -142,11 +145,42 @@ class WebServiceCall
       )
     );
 
-    $this->setCurlSettings($_ENV['FD_WEBSERVICE_FQDN'] . '/objects/tasks/' .$dn, $data, 'PATCH');
+    $this->setCurlSettings($_ENV['FD_WEBSERVICE_FQDN'] . '/objects/tasks/' . $dn, $data, 'PATCH');
     curl_exec($this->ch);
 
     $this->handleCurlError($this->ch);
     $response = json_decode(curl_multi_getcontent($this->ch), TRUE);
+
+    // Manage the response from current FD WebService, returned DN seems to mean success.
+    if ($response === $dn) {
+      $response = 'Task has been activated successfully';
+    }
+
+    curl_close($this->ch);
+    return $response;
+  }
+
+  /**
+   * @param $dn
+   * @return mixed|string
+   * Note : When life cycle is triggered, supann status are updated through LDAP, FD must now trigger updates
+   */
+  public function refreshUserInfo ($dn)
+  {
+    // Create a specific array which will be interpreted by setCurlSettings in order to change it to an empty json data.
+    $data = array(
+      'refreshUser' => null
+    );
+
+    $this->setCurlSettings($_ENV['FD_WEBSERVICE_FQDN'] . '/objects/user/' . $dn, $data, 'PATCH');
+    curl_exec($this->ch);
+
+    $this->handleCurlError($this->ch);
+    $response = json_decode(curl_multi_getcontent($this->ch), TRUE);
+
+    if ($response === $dn) {
+      $response = 'User: ' . $dn . ' has been correctly refreshed.';
+    }
 
     curl_close($this->ch);
     return $response;

@@ -151,6 +151,11 @@ class TaskGateway
   {
     // Array representing the status of the subtask.
     $result = [];
+    // Initiate the object webservice.
+    $webservice = new WebServiceCall($_ENV['FD_WEBSERVICE_FQDN'] . '/login', 'POST');
+    // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
+    $webservice->setCurlSettings();
+
     foreach ($list_tasks as $task) {
       // If the tasks must be treated - status and scheduled - process the sub-tasks
       if ($task["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($task["fdtasksgranularschedule"][0])) {
@@ -176,7 +181,8 @@ class TaskGateway
             // Status of the task must be updated to success
             $updateResult = $this->updateTaskStatus($task['dn'], $task['cn'][0], '2');
 
-            // Here the user mst be refreshed in order to potentially activate methods based on supann Status changes.
+            // Here the user is refresh in order to activate methods based on supann Status changes.
+            $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
 
             // In case the modification failed
           } else {
@@ -381,7 +387,7 @@ class TaskGateway
   {
     $result = FALSE;
     // Regular expression in order to extract the supann format within an array
-    $pattern = '/\{(\w+)(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
+    $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
 
     // In case the tasks is launched without supann being activated on the user account, return error
     if (empty($currentUserLifeCycle[0]['supannressourceetatdate'][0])) {
