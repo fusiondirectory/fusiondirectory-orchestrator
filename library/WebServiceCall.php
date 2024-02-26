@@ -115,10 +115,6 @@ class WebServiceCall
     return json_decode($response);
   }
 
-  /**
-   * @param CurlHandle|BOOL|resource $ch
-   * @return void
-   */
   private function handleCurlError ($ch): void
   {
     // String is returned on success but a boolean on error.
