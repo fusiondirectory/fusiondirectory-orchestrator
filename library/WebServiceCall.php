@@ -36,7 +36,7 @@ class WebServiceCall
     // Manage a trick to perform refresh on user DN
     if (!empty($data) && array_key_exists('refreshUser', $data)) {
       // Empty array is required to update the user dn without passing information, json_encode will transform it to {}
-      $this->data = array();
+      $this->data = [];
     } else if (!empty($data)) {
       $this->data = $data;
     }
@@ -124,10 +124,10 @@ class WebServiceCall
   {
     // String is returned on success but a boolean on error.
     if (curl_error($ch)) {
-      $error = array(
+      $error = [
         'Error'  => 'Error during process of authentication to FusionDirectory web-service!',
         'Status' => curl_errno($ch),
-      );
+      ];
       echo json_encode($error, JSON_PRETTY_PRINT);
       exit;
     }
@@ -139,11 +139,11 @@ class WebServiceCall
    */
   public function activateCyclicTasks (string $dn)
   {
-    $data = array(
-      "tasks" => array(
+    $data = [
+      "tasks" => [
         "fdSubTasksActivation" => "TRUE"
-      )
-    );
+      ]
+    ];
 
     $this->setCurlSettings($_ENV['FD_WEBSERVICE_FQDN'] . '/objects/tasks/' . $dn, $data, 'PATCH');
     curl_exec($this->ch);
@@ -168,9 +168,9 @@ class WebServiceCall
   public function refreshUserInfo ($dn)
   {
     // Create a specific array which will be interpreted by setCurlSettings in order to change it to an empty json data.
-    $data = array(
-      'refreshUser' => null
-    );
+    $data = [
+      'refreshUser' => NULL
+    ];
 
     $this->setCurlSettings($_ENV['FD_WEBSERVICE_FQDN'] . '/objects/user/' . $dn, $data, 'PATCH');
     curl_exec($this->ch);

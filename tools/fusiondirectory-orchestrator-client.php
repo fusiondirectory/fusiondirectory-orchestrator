@@ -67,10 +67,10 @@ class OrchestratorClient
 
     // String is returned on success but a boolean on error.
     if (!is_string($response)) {
-      $error = array(
+      $error = [
         'Error  ' => 'Error during process of authentication, enable debug and verbose!',
         'Status'  => $response,
-      );
+      ];
       echo json_encode($error, JSON_PRETTY_PRINT);
       exit;
     }
