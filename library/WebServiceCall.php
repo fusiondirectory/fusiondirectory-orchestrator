@@ -11,9 +11,9 @@ class WebServiceCall
 
   /**
    * @param string $URL
-   * @param array|NULL $data
    * @param string $method
-   * @param array|NULL $authData
+   * @param array $data
+   * @param array $authData
    */
   public function __construct (string $URL, string $method, array $data = [], array $authData = [])
   {
@@ -27,7 +27,6 @@ class WebServiceCall
    * @param string|NULL $URL
    * @param array|NULL $data
    * @param string|NULL $method
-   * @return void
    */
   public function setCurlSettings (string $URL = NULL, array $data = NULL, string $method = NULL)
   {
@@ -91,7 +90,7 @@ class WebServiceCall
    * @param string $user
    * @param string $password
    * @return string
-   * Note : Simply retrieve the access token after auth from FusionDirectory webservice.
+   *  Note : Simply retrieve the access token after auth from FusionDirectory webservice.
    */
   private function getAccessToken (string $user, string $password): string
   {
@@ -117,7 +116,7 @@ class WebServiceCall
   }
 
   /**
-   * @param $ch
+   * @param CurlHandle|BOOL|resource $ch
    * @return void
    */
   private function handleCurlError ($ch): void
@@ -161,11 +160,11 @@ class WebServiceCall
   }
 
   /**
-   * @param $dn
+   * @param string $dn
    * @return mixed|string
    * Note : When life cycle is triggered, supann status are updated through LDAP, FD must now trigger updates
    */
-  public function refreshUserInfo ($dn)
+  public function refreshUserInfo (string $dn)
   {
     // Create a specific array which will be interpreted by setCurlSettings in order to change it to an empty json data.
     $data = [

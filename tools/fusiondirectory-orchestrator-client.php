@@ -46,7 +46,7 @@ class OrchestratorClient
   }
 
   /**
-   * @return string|void
+   * @return bool|string
    * Note : Simply authenticate to the API and get the access token to be used.
    */
   private function getAccessToken ()
@@ -65,15 +65,6 @@ class OrchestratorClient
     $this->showCurlDetails($ch);
     curl_close($ch);
 
-    // String is returned on success but a boolean on error.
-    if (!is_string($response)) {
-      $error = [
-        'Error  ' => 'Error during process of authentication, enable debug and verbose!',
-        'Status'  => $response,
-      ];
-      echo json_encode($error, JSON_PRETTY_PRINT);
-      exit;
-    }
     return $response;
   }
 
@@ -285,11 +276,11 @@ class OrchestratorClient
   }
 
   /**
-   * @param $path
+   * @param string $path
    * @return void
    * Note : Receive a path and first verify if parent dir is writable, if not fallback to default already set.
    */
-  private function setLogConfig ($path)
+  private function setLogConfig (string $path)
   {
     if (is_writable(dirname($path))) {
       // Check if the directory path received is writable

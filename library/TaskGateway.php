@@ -248,8 +248,8 @@ class TaskGateway
   }
 
   /**
-   * @param $subTaskDn
-   * return bool on success or string on failure.
+   * @param bool|string $subTaskDn
+   * @return bool|string
    */
   protected function removeSubTask ($subTaskDn)
   {
