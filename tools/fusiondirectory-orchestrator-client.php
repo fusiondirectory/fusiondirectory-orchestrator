@@ -7,9 +7,11 @@ require "/usr/share/fusiondirectory-orchestrator/config/bootstrap.php";
 class OrchestratorClient
 {
   private bool $verbose, $debug;
-  private string $loginEndPoint, $emailEndPoint, $tasksEndPoint;
+  private string $loginEndPoint, $emailEndPoint, $tasksEndPoint, $lifeCycleEndPoint, $logging, $removeSubTasksEndPoint;
+  private string $activateCyclicTasksEndPoint;
   private array $loginData, $listOfArguments;
   private ?string $accessToken;
+
 
   public function __construct ()
   {
@@ -20,12 +22,21 @@ class OrchestratorClient
     $this->verbose = FALSE;
     $this->debug   = FALSE;
 
-    $this->listOfArguments = ['--help', '-h', '--verbose', '-v', '--debug', '-d', '--emails', '-m', '--tasks', '-t'];
+    // App logging
+    $this->logging = '/var/log/orchestrator/orchestrator.log';
 
-    $orchestratorFQDN    = $_ENV["ORCHESTRATOR_FQDN"];
-    $this->loginEndPoint = 'https://' . $orchestratorFQDN . '/api/login';
-    $this->tasksEndPoint = 'https://' . $orchestratorFQDN . '/api/tasks/';
-    $this->emailEndPoint = $this->tasksEndPoint . 'mail';
+    $this->listOfArguments = ['--help', '-h', '--verbose', '-v', '--debug', '-d', '--emails', '-m', '--tasks', '-t',
+      '--lifeCycle', '-c', '--remove', '-r', '--log', '-l', '--activateCyclicTasks', '-a'];
+
+    $orchestratorFQDN        = $_ENV["ORCHESTRATOR_FQDN"];
+    $this->loginEndPoint     = 'https://' . $orchestratorFQDN . '/api/login';
+    $this->tasksEndPoint     = 'https://' . $orchestratorFQDN . '/api/tasks/';
+    $this->emailEndPoint     = $this->tasksEndPoint . 'mail';
+    $this->lifeCycleEndPoint = $this->tasksEndPoint . 'lifeCycle';
+    // Only remove completed sub-tasks
+    $this->removeSubTasksEndPoint = $this->tasksEndPoint . 'removeSubTasks';
+    // Only activate required cyclic tasks
+    $this->activateCyclicTasksEndPoint = $this->tasksEndPoint . 'activateCyclicTasks';
 
 
     $this->loginData = [
@@ -34,7 +45,11 @@ class OrchestratorClient
     ];
   }
 
-  private function getAccessToken (): string
+  /**
+   * @return bool|string
+   * Note : Simply authenticate to the API and get the access token to be used.
+   */
+  private function getAccessToken ()
   {
     // The login endpoint is waiting a json format.
     $loginData = json_encode($this->loginData);
@@ -49,21 +64,32 @@ class OrchestratorClient
     // Show curl errors or details if necessary
     $this->showCurlDetails($ch);
     curl_close($ch);
+
     return $response;
   }
 
   private function showCurlDetails ($ch): void
   {
-    // Check for errors if verbose args is passed
-    if ($this->debug === TRUE) {
-      if (curl_errno($ch)) {
+    if (curl_errno($ch)) {
+      // Check for errors if verbose args is passed
+      if ($this->debug === TRUE) {
         echo 'cURL error: ' . curl_error($ch) . PHP_EOL;
       }
+      $this->logToFile(curl_error($ch));
     }
+
     if ($this->verbose === TRUE) {
       // Print cURL verbose output
       echo PHP_EOL . 'cURL verbose output: ' . PHP_EOL . curl_multi_getcontent($ch) . PHP_EOL;
     }
+    // Always log returned data from curl content.
+    $this->logToFile(curl_multi_getcontent($ch));
+  }
+
+  private function logToFile ($message): void
+  {
+    file_put_contents($this->logging, date('Y-m-d H:i:s') . ' ' . $message . PHP_EOL,
+      FILE_APPEND | LOCK_EX);
   }
 
   // Method managing the authentication mechanism of JWT.
@@ -116,24 +142,41 @@ class OrchestratorClient
     curl_close($ch);
   }
 
-  private function subTaskEmails (): void
+  private function subTaskExec (string $taskType): void
   {
     // Retrieve or refresh access tokens
     $this->manageAuthentication();
-    $ch = curl_init($this->emailEndPoint);
+    switch ($taskType) {
+      case 'mail':
+        $ch = curl_init($this->emailEndPoint);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+        break;
+      case 'lifeCycle':
+        $ch = curl_init($this->lifeCycleEndPoint);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+        break;
+      case 'removeSubTasks':
+        $ch = curl_init($this->removeSubTasksEndPoint);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+        break;
+      case 'activateCyclicTasks':
+        $ch = curl_init($this->activateCyclicTasksEndPoint);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+        break;
+    }
 
     //headers for the patch curl method containing the access_token
     $headers = [
       "Authorization: Bearer $this->accessToken",
       "Content-Type: application/json"
     ];
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-    curl_exec($ch);
-    $this->showCurlDetails($ch);
-    curl_close($ch);
+    if (!empty($ch)) {
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+      curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+      curl_exec($ch);
+      $this->showCurlDetails($ch);
+      curl_close($ch);
+    }
   }
 
   public function run ($args): int
@@ -147,7 +190,17 @@ class OrchestratorClient
 
     // Array of methods to be processed
     $tasksToBeExecuted = [];
-    foreach ($args as $arg) {
+    // skip is a logic employed when data must be passed to an argument, avoiding wrongly verifying if is a valid arg.
+    $skipNext = FALSE;
+    // set the default logging mechanism by passing the default pre-defined path
+    $this->setLogConfig($this->logging);
+
+    foreach ($args as $index => $arg) {
+      if ($skipNext) {
+        // Skip this iteration as the current argument is a value for a recognized argument
+        $skipNext = FALSE;
+        continue; //Skip the next foreach iteration and continue with the next arg.
+      }
       if (!in_array($arg, $this->listOfArguments)) {
         echo 'Error, the following argument : ' . $arg . ' is not recognised!' . PHP_EOL;
         $this->printUsage();
@@ -165,21 +218,56 @@ class OrchestratorClient
         case '-m':
           $tasksToBeExecuted[] = 'emails';
           break;
+        case '--lifeCycle':
+        case '-c':
+          $tasksToBeExecuted[] = 'lifeCycle';
+          break;
         case '--tasks':
         case '-t':
           $tasksToBeExecuted[] = 'tasks';
           break;
+        case '--removeSubTasks':
+        case '-r':
+          $tasksToBeExecuted[] = 'removeSubTasks';
+          break;
+        case '--activateCyclicTasks':
+        case '-a':
+          $tasksToBeExecuted[] = 'activateCyclicTasks';
+          break;
+        case '--log':
+        case '-l':
+          // Simply verify if the argument is the last and does not contain a possible argument starting with '-'
+          if (isset($args[$index + 1]) && !isset($args[$index + 2]) && substr($args[$index + 1], 0, 1) !== "-") {
+            $this->setLogConfig($args[$index + 1]);
+          } else {
+            if ($this->verbose === TRUE) {
+              echo 'The --log or -l must be followed by a valid path and be the last argument' . PHP_EOL;
+            }
+            exit;
+          }
+          // Allow to skip the verification of a valid argument in case of passed data to an argument. (E.g --log).
+          $skipNext = TRUE;
+          break;
       }
-    }
 
+    }
     // Execute methods passed in arguments
     foreach ($tasksToBeExecuted as $task) {
       switch ($task) {
         case 'emails' :
-          $this->subTaskEmails();
+          $this->subTaskExec('mail');
+          break;
+        case 'lifeCycle' :
+          $this->subTaskExec('lifeCycle');
           break;
         case 'tasks' :
           $this->showTasks();
+          break;
+        case 'removeSubTasks' :
+          $this->subTaskExec('removeSubTasks');
+          break;
+        case 'activateCyclicTasks' :
+          $this->subTaskExec('activateCyclicTasks');
           break;
       }
     }
@@ -187,14 +275,39 @@ class OrchestratorClient
     return 0; // Return success code
   }
 
+  /**
+   * @param string $path
+   * @return void
+   * Note : Receive a path and first verify if parent dir is writable, if not fallback to default already set.
+   */
+  private function setLogConfig (string $path)
+  {
+    if (is_writable(dirname($path))) {
+      // Check if the directory path received is writable
+      $this->logging = $path;
+      if ($this->verbose === TRUE) {
+        echo PHP_EOL . 'Logging to file : ' . $path . PHP_EOL;
+      }
+      // Fallback to default logging path and verify if the file exists.
+    } else if (!file_exists(dirname($this->logging))) {
+      // Create the parent directory if it doesn't exist
+      mkdir(dirname($this->logging), 0400, TRUE); // 0400 gives read permissions to the owner
+      chmod(dirname($this->logging), 0700); // Set directory permissions to rwx for owner
+    }
+  }
+
   private function printUsage ()
   {
     echo "Usage: php fusiondirectory-orchestrator-client.php --args" . PHP_EOL . "
-    --help (-h)     : Show this helper message." . PHP_EOL . "
-    --verbose (-v)  : Show curl returned messages." . PHP_EOL . "
-    --debug (-d)    : Show debug and errors messages." . PHP_EOL . "
-    --emails (-m)   : Execute subtasks of type emails." . PHP_EOL . "
-    --tasks (-t)    : Show all tasks." . PHP_EOL;
+    --help (-h)                 : Show this helper message." . PHP_EOL . "
+    --verbose (-v)              : Show curl returned messages." . PHP_EOL . "
+    --debug (-d)                : Show debug and errors messages." . PHP_EOL . "
+    --emails (-m)               : Execute subtasks of type emails." . PHP_EOL . "
+    --lifeCycle (-c)            : Execute subtasks of type lifeCycle." . PHP_EOL . "
+    --activateCyclicTasks (-a)  : Activate all due cyclic tasks." . PHP_EOL . "
+    --remove (-r)               : Remove all completed sub-tasks." . PHP_EOL . "
+    --log (-l)                  : Allows different logging path (Default is /var/log/orchestrator/orchestrator.log." . PHP_EOL . "
+    --tasks (-t)                : Show all tasks." . PHP_EOL;
 
     exit;
   }

@@ -6,7 +6,7 @@ class TaskController
 
   public function __construct (TaskGateway $gateway)
   {
-    $this->gateway  = $gateway;
+    $this->gateway = $gateway;
   }
 
   public function processRequest (string $method, ?string $object_type): void
@@ -35,12 +35,25 @@ class TaskController
           break;
 
         case "PATCH":
-          $result = $this->gateway->processMailTasks($task);
-
+          switch ($object_type) {
+            case "mail":
+              $result = $this->gateway->processMailTasks($task);
+              break;
+            case 'lifeCycle':
+              $result = $this->gateway->processLifeCycleTasks($task);
+              break;
+            case 'removeSubTasks':
+              $result = $this->gateway->removeCompletedTasks();
+              break;
+            case 'activateCyclicTasks':
+              $result = $this->gateway->activateCyclicTasks();
+              break;
+          }
           if (!empty($result)) {
-            echo json_encode($result);
+            echo json_encode($result, JSON_PRETTY_PRINT);
 
           } else {
+            // To be modified and enhance, no results does not always mean no emails in current logic.
             echo json_encode("No emails were sent.");
           }
 

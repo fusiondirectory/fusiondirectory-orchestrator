@@ -50,14 +50,14 @@ $auth = new Authentication($codec);
 
 // Quit script execution if access token is invalid or expired
 if (!$auth->authenticateAccessToken()) {
-    exit;
+  exit;
 }
 
 // Retrieve the CN of the DSA.
 $dsaCN = $auth->getDSAcn();
 
 $task_gateway = new TaskGateway($ldap_connect);
-$controller = new TaskController($task_gateway);
+$controller   = new TaskController($task_gateway);
 
 // Process Request Passing Resources Attributes Values ($id)
 $controller->processRequest($_SERVER['REQUEST_METHOD'], $object_type);
