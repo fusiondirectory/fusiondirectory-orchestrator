@@ -140,7 +140,7 @@ class WebServiceCall
       ]
     ];
 
-    $this->setCurlSettings($_ENV['FD_WEBSERVICE_FQDN'] . '/objects/tasks/' . $dn, $data, 'PATCH');
+    $this->setCurlSettings($_ENV['FUSION_DIRECTORY_API_URL'] . '/objects/tasks/' . $dn, $data, 'PATCH');
     curl_exec($this->ch);
 
     $this->handleCurlError($this->ch);
@@ -167,7 +167,7 @@ class WebServiceCall
       'refreshUser' => NULL
     ];
 
-    $this->setCurlSettings($_ENV['FD_WEBSERVICE_FQDN'] . '/objects/user/' . $dn, $data, 'PATCH');
+    $this->setCurlSettings($_ENV['FUSION_DIRECTORY_API_URL'] . '/objects/user/' . $dn, $data, 'PATCH');
     curl_exec($this->ch);
 
     $this->handleCurlError($this->ch);

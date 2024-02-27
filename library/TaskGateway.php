@@ -152,7 +152,7 @@ class TaskGateway
     // Array representing the status of the subtask.
     $result = [];
     // Initiate the object webservice.
-    $webservice = new WebServiceCall($_ENV['FD_WEBSERVICE_FQDN'] . '/login', 'POST');
+    $webservice = new WebServiceCall($_ENV['FUSION_DIRECTORY_API_URL'] . '/login', 'POST');
     // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
     $webservice->setCurlSettings();
 
@@ -302,7 +302,7 @@ class TaskGateway
 
     if (!empty($tasks)) {
       // Initiate the object webservice.
-      $webservice = new WebServiceCall($_ENV['FD_WEBSERVICE_FQDN'] . '/login', 'POST');
+      $webservice = new WebServiceCall($_ENV['FUSION_DIRECTORY_API_URL'] . '/login', 'POST');
 
       // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
       $webservice->setCurlSettings();

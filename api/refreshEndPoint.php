@@ -30,7 +30,7 @@ try {
 
 $dsaCN = $payload["sub"];
 
-$ldap_connect = new Ldap($_ENV["LDAP_HOST"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
+$ldap_connect = new Ldap($_ENV["FD_LDAP_MASTER_URL"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
 
 $user_gateway = new UserGateway($ldap_connect);
 

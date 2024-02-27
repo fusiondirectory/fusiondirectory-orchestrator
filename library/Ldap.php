@@ -17,7 +17,7 @@ class Ldap
   //return type can be ldap\connection
   public function getConnection ()
   {
-    $ds = ldap_connect('ldaps://'.$this->ldap_host)
+    $ds = ldap_connect($this->ldap_host)
           or die("Could no connect to ".$this->ldap_host);
 
     // Set ldap version
