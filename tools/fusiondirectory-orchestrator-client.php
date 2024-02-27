@@ -28,9 +28,9 @@ class OrchestratorClient
     $this->listOfArguments = ['--help', '-h', '--verbose', '-v', '--debug', '-d', '--emails', '-m', '--tasks', '-t',
       '--lifeCycle', '-c', '--remove', '-r', '--log', '-l', '--activateCyclicTasks', '-a'];
 
-    $orchestratorFQDN        = $_ENV["ORCHESTRATOR_FQDN"];
-    $this->loginEndPoint     = 'https://' . $orchestratorFQDN . '/api/login';
-    $this->tasksEndPoint     = 'https://' . $orchestratorFQDN . '/api/tasks/';
+    $orchestratorFQDN        = $_ENV["ORCHESTRATOR_API_URL"];
+    $this->loginEndPoint     = $orchestratorFQDN . '/api/login';
+    $this->tasksEndPoint     = $orchestratorFQDN . '/api/tasks/';
     $this->emailEndPoint     = $this->tasksEndPoint . 'mail';
     $this->lifeCycleEndPoint = $this->tasksEndPoint . 'lifeCycle';
     // Only remove completed sub-tasks

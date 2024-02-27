@@ -37,7 +37,7 @@ switch ($resource) {
 }
 
 // Retrieve an authenticated ldap connection
-$ldap_connect = new Ldap($_ENV["LDAP_HOST"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
+$ldap_connect = new Ldap($_ENV["FD_LDAP_MASTER_URL"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
 
 // Retrieve all user info based on the dsa common name (CN).
 $user_gateway = new UserGateway($ldap_connect);
