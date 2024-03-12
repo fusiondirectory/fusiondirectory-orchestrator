@@ -7,6 +7,9 @@
  */
 function autoload ($class)
 {
+  // Integrator is required
+  require '/usr/share/php/FusionDirectory/autoloader.php';
+
   if (strpos($class, 'PHPMailer') !== FALSE) {
     require("/usr/share/php/libphp-phpmailer/src/Exception.php");
     require("/usr/share/php/libphp-phpmailer/src/PHPMailer.php");
