@@ -42,6 +42,10 @@ create_phpstan_rapport:
     - git clone --depth 1 https://gitlab.fusiondirectory.org/fusiondirectory/dev-tools.git ../dev-tools
     - apt install libphp-phpmailer
     - composer global require vlucas/phpdotenv=3.6.7
+    - curl "https://gitlab.fusiondirectory.org/api/v4/projects/$FD_INTEGRATOR_ID/jobs/artifacts/$BRANCH/raw/fusiondirectory-integrator-$INTEGRATOR_VERSION.tar.gz?job=build-tarballs" -o fusiondirectory-integrator.tar.gz
+    - mkdir /usr/share/php/FusionDirectory/
+    - tar -xvzf ./fusiondirectory-integrator.tar.gz
+    - mv ./fusiondirectory-integrator-$INTEGRATOR_VERSION/src/* /usr/share/php/FusionDirectory/
     - cp ../dev-tools/phpstan/fusiondirectory-orchestrator/*.neon .
     - /root/.composer/vendor/bin/phpstan analyse -c phpstan.neon
 
