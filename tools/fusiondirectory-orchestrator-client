@@ -298,7 +298,7 @@ class OrchestratorClient
 
   private function printUsage ()
   {
-    echo "Usage: php fusiondirectory-orchestrator-client.php --args" . PHP_EOL . "
+    echo "Usage: fusiondirectory-orchestrator-client --args" . PHP_EOL . "
     --help (-h)                 : Show this helper message." . PHP_EOL . "
     --verbose (-v)              : Show curl returned messages." . PHP_EOL . "
     --debug (-d)                : Show debug and errors messages." . PHP_EOL . "
