@@ -307,7 +307,7 @@ class TaskGateway
       // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
       $webservice->setCurlSettings();
       // Is used to verify cyclic schedule with date format.
-      $now = new DateTime();
+      $now = new DateTime('now', new DateTimeZone('UTC'));
 
       foreach ($tasks as $task) {
         // Transform schedule time (it is a simple string)
