@@ -57,10 +57,14 @@ class TaskGateway
     return $list_tasks;
   }
 
-  public function processNotifications(array $notificationsSubTasks): array
+  public function processNotifications (array $notificationsSubTasks): array
   {
     $result = [];
+    // It will contain all required notifications to be sent per main task.
+    $notifications = [];
+
     foreach ($notificationsSubTasks as $task) {
+
       // If the tasks must be treated - status and scheduled - process the sub-tasks
       if ($task["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($task["fdtasksgranularschedule"][0])) {
 
@@ -69,14 +73,33 @@ class TaskGateway
           'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate'],
           '', $task['fdtasksgranularmaster'][0]);
 
+        // Generate email configuration for each result of subtasks having the same main task.
+        // The loop will overwrite static information, but each main task contains the same static information.
+        if (!empty($notificationsMainTask[0]['fdtasksnotificationsmailtemplate'])) {
+
+          $mainTaskName = $task['fdtasksgranularmaster'][0];
+          $mailTemplate = $notificationsMainTask[0]['fdtasksnotificationsmailtemplate'][0];
+
+          $mailInfos   = $this->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $mailTemplate);
+          $mailContent = $mailInfos[0];
+
+          // Set the notification array with all required variable for all sub-tasks of same main task origin.
+          $notifications[$mainTaskName]['setFrom']    = 'toBeDefine@example.com'; // To clearly be retrieved from LDAP.
+          $notifications[$mainTaskName]['recipients'] = $notificationsMainTask[0]["fdtasksnotificationslistofrecipientsmails"];
+          $notifications[$mainTaskName]['body']       = $mailContent["fdmailtemplatebody"][0];
+          $notifications[$mainTaskName]['signature']  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+          $notifications[$mainTaskName]['subject']    = $mailContent["fdmailtemplatesubject"][0];
+          $notifications[$mainTaskName]['receipt']    = $mailContent["fdmailtemplatereadreceipt"][0];
+        }
+
         // Retrieve audit data attributes from the list of references set in the sub-task
-        if (!empty($task['fdtasksgranularref'])){
+        if (!empty($task['fdtasksgranularref'])) {
           // Ldap always return a count which we have to remove.
           unset($task['fdtasksgranularref']['count']);
 
           foreach ($task['fdtasksgranularref'] as $auditDN) {
             $auditInformation = $this->getLdapTasks('(&(objectClass=fdAuditEvent))',
-              ['fdAuditAttributes'],'', $auditDN);
+              ['fdAuditAttributes'], '', $auditDN);
           }
 
           // Clear and compact received results from above ldap search
@@ -89,12 +112,15 @@ class TaskGateway
           $matchingAttrs = array_intersect($auditAttributes, $monitoredAttrs);
           if (!empty($matchingAttrs)) {
             // Fill an array with UID of audited user and related matching attributes
-            $result[$task['fdtasksgranulardn'][0]] = $matchingAttrs;
+            $notifications[$mainTaskName][$task['fdtasksgranulardn'][0]] = $matchingAttrs;
           }
         }
       }
     }
 
+    if (!empty($notifications)) {
+      $result[] = $notifications;
+    }
     return $result;
   }
 
