@@ -31,6 +31,11 @@ class TaskGateway
         unset($list_tasks["count"]);
         break;
 
+      case "notifications":
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Notifications))");
+        unset($list_tasks["count"]);
+        break;
+
       case "removeSubTasks":
       case "activateCyclicTasks":
         // No need to get any parent tasks here, but to note break logic - we will return an array.
@@ -50,6 +55,31 @@ class TaskGateway
     }
 
     return $list_tasks;
+  }
+
+  public function processNotifications(array $notificationsSubTasks): array
+  {
+    $result = [];
+    foreach ($notificationsSubTasks as $task) {
+      // If the tasks must be treated - status and scheduled - process the sub-tasks
+      if ($task["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($task["fdtasksgranularschedule"][0])) {
+
+        // Retrieve data from the main task
+        $notificationsMainTask = $this->getLdapTasks('(objectClass=fdTasksNotifications)', ['fdTasksNotificationsListOfRecipientsMails',
+          'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksLastExec'],
+          '', $task['fdtasksgranularmaster'][0]);
+
+        // Retrieve audit data for specified user DN
+        $auditInformation = $this->getLdapTasks('(&(objectClass=fdAuditEvent)(fdAuditObjectType='.$task['fdtasksgranulardn'][0].'))',
+          ['fdTasksNotificationsListOfRecipientsMails', 'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksLastExec'],
+          '', $task['fdtasksgranularmaster'][0]);
+
+        //debugging
+        $result[] = $notificationsMainTask;
+      }
+    }
+
+    return $result;
   }
 
   /**
