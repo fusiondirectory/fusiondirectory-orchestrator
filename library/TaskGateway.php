@@ -66,16 +66,32 @@ class TaskGateway
 
         // Retrieve data from the main task
         $notificationsMainTask = $this->getLdapTasks('(objectClass=fdTasksNotifications)', ['fdTasksNotificationsListOfRecipientsMails',
-          'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksLastExec'],
+          'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate'],
           '', $task['fdtasksgranularmaster'][0]);
 
-        // Retrieve audit data for specified user DN
-        $auditInformation = $this->getLdapTasks('(&(objectClass=fdAuditEvent)(fdAuditObjectType='.$task['fdtasksgranulardn'][0].'))',
-          ['fdTasksNotificationsListOfRecipientsMails', 'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksLastExec'],
-          '', $task['fdtasksgranularmaster'][0]);
+        // Retrieve audit data attributes from the list of references set in the sub-task
+        if (!empty($task['fdtasksgranularref'])){
+          // Ldap always return a count which we have to remove.
+          unset($task['fdtasksgranularref']['count']);
 
-        //debugging
-        $result[] = $notificationsMainTask;
+          foreach ($task['fdtasksgranularref'] as $auditDN) {
+            $auditInformation = $this->getLdapTasks('(&(objectClass=fdAuditEvent))',
+              ['fdAuditAttributes'],'', $auditDN);
+          }
+
+          // Clear and compact received results from above ldap search
+          $auditAttributes = $auditInformation[0]['fdauditattributes'];
+          unset($auditAttributes['count']);
+          $monitoredAttrs = $notificationsMainTask[0]['fdtasksnotificationsattributes'];
+          unset($monitoredAttrs['count']);
+
+          // Verify if there is a match between audited attributes and monitored attributes from main task.
+          $matchingAttrs = array_intersect($auditAttributes, $monitoredAttrs);
+          if (!empty($matchingAttrs)) {
+            // Fill an array with UID of audited user and related matching attributes
+            $result[$task['fdtasksgranulardn'][0]] = $matchingAttrs;
+          }
+        }
       }
     }
 
