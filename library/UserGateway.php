@@ -14,79 +14,56 @@ class UserGateway
    * return value should be bool or array
    * but | joint only exists as of php 8.0
    */
-  public function getByUsername (string $username): array
+  public function getDSAInfo (string $dsaLogin): array
   {
-    /* Select all from user where username = username
+    /* Select all from ou=dsa where dsaLogin = dsaLogin
     * Verify if user actually exists and return TRUE if yes.
     * A default empty array used as default in case no user is found
     */
-    $empty_array = [];
-    $user_password = [];
-    $filter = "(|(uid=$username*))";
-    $attrs = ["uid", "userPassword"];
+    $emptyArray = [];
 
-    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_USER"], $filter, $attrs);
+    // During refreshEndPoint, dsaLogin already contains -jwt, it must be removed.
+    $dsaLogin = str_replace('-jwt', '', $dsaLogin);
+
+    $filter = "(|(cn=$dsaLogin))";
+    $attrs = ["cn", "userPassword"];
+
+    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_DSA"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
     ldap_unbind($this->ds);
 
     if (is_array($info) && $info["count"] >= 1 ) {
+      // CN is modified with '-jwt' in order to create a new entry in LDAP (Modifying existing CN is not allowed).
+      $info['cn'] = $info[0]['cn'][0].'-jwt';
+      $info['dn'] = str_replace($info[0]['cn'][0], $info['cn'], $info[0]['dn']);
 
-      // Format array for easier use aftewards and removes uid by substring
-      $info['uid'] = $info[0]['uid'][0];
-      $info['cn'] = "cn=".substr($info[0]['dn'], 4);
+      // During
       $info['password_hash'] = $info[0]['userpassword'][0];
 
       return $info;
     }
 
-    return $empty_array;
-  }
-
-  // Is used by the refresh token endpoint as ID is recovered from the refresh token
-  // Allowing verification if the user has still proper priveleges.
-  public function getByID (string $uid): array
-  {
-    /* This ID was taken from the token payload passed during refresh.
-    * Select all from user where uid = uid
-    * A default empty array used as default in case no user is found
-    */
-    $empty_array = [];
-    $filter = "(|(uid=$uid*))";
-    $attrs = ["uid"];
-
-    $sr = ldap_search($this->ds, $_ENV["LDAP_OU_USER"], $filter, $attrs);
-    $info = ldap_get_entries($this->ds, $sr);
-    $info['uid'] = $info[0]['uid'][0];
-    $info['cn'] = "cn=".substr($info[0]['dn'], 4);
-
-    ldap_unbind($this->ds);
-
-    if (is_array($info) && $info["count"] >= 1 ) {
-
-      return $info;
-    }
-
-    return $empty_array;
+    return $emptyArray;
   }
 
   // Inspired by https://blog.michael.kuron-germany.de/2012/07/hashing-and-verifying-ldap-passwords-in-php/comment-page-1/
   // Can be made in switch mode. Only MD5 SHA SSHA and clear text are managed for now.
-  //  !! To be removed to use the FD LDAP library already existing !!
-  public function check_password ($password, $hash)
+  //  !! To be removed in order to use the FD LDAP library already existing !!
+  public function validateDSAPassword ($password, $hash): bool
   {
     if ($hash == '') { //No Password
       return FALSE;
     }
 
     if ($hash[0] != '{') { //Plain Text
-      return $password == $hash ? TRUE : FALSE;
+      return $password == $hash;
     }
 
     // Crypt requires better implementation - not working as sub hash are required.
     if (substr($hash, 0, 7) == '{crypt}') {
 
-      return crypt($password, substr($hash, 7)) == substr($hash, 7) ? TRUE : FALSE;
+      return crypt($password, substr($hash, 7)) == substr($hash, 7);
     } elseif (substr($hash, 0, 5) == '{MD5}') {
 
       $encrypted_password = '{MD5}' .base64_encode(md5($password, TRUE));
@@ -111,12 +88,3 @@ class UserGateway
     return FALSE;
   }
 }
-
-
-
-
-
-
-
-
-
