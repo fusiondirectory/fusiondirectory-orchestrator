@@ -63,6 +63,20 @@ build-tarballs:
       - fusiondirectory-orchestrator-$VERSION.tar.gz
     expire_in: 30d
 
+build-release:
+  stage: tarballs
+  only:
+    - tags
+  script:
+    - VERSION=$(grep '%' Changelog.md | head -n1 | cut -d ' ' -f3 | tr -d '"')
+    - mkdir ../fusiondirectory-orchestrator-$VERSION/
+    - mv ./* ../fusiondirectory-orchestrator-$VERSION/
+    - mv  ../fusiondirectory-orchestrator-$VERSION/ ./
+    - tar -cvzf fusiondirectory-orchestrator-$VERSION.tar.gz *
+  artifacts:
+    paths:
+      - ./*.tar.gz
+
 trigger-ci-debian-bullseye:
   stage: trigger
   only:
