@@ -1,9 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
-require __DIR__ . "/../config/bootstrap.php";
-
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
   http_response_code(405);
@@ -32,14 +28,15 @@ try {
   exit;
 }
 
-$user_uid = $payload["sub"];
+$dsaCN = $payload["sub"];
 
-$ldap_connect = new Ldap($_ENV["LDAP_HOST"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
+$ldap_connect = new Ldap($_ENV["FD_LDAP_MASTER_URL"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
 
 $user_gateway = new UserGateway($ldap_connect);
 
-$user = $user_gateway->getByID($user_uid);
-if ($user == FALSE) {
+$user = $user_gateway->getDSAInfo($dsaCN);
+
+if (!$user) {
 
   http_response_code(401);
   echo json_encode(["message" => "invalid authentication"]);
@@ -50,7 +47,7 @@ $refresh_token_gateway = new RefreshTokenGateway($ldap_connect, $_ENV["SECRET_KE
 
 $refresh_token = $refresh_token_gateway->getByToken($data["token"]);
 
-if ($refresh_token == FALSE) {
+if (!$refresh_token) {
 
     http_response_code(400);
     echo json_encode(["message" => "invalid token (not on whitelist)"]);
@@ -60,4 +57,6 @@ if ($refresh_token == FALSE) {
 require __DIR__ . "/../config/tokens.php";
 
 $refresh_token_gateway->delete($data["token"]);
-$refresh_token_gateway->create($refresh_token, $refresh_token_expiry);
+if (!empty($refresh_token_expiry)) {
+  $refresh_token_gateway->create($refresh_token, $refresh_token_expiry);
+}
