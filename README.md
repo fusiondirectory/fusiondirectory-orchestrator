@@ -8,6 +8,7 @@ Is purpose is to execute tasks defined in FusionDirectory.
 
 * Tasks management.
 * Tasks execution.
+* JWT Authentication methods
 
 ## Tasks management
 
@@ -22,7 +23,8 @@ One of the main aspects of FusionDirectory Orchestrator is to allow processing o
 
 For example :
 
-In the case of a task of type mail, the list of related emails will be sent if scheduled is matched.
+*  In case of a task of type "Mail", the list of related emails will be sent if scheduled is matched.
+*  In case of a task of type "Life Cycle", the specialized supann attributes will be updated accordingly.
 
 ## Get help
 
