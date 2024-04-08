@@ -454,7 +454,8 @@ class TaskGateway
   // Verification of the schedule in complete string format and compare.
   public function verifySchedule (string $schedule): bool
   {
-    $schedule = strtotime($schedule);
+    // Avoid strtotime evaluating in local time zone and transfer data to UTC
+    $schedule = strtotime($schedule.' +0000');
     if ($schedule < time()) {
       return TRUE;
     }
