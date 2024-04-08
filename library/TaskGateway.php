@@ -156,13 +156,18 @@ class TaskGateway
         // Verify if there is a match between audited attributes and monitored attributes from main task.
         $matchingAttrs = array_intersect($auditAttributes, $monitoredAttrs);
 
-        //TO CONTINUE DEBUG HERE !
         if (!empty($matchingAttrs)) {
           // Fill an array with UID of audited user and related matching attributes
-          $notifications[$mainTaskName]['uid'][$task['fdtasksgranulardn'][0]] = $matchingAttrs;
+          $notifications[$notificationsMainTaskName]['uid'][$task['fdtasksgranulardn'][0]]['attrs'] = $matchingAttrs;
+
           // Require to be set for updating the status of the task later on.
-          $notifications[$mainTaskName]['uid'][$task['fdtasksgranulardn'][0]]['dn'] = $task['dn'];
-          $notifications[$mainTaskName]['uid'][$task['fdtasksgranulardn'][0]]['cn'] = $task['cn'][0];
+          $notifications[$notificationsMainTaskName][$task['fdtasksgranulardn'][0]]['dn'] = $task['dn'];
+          $notifications[$notificationsMainTaskName][$task['fdtasksgranulardn'][0]]['cn'] = $task['cn'][0];
+
+          // shifting the array as first key is identical to main task name
+          $notifications[$notificationsMainTaskName]['mailForm'] = array_shift($mailTemplateForm);
+          //Overwrite array notifications with complementing mail form body with uid and related attributes.
+          $notifications = $this->completeNotificationsBody($notifications);
         }
       }
     }
@@ -174,8 +179,31 @@ class TaskGateway
     return $result;
   }
 
-  protected
-  function sendNotificationsMail (array $notifications): array
+  /**
+   * @param array $notifications
+   * @return array
+   * Note : This method is present to add to the mailForm body the proper uid and attrs info.
+   */
+  private function completeNotificationsBody (array $notifications): array
+  {
+    // Iterate through each uid and its attrs
+    $uidAttrsText = [];
+    foreach ($notifications[key($notifications)]['uid'] as $uidKey => $uidValue) {
+      $uidName = $uidKey;
+      $attrs = [];
+      foreach ($uidValue['attrs'] as $attr) {
+        $attrs[] = $attr;
+      }
+      $uidAttrsText[] = "\n$uidName attrs=[" . implode(', ', $attrs) . "]";
+    }
+
+    // Add uid names and related attrs to mailForm['body']
+    $notifications[key($notifications)]['mailForm']['body'] .= " " . implode(" ", $uidAttrsText);
+
+    return $notifications;
+  }
+
+  protected function sendNotificationsMail (array $notifications): array
   {
     $result = [];
     // Re-use of the same mail processing template logic
@@ -186,9 +214,7 @@ class TaskGateway
     foreach ($notifications as $notification => $data) {
       $maxMailsIncrement = 0;
 
-      // unset count from returned ldap values
-      unset($data['recipients']['count']);
-
+      //CONTINUE DEBUG HERE
       //Create the body of the notification mail combining template and members with audited attributes.
       foreach ($data['uid'] as $uid => $attributes) {
         // Append the UID to the data['body'] string
@@ -204,7 +230,6 @@ class TaskGateway
           $data['body'] .= "Attribute: $attr\n";
         }
       }
-      print_r($data);
 
       $mail_controller = new MailController(
         $data['setFrom'],
