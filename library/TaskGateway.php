@@ -102,8 +102,11 @@ class TaskGateway
               ['fdAuditAttributes'], '', $auditDN);
           }
 
+          // It is possible that an audit does not contain any attributes changes.
+          if (!empty($auditInformation[0]['fdauditattributes'])) {
+            $auditAttributes = $auditInformation[0]['fdauditattributes'];
+          }
           // Clear and compact received results from above ldap search
-          $auditAttributes = $auditInformation[0]['fdauditattributes'];
           unset($auditAttributes['count']);
           $monitoredAttrs = $notificationsMainTask[0]['fdtasksnotificationsattributes'];
           unset($monitoredAttrs['count']);
@@ -112,16 +115,112 @@ class TaskGateway
           $matchingAttrs = array_intersect($auditAttributes, $monitoredAttrs);
           if (!empty($matchingAttrs)) {
             // Fill an array with UID of audited user and related matching attributes
-            $notifications[$mainTaskName][$task['fdtasksgranulardn'][0]] = $matchingAttrs;
+            $notifications[$mainTaskName]['uid'][$task['fdtasksgranulardn'][0]] = $matchingAttrs;
+            // Require to be set for updating the status of the task later on.
+            $notifications[$mainTaskName]['uid'][$task['fdtasksgranulardn'][0]]['dn'] = $task['dn'];
           }
         }
       }
     }
 
     if (!empty($notifications)) {
-      $result[] = $notifications;
+      $result[] = $this->sendNotificationsMail($notifications);
     }
     return $result;
+  }
+
+  protected function sendNotificationsMail (array $notifications): array
+  {
+    $result = [];
+    // Re-use of the same mail processing template logic
+    $fdTasksConf    = $this->getMailObjectConfiguration();
+    $maxMailsConfig = $this->returnMaximumMailToBeSend($fdTasksConf);
+
+    // Each main tasks having notifications required will be processed one by one, resulting in on email per main tasks.
+    foreach ($notifications as $notification => $data) {
+      $maxMailsIncrement = 0;
+
+      // unset count from returned ldap values
+      unset($data['recipients']['count']);
+
+      // This will retrieve the list of subTasks DN required to be updated with a status :
+      $subTasksDN = [];
+      //Create the body of the notification mail combining template and members with audited attributes.
+      foreach ($data['uid'] as $uid => $attributes) {
+        // Append the UID to the data['body'] string
+        $data['body'] .= "\nUID: $uid\n";
+        // Retrieve the DN of subtasks within array to later update the status of subtasks.
+        $subTasksDN[] = $attributes['dn'];
+        //remove the DN from list of attributes
+        unset($attributes['dn']);
+        // Iterate over the attributes under the current UID and append each value to the body.
+        foreach ($attributes as $attr) {
+          $data['body'] .= "Attribute: $attr\n";
+        }
+      }
+
+      $mail_controller = new MailController(
+        $data['setFrom'],
+        null,
+        $data['recipients'],
+        $data['body'],
+        $data['signature'],
+        $data['subject'],
+        $data['receipt'],
+        null
+      );
+
+      $mailSentResult = $mail_controller->sendMail();
+
+      if ($mailSentResult[0] == "SUCCESS") {
+
+        foreach ($subTasksDN as $dn) {
+          // ERROR HERE WITH THE UPDATE TASKS STATUS !!
+          $result[$dn]['statusUpdate']   = $this->updateTaskStatus($dn, '', "2");
+          $result[$dn]['mailStatus']     = 'Notification was successfully sent';
+          $result[$dn]['updateLastExec'] = $this->updateLastMailExecTime($fdTasksConf[0]["dn"]);
+        }
+
+      } else {
+        foreach ($subTasksDN as $dn) {
+          $result[$dn]['statusUpdate'] = $this->updateTaskStatus($dn, $mail["cn"][0], $mailSentResult[0]);
+          $result[$dn]['mailStatus']   = $mailSentResult;
+        }
+      }
+
+      // Verification anti-spam max mails to be sent and quit loop if matched.
+      $maxMailsIncrement += 1;
+      if ($maxMailsIncrement == $maxMailsConfig) {
+        break;
+      }
+    }
+
+    return $result;
+  }
+
+  /**
+   * @return array
+   * Note : A simple retrieval methods of the mail backend configuration set in FusionDirectory
+   */
+  private function getMailObjectConfiguration (): array
+  {
+    $fdTasksConf = $this->getLdapTasks(
+      "(objectClass=fdTasksConf)",
+      ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
+    );
+
+    return $fdTasksConf;
+  }
+
+  /**
+   * @param array $fdTasksConf
+   * @return int
+   * Note : Allows a safety check in case mail configuration backed within FD has been missed.
+   */
+  public function returnMaximumMailToBeSend (array $fdTasksConf): int
+  {
+    // set the maximum mails to be sent to the configured value or 50 if not set.
+    return $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
   }
 
   /**
@@ -132,13 +231,8 @@ class TaskGateway
   {
     $result = [];
 
-    $fdTasksConf = $this->getLdapTasks(
-      "(objectClass=fdTasksConf)",
-      ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
-    );
-
-    // set the maximum mails to be sent to the configured value or 50 if not set.
-    $maxMailsConfig = $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
+    $fdTasksConf    = $this->getMailObjectConfiguration();
+    $maxMailsConfig = $this->returnMaximumMailToBeSend($fdTasksConf);
 
     if ($this->verifySpamProtection($fdTasksConf)) {
       foreach ($list_tasks as $mail) {
@@ -585,7 +679,10 @@ class TaskGateway
   public function updateTaskStatus (string $dn, string $cn, string $status)
   {
     // prepare data
-    $ldap_entry["cn"] = $cn;
+    if (!empty($dn)) {
+      $ldap_entry["cn"] = $cn;
+    }
+
     // Status subject to change
     $ldap_entry["fdTasksGranularStatus"] = $status;
 
