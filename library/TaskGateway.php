@@ -167,7 +167,9 @@ class TaskGateway
           $notifications[$notificationsMainTaskName]['mailForm'] = array_shift($mailTemplateForm);
           //Overwrite array notifications with complementing mail form body with uid and related attributes.
           $notifications = $this->completeNotificationsBody($notifications);
-        } else { // Simply remove the subTask has no notifications are required
+
+        }
+        else { // Simply remove the subTask has no notifications are required
           $result[$task['dn']]['Removed'] = $this->removeSubTask($task['dn']);
           $result[$task['dn']]['Status']  = 'No matching audited attributes with monitored attributes, safely removed!';
         }
@@ -217,6 +219,8 @@ class TaskGateway
       sent per main task.
     */
     $maxMailsIncrement = 0;
+    print_r($notifications);
+    exit;
 
     foreach ($notifications as $data) {
       $numberOfRecipients = count($data['mailForm']['recipients']);
@@ -233,7 +237,7 @@ class TaskGateway
       );
 
       $mailSentResult = $mail_controller->sendMail();
-      $result         = $this->processMailResponseAndUpdateTasks($mailSentResult, $data, $fdTasksConf);
+      $result[]       = $this->processMailResponseAndUpdateTasks($mailSentResult, $data, $fdTasksConf);
 
       // Verification anti-spam max mails to be sent and quit loop if matched.
       $maxMailsIncrement += $numberOfRecipients;
