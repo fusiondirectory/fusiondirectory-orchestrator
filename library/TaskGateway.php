@@ -84,7 +84,7 @@ class TaskGateway
     return $this->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $templateName);
   }
 
-  private function generateMainTaskMailTemplate (array $mainTask, string $mainTaskName): array
+  private function generateMainTaskMailTemplate (array $mainTask): array
   {
     // Generate email configuration for each result of subtasks having the same main task.
     $recipients = $mainTask[0]["fdtasksnotificationslistofrecipientsmails"];
@@ -96,12 +96,12 @@ class TaskGateway
     $mailContent = $mailInfos[0];
 
     // Set the notification array with all required variable for all sub-tasks of same main task origin.
-    $mailForm[$mainTaskName]['setFrom']    = $sender;
-    $mailForm[$mainTaskName]['recipients'] = $recipients;
-    $mailForm[$mainTaskName]['body']       = $mailContent["fdmailtemplatebody"][0];
-    $mailForm[$mainTaskName]['signature']  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
-    $mailForm[$mainTaskName]['subject']    = $mailContent["fdmailtemplatesubject"][0];
-    $mailForm[$mainTaskName]['receipt']    = $mailContent["fdmailtemplatereadreceipt"][0];
+    $mailForm['setFrom']    = $sender;
+    $mailForm['recipients'] = $recipients;
+    $mailForm['body']       = $mailContent["fdmailtemplatebody"][0];
+    $mailForm['signature']  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+    $mailForm['subject']    = $mailContent["fdmailtemplatesubject"][0];
+    $mailForm['receipt']    = $mailContent["fdmailtemplatereadreceipt"][0];
 
     return $mailForm;
   }
@@ -145,7 +145,7 @@ class TaskGateway
         $notificationsMainTaskName = $task['fdtasksgranularmaster'][0];
 
         // Generate the mail form with all mail controller requirements
-        $mailTemplateForm = $this->generateMainTaskMailTemplate($notificationsMainTask, $notificationsMainTaskName);
+        $mailTemplateForm = $this->generateMainTaskMailTemplate($notificationsMainTask);
         // Simply retrieve the list of audited attributes
         $auditAttributes = $this->retrieveAuditedAttributes($task);
 
@@ -162,14 +162,11 @@ class TaskGateway
           // Require to be set for updating the status of the task later on.
           $notifications[$notificationsMainTaskName]['uid'][$task['fdtasksgranulardn'][0]]['dn'] = $task['dn'];
           $notifications[$notificationsMainTaskName]['uid'][$task['fdtasksgranulardn'][0]]['cn'] = $task['cn'][0];
+          $notifications[$notificationsMainTaskName]['mailForm']                                 = $mailTemplateForm;
+          // Overwrite array notifications with complementing mail form body with uid and related attributes.
+          $notifications = $this->completeNotificationsBody($notifications, $notificationsMainTaskName);
 
-          // shifting the array as first key is identical to main task name
-          $notifications[$notificationsMainTaskName]['mailForm'] = array_shift($mailTemplateForm);
-          //Overwrite array notifications with complementing mail form body with uid and related attributes.
-          $notifications = $this->completeNotificationsBody($notifications);
-
-        }
-        else { // Simply remove the subTask has no notifications are required
+        } else { // Simply remove the subTask has no notifications are required
           $result[$task['dn']]['Removed'] = $this->removeSubTask($task['dn']);
           $result[$task['dn']]['Status']  = 'No matching audited attributes with monitored attributes, safely removed!';
         }
@@ -188,21 +185,22 @@ class TaskGateway
    * @return array
    * Note : This method is present to add to the mailForm body the proper uid and attrs info.
    */
-  private function completeNotificationsBody (array $notifications): array
+  private function completeNotificationsBody (array $notifications, string $notificationsMainTaskName): array
   {
     // Iterate through each uid and its attrs
     $uidAttrsText = [];
-    foreach ($notifications[key($notifications)]['uid'] as $uidKey => $uidValue) {
+
+    foreach ($notifications[$notificationsMainTaskName]['uid'] as $uidKey => $uidValue) {
       $uidName = $uidKey;
       $attrs   = [];
       foreach ($uidValue['attrs'] as $attr) {
         $attrs[] = $attr;
       }
       $uidAttrsText[] = "\n$uidName attrs=[" . implode(', ', $attrs) . "]";
-    }
 
+    }
     // Add uid names and related attrs to mailForm['body']
-    $notifications[key($notifications)]['mailForm']['body'] .= " " . implode(" ", $uidAttrsText);
+    $notifications[$notificationsMainTaskName]['mailForm']['body'] .= " " . implode(" ", $uidAttrsText);
 
     return $notifications;
   }
@@ -219,8 +217,6 @@ class TaskGateway
       sent per main task.
     */
     $maxMailsIncrement = 0;
-    print_r($notifications);
-    exit;
 
     foreach ($notifications as $data) {
       $numberOfRecipients = count($data['mailForm']['recipients']);
