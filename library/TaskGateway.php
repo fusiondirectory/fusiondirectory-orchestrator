@@ -200,6 +200,8 @@ class TaskGateway
       $uidAttrsText[] = "\n$uidName attrs=[" . implode(', ', $attrs) . "]";
     }
 
+    // Make the array unique, avoiding uid and same attribute duplication.
+    $uidAttrsText = array_unique($uidAttrsText);
     // Add uid names and related attrs to mailForm['body']
     $notifications[$notificationsMainTaskName]['mailForm']['body'] .= " " . implode(" ", $uidAttrsText);
 
