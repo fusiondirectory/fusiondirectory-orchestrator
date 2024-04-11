@@ -7,14 +7,14 @@ use PHPMailer\PHPMailer\Exception;
 class MailController
 {
 
-  protected string $setFrom;
+  protected string  $setFrom;
   protected ?string $setBCC;
-  protected array $recipients;
-  protected string $body;
+  protected array   $recipients;
+  protected string  $body;
   protected ?string $signature;
-  protected string $subject;
-  protected ?bool $receipt;
-  protected ?array $attachments;
+  protected string  $subject;
+  protected ?bool   $receipt;
+  protected ?array  $attachments;
   private PHPMailer $mail;
 
   function __construct (
