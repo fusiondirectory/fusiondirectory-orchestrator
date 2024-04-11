@@ -31,6 +31,11 @@ class TaskGateway
         unset($list_tasks["count"]);
         break;
 
+      case "notifications":
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Notifications))");
+        unset($list_tasks["count"]);
+        break;
+
       case "removeSubTasks":
       case "activateCyclicTasks":
         // No need to get any parent tasks here, but to note break logic - we will return an array.
@@ -53,32 +58,274 @@ class TaskGateway
   }
 
   /**
+   * @param array $task
+   * @return bool
+   * @throws Exception
+   */
+  public function statusAndScheduleCheck (array $task): bool
+  {
+    return $task["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($task["fdtasksgranularschedule"][0]);
+  }
+
+  /**
+   * @param string $mainTaskDn
+   * @return array
+   */
+  public function getNotificationsMainTask (string $mainTaskDn): array
+  {
+    // Retrieve data from the main task
+    return $this->getLdapTasks('(objectClass=fdTasksNotifications)', ['fdTasksNotificationsListOfRecipientsMails',
+      'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksNotificationsEmailSender'],
+      '', $mainTaskDn);
+  }
+
+  public function retrieveMailTemplateInfos (string $templateName): array
+  {
+    return $this->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $templateName);
+  }
+
+  private function generateMainTaskMailTemplate (array $mainTask): array
+  {
+    // Generate email configuration for each result of subtasks having the same main task.w
+    $recipients = $mainTask[0]["fdtasksnotificationslistofrecipientsmails"];
+    unset($recipients['count']);
+    $sender           = $mainTask[0]["fdtasksnotificationsemailsender"][0];
+    $mailTemplateName = $mainTask[0]['fdtasksnotificationsmailtemplate'][0];
+
+    $mailInfos   = $this->retrieveMailTemplateInfos($mailTemplateName);
+    $mailContent = $mailInfos[0];
+
+    // Set the notification array with all required variable for all sub-tasks of same main task origin.
+    $mailForm['setFrom']    = $sender;
+    $mailForm['recipients'] = $recipients;
+    $mailForm['body']       = $mailContent["fdmailtemplatebody"][0];
+    $mailForm['signature']  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+    $mailForm['subject']    = $mailContent["fdmailtemplatesubject"][0];
+    $mailForm['receipt']    = $mailContent["fdmailtemplatereadreceipt"][0];
+
+    return $mailForm;
+  }
+
+  protected function retrieveAuditedAttributes (array $notificationTask): array
+  {
+    $auditAttributes = [];
+    // Retrieve audit data attributes from the list of references set in the sub-task
+    if (!empty($notificationTask['fdtasksgranularref'])) {
+      // Ldap always return a count which we have to remove.
+      unset($notificationTask['fdtasksgranularref']['count']);
+
+      foreach ($notificationTask['fdtasksgranularref'] as $auditDN) {
+
+        $auditInformation = $this->getLdapTasks('(&(objectClass=fdAuditEvent))',
+          ['fdAuditAttributes'], '', $auditDN);
+      }
+
+      // It is possible that an audit does not contain any attributes changes, condition is required.
+      if (!empty($auditInformation[0]['fdauditattributes'])) {
+        $auditAttributes = $auditInformation[0]['fdauditattributes'];
+      }
+      // Clear and compact received results from above ldap search
+      unset($auditAttributes['count']);
+    }
+    return $auditAttributes;
+  }
+
+  public function processNotifications (array $notificationsSubTasks): array
+  {
+    $result = [];
+    // It will contain all required notifications to be sent per main task.
+    $notifications = [];
+
+    foreach ($notificationsSubTasks as $task) {
+      // If the tasks must be treated - status and scheduled - process the sub-tasks
+      if ($this->statusAndScheduleCheck($task)) {
+
+        // Retrieve data from the main task
+        $notificationsMainTask     = $this->getNotificationsMainTask($task['fdtasksgranularmaster'][0]);
+        $notificationsMainTaskName = $task['fdtasksgranularmaster'][0];
+
+        // Generate the mail form with all mail controller requirements
+        $mailTemplateForm = $this->generateMainTaskMailTemplate($notificationsMainTask);
+        // Simply retrieve the list of audited attributes
+        $auditAttributes = $this->retrieveAuditedAttributes($task);
+
+        $monitoredAttrs = $notificationsMainTask[0]['fdtasksnotificationsattributes'];
+        unset($monitoredAttrs['count']);
+
+        // Verify if there is a match between audited attributes and monitored attributes from main task.
+        $matchingAttrs = array_intersect($auditAttributes, $monitoredAttrs);
+
+        if (!empty($matchingAttrs)) {
+          // Fill an array with UID of audited user and related matching attributes
+          $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['attrs'] = $matchingAttrs;
+
+          // Require to be set for updating the status of the task later on.
+          $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
+          $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+          $notifications[$notificationsMainTaskName]['mailForm']                       = $mailTemplateForm;
+          // Overwrite array notifications with complementing mail form body with uid and related attributes.
+          $notifications = $this->completeNotificationsBody($notifications, $notificationsMainTaskName);
+
+        } else { // Simply remove the subTask has no notifications are required
+          $result[$task['dn']]['Removed'] = $this->removeSubTask($task['dn']);
+          $result[$task['dn']]['Status']  = 'No matching audited attributes with monitored attributes, safely removed!';
+        }
+      }
+    }
+
+    if (!empty($notifications)) {
+      $result[] = $this->sendNotificationsMail($notifications);
+    }
+
+    return $result;
+  }
+
+  /**
+   * @param array $notifications
+   * @return array
+   * Note : This method is present to add to the mailForm body the proper uid and attrs info.
+   */
+  private function completeNotificationsBody (array $notifications, string $notificationsMainTaskName): array
+  {
+    // Iterate through each subTask and related attrs
+    $uidAttrsText = [];
+
+    foreach ($notifications[$notificationsMainTaskName]['subTask'] as $value) {
+      $uidName = $value['uid'];
+      $attrs   = [];
+
+      foreach ($value['attrs'] as $attr) {
+        $attrs[] = $attr;
+      }
+      $uidAttrsText[] = "\n$uidName attrs=[" . implode(', ', $attrs) . "]";
+    }
+
+    // Make the array unique, avoiding uid and same attribute duplication.
+    $uidAttrsText = array_unique($uidAttrsText);
+    // Add uid names and related attrs to mailForm['body']
+    $notifications[$notificationsMainTaskName]['mailForm']['body'] .= " " . implode(" ", $uidAttrsText);
+
+    return $notifications;
+  }
+
+  protected function sendNotificationsMail (array $notifications): array
+  {
+    $result = [];
+    // Re-use of the same mail processing template logic
+    $fdTasksConf    = $this->getMailObjectConfiguration();
+    $maxMailsConfig = $this->returnMaximumMailToBeSend($fdTasksConf);
+
+    /*
+      Increment var starts a zero and added values will be the humber or recipients per main tasks, as one mail is
+      sent per main task.
+    */
+    $maxMailsIncrement = 0;
+
+    foreach ($notifications as $data) {
+      $numberOfRecipients = count($data['mailForm']['recipients']);
+
+      $mail_controller = new MailController(
+        $data['mailForm']['setFrom'],
+        NULL,
+        $data['mailForm']['recipients'],
+        $data['mailForm']['body'],
+        $data['mailForm']['signature'],
+        $data['mailForm']['subject'],
+        $data['mailForm']['receipt'],
+        NULL
+      );
+
+      $mailSentResult = $mail_controller->sendMail();
+      $result[]       = $this->processMailResponseAndUpdateTasks($mailSentResult, $data, $fdTasksConf);
+
+      // Verification anti-spam max mails to be sent and quit loop if matched.
+      $maxMailsIncrement += $numberOfRecipients;
+      if ($maxMailsIncrement == $maxMailsConfig) {
+        break;
+      }
+    }
+
+    return $result;
+  }
+
+  protected function processMailResponseAndUpdateTasks (array $serverResults, array $subTask, array $mailTaskBackend): array
+  {
+    $result = [];
+    if ($serverResults[0] == "SUCCESS") {
+      foreach ($subTask['subTask'] as $subTask => $details) {
+
+        // CN of the main task
+        $cn = $subTask;
+        // DN of the main task
+        $dn = $details['dn'];
+
+        // Update task status for the current $dn
+        $result[$dn]['statusUpdate']       = $this->updateTaskStatus($dn, $cn, "2");
+        $result[$dn]['mailStatus']         = 'Notification was successfully sent';
+        $result[$dn]['updateLastMailExec'] = $this->updateLastMailExecTime($mailTaskBackend[0]["dn"]);
+      }
+    } else {
+      foreach ($subTask['subTask'] as $subTask => $details) {
+
+        // CN of the main task
+        $cn = $subTask;
+        // DN of the main task
+        $dn = $details['dn'];
+
+        $result[$dn]['statusUpdate'] = $this->updateTaskStatus($dn, $cn, $serverResults[0]);
+        $result[$dn]['mailStatus']   = $serverResults;
+      }
+    }
+
+    return $result;
+  }
+
+  /**
+   * @return array
+   * Note : A simple retrieval methods of the mail backend configuration set in FusionDirectory
+   */
+  private function getMailObjectConfiguration (): array
+  {
+    return $this->getLdapTasks(
+      "(objectClass=fdTasksConf)",
+      ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
+    );
+  }
+
+  /**
+   * @param array $fdTasksConf
+   * @return int
+   * Note : Allows a safety check in case mail configuration backed within FD has been missed.
+   */
+  public function returnMaximumMailToBeSend (array $fdTasksConf): int
+  {
+    // set the maximum mails to be sent to the configured value or 50 if not set.
+    return $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
+  }
+
+  /**
    * @param array $list_tasks
    * @return array
+   * @throws Exception
    */
   public function processMailTasks (array $list_tasks): array
   {
     $result = [];
 
-    $fdTasksConf = $this->getLdapTasks(
-      "(objectClass=fdTasksConf)",
-      ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
-    );
+    $fdTasksConf    = $this->getMailObjectConfiguration();
+    $maxMailsConfig = $this->returnMaximumMailToBeSend($fdTasksConf);
 
-    // set the maximum mails to be sent to the configured value or 50 if not set.
-    $maxMailsConfig = $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
+    // Increment for anti=spam, starts at 0, each mail task only contain one email, addition if simply + one.
+    $maxMailsIncrement = 0;
 
     if ($this->verifySpamProtection($fdTasksConf)) {
       foreach ($list_tasks as $mail) {
-
-        $maxMailsIncrement = 0;
 
         // verify status before processing (to be checked with schedule as well).
         if ($mail["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($mail["fdtasksgranularschedule"][0])) {
 
           // Search for the related attached mail object.
-          $cn          = $mail["fdtasksgranularref"][0];
-          $mailInfos   = $this->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $cn);
+          $mailInfos   = $this->retrieveMailTemplateInfos($mail["fdtasksgranularref"][0]);
           $mailContent = $mailInfos[0];
 
           // Only takes arrays related to files attachments for the mail template selected
@@ -120,17 +367,17 @@ class TaskGateway
           if ($mailSentResult[0] == "SUCCESS") {
 
             // The third arguments "2" is the status code of success for mail as of now 18/11/22
-            $result[$mail["dn"]]['statusUpdate']   = $this->updateTaskStatus($mail["dn"], $mail["cn"][0], "2");
-            $result[$mail["dn"]]['mailStatus']     = 'mail : ' . $mail["dn"] . ' was successfully sent';
-            $result[$mail["dn"]]['updateLastExec'] = $this->updateLastMailExecTime($fdTasksConf[0]["dn"]);
+            $result[$mail["dn"]]['statusUpdate']       = $this->updateTaskStatus($mail["dn"], $mail["cn"][0], "2");
+            $result[$mail["dn"]]['mailStatus']         = 'mail : ' . $mail["dn"] . ' was successfully sent';
+            $result[$mail["dn"]]['updateLastMailExec'] = $this->updateLastMailExecTime($fdTasksConf[0]["dn"]);
 
           } else {
             $result[$mail["dn"]]['statusUpdate'] = $this->updateTaskStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0]);
-            $result[$mail["dn"]]                 = $mailSentResult;
+            $result[$mail["dn"]]['Error']        = $mailSentResult;
           }
 
           // Verification anti-spam max mails to be sent and quit loop if matched
-          $maxMailsIncrement += 1;
+          $maxMailsIncrement += 1; //Only one as recipients in mail object is always one email.
           if ($maxMailsIncrement == $maxMailsConfig) {
             break;
           }
@@ -144,7 +391,8 @@ class TaskGateway
 
   /**
    * @param array $list_tasks
-   * @return array
+   * @return array[]|string[]
+   * @throws Exception
    * Note : Verify the status and schedule as well as searching for the correct life cycle behavior from main task.
    */
   public function processLifeCycleTasks (array $list_tasks): array
@@ -158,7 +406,7 @@ class TaskGateway
 
     foreach ($list_tasks as $task) {
       // If the tasks must be treated - status and scheduled - process the sub-tasks
-      if ($task["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($task["fdtasksgranularschedule"][0])) {
+      if ($this->statusAndScheduleCheck($task)) {
 
         // Simply retrieve the lifeCycle behavior from the main related tasks, sending the dns and desired attributes
         $lifeCycleBehavior = $this->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
@@ -307,7 +555,7 @@ class TaskGateway
       // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
       $webservice->setCurlSettings();
       // Is used to verify cyclic schedule with date format.
-      $now = new DateTime('now', new DateTimeZone('UTC'));
+      $now = new DateTime('now');
 
       foreach ($tasks as $task) {
         // Transform schedule time (it is a simple string)
@@ -322,6 +570,7 @@ class TaskGateway
             // Case where the tasks were once run, verification of the cyclic schedule and last exec.
           } else if (!empty($task['fdtasksrepeatableschedule'][0])) {
             $lastExec = new DateTime($task['fdtaskslastexec'][0]);
+
             // Efficient way to verify timelapse
             $interval = $now->diff($lastExec);
 
@@ -355,7 +604,7 @@ class TaskGateway
                 }
                 break;
               case 'Hourly' :
-                if ($interval->h >= 7) {
+                if ($interval->h >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
@@ -450,13 +699,16 @@ class TaskGateway
   /**
    * @param string $schedule
    * @return bool
+   * @throws Exception
    */
   // Verification of the schedule in complete string format and compare.
   public function verifySchedule (string $schedule): bool
   {
-    $schedule = strtotime($schedule);
-    if ($schedule < time()) {
-      return TRUE;
+    $currentDateTime   = new DateTime('now'); // Get current datetime in UTC
+    $scheduledDateTime = new DateTime($schedule); // Parse scheduled datetime string in UTC
+
+    if ($scheduledDateTime < $currentDateTime) {
+      return TRUE; // Schedule has passed
     }
 
     return FALSE;
@@ -513,7 +765,10 @@ class TaskGateway
   public function updateTaskStatus (string $dn, string $cn, string $status)
   {
     // prepare data
-    $ldap_entry["cn"] = $cn;
+    if (!empty($dn)) {
+      $ldap_entry["cn"] = $cn;
+    }
+
     // Status subject to change
     $ldap_entry["fdTasksGranularStatus"] = $status;
 

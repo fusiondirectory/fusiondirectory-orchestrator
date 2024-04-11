@@ -7,25 +7,24 @@ use PHPMailer\PHPMailer\Exception;
 class MailController
 {
 
-  protected string $setFrom;
+  protected string  $setFrom;
   protected ?string $setBCC;
-  protected array $recipients;
-  protected string $body;
+  protected array   $recipients;
+  protected string  $body;
   protected ?string $signature;
-  protected string $subject;
-  protected ?bool $receipt;
-  protected ?array $attachments;
+  protected string  $subject;
+  protected ?bool   $receipt;
+  protected ?array  $attachments;
   private PHPMailer $mail;
 
   function __construct (
-    string  $setFrom,
+    string $setFrom,
     ?string $setBCC,
-    array   $recipients,
-    string  $body,
+    array $recipients,
+    string $body,
     ?string $signature,
-    string  $subject,
-    bool    $receipt     = NULL,
-    array   $attachments = NULL
+    string $subject,
+    bool $receipt = NULL, array $attachments = NULL
   )
   {
     // The TRUE value passed it to enable the exception handling properly.
@@ -43,6 +42,9 @@ class MailController
 
   public function sendMail (): array
   {
+    // Our returned array
+    $errors = [];
+
     $this->mail->isSMTP();
     $this->mail->Host = $_ENV["MAIL_HOST"];
 
@@ -83,11 +85,15 @@ class MailController
     // add it to keep SMTP connection open after each email sent
     $this->mail->SMTPKeepAlive = TRUE;
 
-    unset($this->recipients["count"]);
+    if (!empty($this->recipients["count"])) {
+      unset($this->recipients["count"]);
+    }
 
-    // Our returned array
-    $errors = [];
-
+    /* We have an anti-spam logic applied above the mail controller. In case of mail template, only one email is within
+     the recipient address, in case of notifications (e.g), multiple address exists. Therefore, the counting of anti-spam
+    increment is applied prior of this controller added by the numbers of recipients. See notifications logic in a send
+    method.
+    */
     foreach ($this->recipients as $mail) {
       $this->mail->addAddress($mail);
 
