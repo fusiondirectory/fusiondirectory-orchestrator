@@ -40,8 +40,7 @@ class MailController
 
   }
 
-  public
-  function sendMail (): array
+  public function sendMail (): array
   {
     // Our returned array
     $errors = [];
