@@ -24,7 +24,7 @@ class MailController
     string  $body,
     ?string $signature,
     string  $subject,
-    bool    $receipt     = NULL,
+    bool    $receipt = NULL,
     array   $attachments = NULL
   )
   {
@@ -86,7 +86,7 @@ class MailController
     // add it to keep SMTP connection open after each email sent
     $this->mail->SMTPKeepAlive = TRUE;
 
-    if (!empty($this->recipients["count"])){
+    if (!empty($this->recipients["count"])) {
       unset($this->recipients["count"]);
     }
 

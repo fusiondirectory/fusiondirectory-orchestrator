@@ -86,7 +86,7 @@ class TaskGateway
 
   private function generateMainTaskMailTemplate (array $mainTask): array
   {
-    // Generate email configuration for each result of subtasks having the same main task.
+    // Generate email configuration for each result of subtasks having the same main task.w
     $recipients = $mainTask[0]["fdtasksnotificationslistofrecipientsmails"];
     unset($recipients['count']);
     $sender           = $mainTask[0]["fdtasksnotificationsemailsender"][0];
