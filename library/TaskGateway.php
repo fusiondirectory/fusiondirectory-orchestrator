@@ -226,13 +226,13 @@ class TaskGateway
 
       $mail_controller = new MailController(
         $data['mailForm']['setFrom'],
-        null,
+        NULL,
         $data['mailForm']['recipients'],
         $data['mailForm']['body'],
         $data['mailForm']['signature'],
         $data['mailForm']['subject'],
         $data['mailForm']['receipt'],
-        null
+        NULL
       );
 
       $mailSentResult = $mail_controller->sendMail();
@@ -701,7 +701,7 @@ class TaskGateway
    * @return bool
    * @throws Exception
    */
-// Verification of the schedule in complete string format and compare.
+  // Verification of the schedule in complete string format and compare.
   public function verifySchedule (string $schedule): bool
   {
     $currentDateTime   = new DateTime('now'); // Get current datetime in UTC
