@@ -18,14 +18,13 @@ class MailController
   private PHPMailer $mail;
 
   function __construct (
-    string  $setFrom,
+    string $setFrom,
     ?string $setBCC,
-    array   $recipients,
-    string  $body,
+    array $recipients,
+    string $body,
     ?string $signature,
-    string  $subject,
-    bool    $receipt = NULL,
-    array   $attachments = NULL
+    string $subject,
+    bool $receipt = NULL, array $attachments = NULL
   )
   {
     // The TRUE value passed it to enable the exception handling properly.
@@ -41,7 +40,8 @@ class MailController
 
   }
 
-  public function sendMail (): array
+  public
+  function sendMail (): array
   {
     // Our returned array
     $errors = [];
