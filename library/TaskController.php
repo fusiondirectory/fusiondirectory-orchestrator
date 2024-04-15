@@ -22,12 +22,12 @@ class TaskController
 
       // Otherwise return the tasks object specified
     } else {
-      $task = $this->gateway->getTask($object_type);
-      if (!$task) {
-
-        $this->respondNotFound($object_type);
-        return;
-      }
+//      $task = $this->gateway->getTask($object_type);
+//      if (!$task) {
+//
+//        $this->respondNotFound($object_type);
+//        return;
+//      }
 
       switch ($method) {
         case "GET":
@@ -51,6 +51,11 @@ class TaskController
             case 'notifications':
               $result = $this->gateway->processNotifications($task);
               break;
+            case $object_type:
+              if (class_exists($object_type)) {
+                $endpoint = new $object_type;
+                $result = $endpoint->processEndPoint();
+              }
           }
           if (!empty($result)) {
             echo json_encode($result, JSON_PRETTY_PRINT);
