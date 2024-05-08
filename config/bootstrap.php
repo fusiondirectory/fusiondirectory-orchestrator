@@ -49,6 +49,6 @@ set_error_handler(static function (int $errno, string $errstr, string $errfile, 
 set_exception_handler("ErrorHandler::handleException");
 
 $dotenv = Dotenv\Dotenv::create('/etc/fusiondirectory-orchestrator', 'orchestrator.conf');
-$dotenv->load();
+$dotenv->overload();
 
 header("Content-type: application/json; charset=UTF-8");
