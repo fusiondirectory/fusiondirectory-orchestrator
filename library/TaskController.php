@@ -9,7 +9,7 @@ class TaskController
     $this->gateway = $gateway;
   }
 
-  public function processRequest (string $method, ?string $object_type): void
+  public function processRequest (string $method, ?string $object_type, $jsonBody = null): void
   {
     // If no specific tasks object specified, return all tasks
     if ($object_type === NULL) {
@@ -22,16 +22,35 @@ class TaskController
 
       // Otherwise return the tasks object specified
     } else {
-//      $task = $this->gateway->getTask($object_type);
-//      if (!$task) {
-//
-//        $this->respondNotFound($object_type);
-//        return;
-//      }
+      //      $task = $this->gateway->getTask($object_type);
+      //      if (!$task) {
+      //
+      //        $this->respondNotFound($object_type);
+      //        return;
+      //      }
 
       switch ($method) {
+
         case "GET":
-          echo json_encode($task);
+          switch ($object_type) {
+            case $object_type:
+              if (class_exists($object_type)) {
+                $endpoint = new $object_type;
+                $result   = $endpoint->processEndPointGet();
+              }
+              break;
+            default:
+              echo json_encode($task);
+              break;
+          }
+
+          if (!empty($result)) {
+            echo json_encode($result, JSON_PRETTY_PRINT);
+
+          } else {
+            // To be modified and enhance, no results does not always mean no emails in current logic.
+            echo json_encode("Nothing to do.");
+          }
           break;
 
         case "PATCH":
@@ -54,8 +73,9 @@ class TaskController
             case $object_type:
               if (class_exists($object_type)) {
                 $endpoint = new $object_type;
-                $result = $endpoint->processEndPoint();
+                $result   = $endpoint->processEndPointPatch($jsonBody);
               }
+              break;
           }
           if (!empty($result)) {
             echo json_encode($result, JSON_PRETTY_PRINT);
