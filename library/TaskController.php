@@ -9,7 +9,7 @@ class TaskController
     $this->gateway = $gateway;
   }
 
-  public function processRequest (string $method, ?string $object_type, $jsonBody = null): void
+  public function processRequest (string $method, ?string $object_type, $jsonBody = NULL): void
   {
     // If no specific tasks object specified, return all tasks
     if ($object_type === NULL) {
@@ -40,6 +40,13 @@ class TaskController
               }
               break;
             default:
+              $task = $this->gateway->getTask($object_type);
+
+              if (!$task) {
+                $this->respondNotFound($object_type);
+                return;
+              }
+
               echo json_encode($task);
               break;
           }
