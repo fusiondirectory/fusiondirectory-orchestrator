@@ -106,27 +106,36 @@ class TaskGateway
     return $mailForm;
   }
 
+  /**
+   * @param array $notificationTask
+   * @return array
+   * NOTE : receive a unique tasks of type notification (one subtask at a time)
+   */
   protected function retrieveAuditedAttributes (array $notificationTask): array
   {
     $auditAttributes = [];
+
     // Retrieve audit data attributes from the list of references set in the sub-task
     if (!empty($notificationTask['fdtasksgranularref'])) {
       // Ldap always return a count which we have to remove.
       unset($notificationTask['fdtasksgranularref']['count']);
 
       foreach ($notificationTask['fdtasksgranularref'] as $auditDN) {
-
-        $auditInformation = $this->getLdapTasks('(&(objectClass=fdAuditEvent))',
+        $auditInformation[] = $this->getLdapTasks('(&(objectClass=fdAuditEvent))',
           ['fdAuditAttributes'], '', $auditDN);
       }
 
       // It is possible that an audit does not contain any attributes changes, condition is required.
-      if (!empty($auditInformation[0]['fdauditattributes'])) {
-        $auditAttributes = $auditInformation[0]['fdauditattributes'];
+      foreach ($auditInformation as $audit => $attrs) {
+        unset($attrs['count']);
+        if (!empty($attrs[0]['fdauditattributes'])) {
+          // Clear and compact received results from above ldap search
+          unset($attrs[0]['fdauditattributes']['count']);
+          $auditAttributes[] = $attrs[0]['fdauditattributes'];
+        }
       }
-      // Clear and compact received results from above ldap search
-      unset($auditAttributes['count']);
     }
+
     return $auditAttributes;
   }
 
