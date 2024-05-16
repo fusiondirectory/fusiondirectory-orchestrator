@@ -9,10 +9,20 @@ class TaskController
     $this->gateway = $gateway;
   }
 
-  public function processRequest (string $method, ?string $object_type, $jsonBody = NULL): void
+  protected function parseJsonResult ($result = NULL): void
+  {
+    if (!empty($result)) {
+      echo json_encode($result, JSON_PRETTY_PRINT);
+    } else {
+      // No result received
+      echo json_encode("No results received from the endpoint");
+    }
+  }
+
+  public function processRequest (string $method, ?string $objectType, $jsonBody = NULL): void
   {
     // If no specific tasks object specified, return all tasks
-    if ($object_type === NULL) {
+    if ($objectType === NULL) {
       if ($method == "GET") {
         echo json_encode($this->gateway->getTask(NULL));
 
@@ -20,53 +30,30 @@ class TaskController
         $this->respondMethodAllowed("GET");
       }
 
-      // Otherwise return the tasks object specified
+      // Otherwise continue the process of the specific task / object type specified
     } else {
-      //      $task = $this->gateway->getTask($object_type);
-      //      if (!$task) {
-      //
-      //        $this->respondNotFound($object_type);
-      //        return;
-      //      }
-
       switch ($method) {
-
+        // GET methods
         case "GET":
-          switch ($object_type) {
-            case $object_type:
-              if (class_exists($object_type)) {
-                $endpoint = new $object_type;
+          switch ($objectType) {
+            case $objectType:
+              if (class_exists($objectType)) {
+                $endpoint = new $objectType;
                 $result   = $endpoint->processEndPointGet();
               }
               break;
-            default:
-              $task = $this->gateway->getTask($object_type);
-
-              if (!$task) {
-                $this->respondNotFound($object_type);
-                return;
-              }
-
-              echo json_encode($task);
-              break;
           }
-
-          if (!empty($result)) {
-            echo json_encode($result, JSON_PRETTY_PRINT);
-
-          } else {
-            // To be modified and enhance, no results does not always mean no emails in current logic.
-            echo json_encode("Nothing to do.");
-          }
+          $this->parseJsonResult($result);
           break;
 
+        // PATCH methods
         case "PATCH":
-          switch ($object_type) {
+          switch ($objectType) {
             case "mail":
-              $result = $this->gateway->processMailTasks($task);
+              $result = $this->gateway->processMailTasks($this->getObjectTypeTask($objectType));
               break;
             case 'lifeCycle':
-              $result = $this->gateway->processLifeCycleTasks($task);
+              $result = $this->gateway->processLifeCycleTasks($this->getObjectTypeTask($objectType));
               break;
             case 'removeSubTasks':
               $result = $this->gateway->removeCompletedTasks();
@@ -75,23 +62,16 @@ class TaskController
               $result = $this->gateway->activateCyclicTasks();
               break;
             case 'notifications':
-              $result = $this->gateway->processNotifications($task);
+              $result = $this->gateway->processNotifications($this->getObjectTypeTask($objectType));
               break;
-            case $object_type:
-              if (class_exists($object_type)) {
-                $endpoint = new $object_type;
+            case $objectType:
+              if (class_exists($objectType)) {
+                $endpoint = new $objectType;
                 $result   = $endpoint->processEndPointPatch($jsonBody);
               }
               break;
           }
-          if (!empty($result)) {
-            echo json_encode($result, JSON_PRETTY_PRINT);
-
-          } else {
-            // To be modified and enhance, no results does not always mean no emails in current logic.
-            echo json_encode("No emails were sent.");
-          }
-
+          $this->parseJsonResult($result);
           break;
 
         case "DELETE":
@@ -103,17 +83,32 @@ class TaskController
     }
   }
 
+  /**
+   * @param $objectType
+   * @return array|string[]|void
+   */
+  private function getObjectTypeTask ($objectType)
+  {
+    $task = $this->gateway->getTask($objectType);
+    if (!$task) {
+      $this->respondNotFound($objectType);
+      exit;
+    }
+
+    return $task;
+  }
+
   private function respondMethodAllowed (string $allowed_methods): void
   {
     http_response_code(405);
     header("Allow: $allowed_methods");
   }
 
-  private function respondNotFound (string $object_type): void
+  private function respondNotFound (string $objectType): void
   {
     http_response_code(404);
     // Task ID is easier to be used - requires unique ID attributes during task creation (FD-Interface)
-    echo json_encode(["message" => "Task object type : $object_type not found"]);
+    echo json_encode(["message" => "Task object type : $objectType not found"]);
   }
 
 }
