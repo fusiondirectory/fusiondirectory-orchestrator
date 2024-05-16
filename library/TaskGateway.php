@@ -23,17 +23,17 @@ class TaskGateway
     switch ($object_type) {
       case "mail":
         $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Mail Object))");
-        unset($list_tasks["count"]);
+        $this->unsetCountKeys($list_tasks);
         break;
 
       case "lifeCycle":
         $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Life Cycle))");
-        unset($list_tasks["count"]);
+        $this->unsetCountKeys($list_tasks);
         break;
 
       case "notifications":
         $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Notifications))");
-        unset($list_tasks["count"]);
+        $this->unsetCountKeys($list_tasks);;
         break;
 
       case "removeSubTasks":
@@ -76,7 +76,7 @@ class TaskGateway
     // Retrieve data from the main task
     return $this->getLdapTasks('(objectClass=fdTasksNotifications)', ['fdTasksNotificationsListOfRecipientsMails',
       'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksNotificationsEmailSender'],
-      '', $mainTaskDn);
+                               '', $mainTaskDn);
   }
 
   public function retrieveMailTemplateInfos (string $templateName): array
@@ -107,6 +107,22 @@ class TaskGateway
   }
 
   /**
+   * @param $array
+   * @return void
+   * Simple take an array as referenced and loop to remove all key having count
+   */
+  public function unsetCountKeys (&$array)
+  {
+    foreach ($array as $key => &$value) {
+      if (is_array($value)) {
+        $this->unsetCountKeys($value);
+      } elseif ($key === 'count') {
+        unset($array[$key]);
+      }
+    }
+  }
+
+  /**
    * @param array $notificationTask
    * @return array
    * NOTE : receive a unique tasks of type notification (one subtask at a time)
@@ -117,21 +133,20 @@ class TaskGateway
 
     // Retrieve audit data attributes from the list of references set in the sub-task
     if (!empty($notificationTask['fdtasksgranularref'])) {
-      // Ldap always return a count which we have to remove.
-      unset($notificationTask['fdtasksgranularref']['count']);
+      // Remove count keys (count is shared by ldap).
+      $this->unsetCountKeys($notificationTask);
 
       foreach ($notificationTask['fdtasksgranularref'] as $auditDN) {
         $auditInformation[] = $this->getLdapTasks('(&(objectClass=fdAuditEvent))',
-          ['fdAuditAttributes'], '', $auditDN);
+                                                  ['fdAuditAttributes'], '', $auditDN);
       }
-
+      // Again remove key: count retrieved from LDAP.
+      $this->unsetCountKeys($auditInformation);
       // It is possible that an audit does not contain any attributes changes, condition is required.
-      foreach ($auditInformation as $audit => $attrs) {
-        unset($attrs['count']);
-        if (!empty($attrs[0]['fdauditattributes'])) {
+      foreach ($auditInformation as $audit => $attr) {
+        if (!empty($attr[0]['fdauditattributes'])) {
           // Clear and compact received results from above ldap search
-          unset($attrs[0]['fdauditattributes']['count']);
-          $auditAttributes[] = $attrs[0]['fdauditattributes'];
+          $auditAttributes = $attr[0]['fdauditattributes'];
         }
       }
     }
@@ -159,7 +174,7 @@ class TaskGateway
         $auditAttributes = $this->retrieveAuditedAttributes($task);
 
         $monitoredAttrs = $notificationsMainTask[0]['fdtasksnotificationsattributes'];
-        unset($monitoredAttrs['count']);
+        $this->unsetCountKeys($monitoredAttrs);
 
         // Verify if there is a match between audited attributes and monitored attributes from main task.
         $matchingAttrs = array_intersect($auditAttributes, $monitoredAttrs);
@@ -340,7 +355,7 @@ class TaskGateway
           // Only takes arrays related to files attachments for the mail template selected
           unset($mailInfos[0]);
           // Re-order keys
-          unset($mailInfos['count']);
+          $this->unsetCountKeys($mailInfos);
           $mailAttachments = array_values($mailInfos);
 
           $setFrom    = $mail["fdtasksgranularmailfrom"][0];
@@ -363,13 +378,13 @@ class TaskGateway
           }
 
           $mail_controller = new MailController($setFrom,
-            $setBCC,
-            $recipients,
-            $body,
-            $signature,
-            $subject,
-            $receipt,
-            $attachments);
+                                                $setBCC,
+                                                $recipients,
+                                                $body,
+                                                $signature,
+                                                $subject,
+                                                $receipt,
+                                                $attachments);
 
           $mailSentResult = $mail_controller->sendMail();
 
@@ -421,11 +436,11 @@ class TaskGateway
         $lifeCycleBehavior = $this->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
           'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
           'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate'],
-          '', $task['fdtasksgranularmaster'][0]);
+                                                 '', $task['fdtasksgranularmaster'][0]);
 
         // Simply retrieve the current supannStatus of the user DN related to the task at hand.
         $currentUserLifeCycle = $this->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate'],
-          '', $task['fdtasksgranulardn'][0]);
+                                                    '', $task['fdtasksgranulardn'][0]);
 
         // Compare both the required schedule and the current user status - returning TRUE if modification is required.
         if ($this->isLifeCycleRequiringModification($lifeCycleBehavior, $currentUserLifeCycle)) {
@@ -531,7 +546,7 @@ class TaskGateway
       ["dn"]
     );
     // remove the count key from the arrays, keeping only DN.
-    unset($subTasksCompleted['count']);
+    $this->unsetCountKeys($subTasksCompleted);
     if (!empty($subTasksCompleted)) {
       foreach ($subTasksCompleted as $subTasks) {
         $result[$subTasks['dn']]['result'] = $this->removeSubTask($subTasks['dn']);
@@ -555,7 +570,7 @@ class TaskGateway
       ["dn", "fdTasksRepeatableSchedule", "fdTasksLastExec", "fdTasksScheduleDate"]
     );
     // remove the count key from the arrays, keeping only DN.
-    unset($tasks['count']);
+    $this->unsetCountKeys($tasks);
 
     if (!empty($tasks)) {
       // Initiate the object webservice.

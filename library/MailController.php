@@ -13,7 +13,7 @@ class MailController
   protected string  $body;
   protected ?string $signature;
   protected string  $subject;
-  protected ?bool   $receipt;
+  protected ?string $receipt;
   protected ?array  $attachments;
   private PHPMailer $mail;
 
@@ -24,7 +24,7 @@ class MailController
     string $body,
     ?string $signature,
     string $subject,
-    bool $receipt = NULL, array $attachments = NULL
+    string $receipt = NULL, array $attachments = NULL
   )
   {
     // The TRUE value passed it to enable the exception handling properly.
@@ -72,7 +72,7 @@ class MailController
       $this->mail->addBCC($this->setBCC);
     }
 
-    if (!empty($this->receipt)) {
+    if ($this->receipt === TRUE) {
       $this->mail->addCustomHeader('Disposition-Notification-To', $this->setFrom);
     }
     $this->mail->Subject = $this->subject;
