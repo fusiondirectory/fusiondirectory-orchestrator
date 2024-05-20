@@ -19,19 +19,27 @@ class TaskController
     }
   }
 
+    /**
+     * @param string $method
+     * @param string|null $objectType
+     * @param $jsonBody
+     * @return void
+     * @throws Exception
+     * NOTE : objectType is actually the task type.
+     */
   public function processRequest (string $method, ?string $objectType, $jsonBody = NULL): void
   {
     // If no specific tasks object specified, return all tasks
-    if ($objectType === NULL) {
+    if ($objectType == NULL) {
       if ($method == "GET") {
         echo json_encode($this->gateway->getTask(NULL));
 
       } else {
         $this->respondMethodAllowed("GET");
       }
-
       // Otherwise continue the process of the specific task / object type specified
     } else {
+        // Define an empty array as returning result.
       switch ($method) {
         // GET methods
         case "GET":
@@ -43,7 +51,10 @@ class TaskController
               }
               break;
           }
-          $this->parseJsonResult($result);
+
+          if (!empty($result)) {
+            $this->parseJsonResult($result);
+          }
           break;
 
         // PATCH methods
