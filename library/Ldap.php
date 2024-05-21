@@ -32,4 +32,36 @@ class Ldap
 
     return $ds;
   }
+
+    /**
+     * @param $ds
+     * @param string $filter
+     * @param array $attrs
+     * @param string|NULL $dn
+     * @return array
+     * Note : A generic method allowing to search in LDAP.
+     */
+    public function searchInLdap ($ds, string $filter = '', array $attrs = [], string $dn = NULL): array
+    {
+        $result = [];
+
+        if (empty($dn)) {
+            $dn = $_ENV["LDAP_BASE"];
+        }
+
+        try {
+            $sr   = ldap_search($ds, $dn, $filter, $attrs);
+            $info = ldap_get_entries($ds, $sr);
+        } catch (Exception $e) {
+            // build array for return response
+            $result = [json_encode(["Ldap Error" => "$e"])]; // string returned
+        }
+
+        // Verify if the above ldap search succeeded.
+        if (!empty($info) && is_array($info) && $info["count"] >= 1) {
+            return $info;
+        }
+
+        return $result;
+    }
 }

@@ -43,6 +43,12 @@ switch ($resource) {
 // Retrieve an authenticated ldap connection
 $ldap_connect = new Ldap($_ENV["FD_LDAP_MASTER_URL"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
 
+// Set timezone according to what's referenced in FusionDirectory configuration
+$timezone = $ldap_connect->searchInLdap($ldap_connect->getConnection(),
+    '(objectClass=FusionDirectoryConf)', ['fdTimezone'], "cn=config,ou=fusiondirectory,".$_ENV["LDAP_BASE"]);
+// Set default timezone retrieved.
+date_default_timezone_set($timezone[0]['fdtimezone'][0]);
+
 // Retrieve all user info based on the dsa common name (CN).
 $user_gateway = new UserGateway($ldap_connect);
 
