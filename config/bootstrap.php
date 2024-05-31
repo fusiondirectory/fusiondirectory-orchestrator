@@ -8,21 +8,23 @@
 function autoload ($class)
 {
   // Integrator is required
-  require '/usr/share/php/FusionDirectory/autoloader.php';
+  require_once '/usr/share/php/FusionDirectory/autoloader.php';
+  // avoid error handler requirements error, as it should be one of the first to load ?
+  require_once dirname(__DIR__).'/library/ErrorHandler.php';
 
   if (strpos($class, 'PHPMailer') !== FALSE) {
-    require("/usr/share/php/libphp-phpmailer/src/Exception.php");
-    require("/usr/share/php/libphp-phpmailer/src/PHPMailer.php");
-    require("/usr/share/php/libphp-phpmailer/src/SMTP.php");
+    require_once("/usr/share/php/libphp-phpmailer/src/Exception.php");
+    require_once("/usr/share/php/libphp-phpmailer/src/PHPMailer.php");
+    require_once("/usr/share/php/libphp-phpmailer/src/SMTP.php");
   }
 
-    $relative_class = str_replace('\\', '/', $class) . '.php';
-    $base_dirs = ['/usr/share/php', dirname(__DIR__)];
-    $files = [];
+  $relative_class = str_replace('\\', '/', $class) . '.php';
+  $base_dirs      = ['/usr/share/php', dirname(__DIR__)];
+  $files          = [];
   foreach ($base_dirs as $base_dir) {
-      $dir = new RecursiveDirectoryIterator($base_dir);
-      $iter = new RecursiveIteratorIterator($dir);
-      $regex = new RegexIterator($iter, '/^.+\.php$/i', RecursiveRegexIterator::GET_MATCH);
+    $dir   = new RecursiveDirectoryIterator($base_dir);
+    $iter  = new RecursiveIteratorIterator($dir);
+    $regex = new RegexIterator($iter, '/^.+\.php$/i', RecursiveRegexIterator::GET_MATCH);
 
     foreach ($regex as $file) {
       $files[] = $file[0];
@@ -30,12 +32,12 @@ function autoload ($class)
   }
 
   foreach ($files as $file) {
-    if (strpos($file, $relative_class) !== FALSE) {
-
-      require $file;
+    if (stripos(strtolower($file), strtolower($relative_class)) !== FALSE) {
+      require_once $file;
       break;
     }
   }
+
 }
 
 spl_autoload_register('autoload');

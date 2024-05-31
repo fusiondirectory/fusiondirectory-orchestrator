@@ -35,6 +35,9 @@ class TaskController
    */
   public function processRequest (string $method, ?string $objectType, $jsonBody = NULL): void
   {
+    // Allow result to be nullable.
+    $result = null;
+
     // If no specific tasks object specified, return all tasks
     if ($objectType == NULL) {
       if ($method == "GET") {
@@ -64,12 +67,6 @@ class TaskController
         // PATCH methods
         case "PATCH":
           switch ($objectType) {
-            //            case "mail":
-            //              $result = $this->gateway->processMailTasks($this->getObjectTypeTask($objectType));
-            //              break;
-            case 'lifeCycle':
-              $result = $this->gateway->processLifeCycleTasks($this->getObjectTypeTask($objectType));
-              break;
             case 'removeSubTasks':
               $result = $this->gateway->removeCompletedTasks();
               break;
