@@ -2,7 +2,7 @@
 
 interface EndpointInterface {
 
-  public function __construct($gateway);
+  public function __construct(TaskGateway $gateway);
 
   /**
    * @return array
@@ -12,16 +12,19 @@ interface EndpointInterface {
 
   /**
    * @return array
+   * Part of the interface of orchestrator plugin to treat POST method
    */
   public function processEndPointPost () : array;
 
   /**
    * @return array
+   * Part of the interface of orchestrator plugin to treat PATCH method
    */
   public function processEndPointPatch () : array;
 
   /**
    * @return array
+   * Part of the interface of orchestrator plugin to treat DELETE method
    */
   public function processEndPointDelete() : array;
 }

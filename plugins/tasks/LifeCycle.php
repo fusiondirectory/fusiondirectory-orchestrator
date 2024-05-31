@@ -5,7 +5,7 @@ class LifeCycle implements EndpointInterface
 {
   private TaskGateway $gateway;
 
-  function __construct ($gateway)
+  function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
   }
