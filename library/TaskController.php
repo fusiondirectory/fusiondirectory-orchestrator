@@ -73,9 +73,6 @@ class TaskController
             case 'activateCyclicTasks':
               $result = $this->gateway->activateCyclicTasks();
               break;
-            case 'notifications':
-              $result = $this->gateway->processNotifications($this->getObjectTypeTask($objectType));
-              break;
             case $objectType:
               if (class_exists($objectType)) {
                 $endpoint = new $objectType($this->gateway);
