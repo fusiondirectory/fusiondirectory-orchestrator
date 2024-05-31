@@ -2,10 +2,13 @@
 
 /**
  * Note : Tasks engine for FusionDirectory.
+ * The gateway, often known as a data gateway or data access layer, is responsible for abstracting and encapsulating the interaction with an external system or a data source.
+ * (e.g., an LDAP, an API, or another service).
+ * It provides a unified interface for these operations.
  */
 class TaskGateway
 {
-  private $ds;
+  public $ds;
 
   // Variable type can be LDAP : enhancement
   public function __construct ($ldap_connect)
@@ -21,10 +24,6 @@ class TaskGateway
   public function getTask (?string $object_type): array
   {
     switch ($object_type) {
-      case "mail":
-        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Mail Object))");
-        $this->unsetCountKeys($list_tasks);
-        break;
 
       case "lifeCycle":
         $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Life Cycle))");
@@ -45,6 +44,11 @@ class TaskGateway
       // If no tasks object type declared , return all tasks
       case NULL:
         $list_tasks = $this->getLdapTasks("(objectClass=fdTasks)", ["cn", "objectClass"]);
+        break;
+
+      case $object_type:
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=" . $object_type . ")");
+        $this->unsetCountKeys($list_tasks);
         break;
 
       //Will match any object type passed not found.
@@ -79,10 +83,6 @@ class TaskGateway
                                '', $mainTaskDn);
   }
 
-  public function retrieveMailTemplateInfos (string $templateName): array
-  {
-    return $this->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $templateName);
-  }
 
   private function generateMainTaskMailTemplate (array $mainTask): array
   {
@@ -298,115 +298,6 @@ class TaskGateway
 
         $result[$dn]['statusUpdate'] = $this->updateTaskStatus($dn, $cn, $serverResults[0]);
         $result[$dn]['mailStatus']   = $serverResults;
-      }
-    }
-
-    return $result;
-  }
-
-  /**
-   * @return array
-   * Note : A simple retrieval methods of the mail backend configuration set in FusionDirectory
-   */
-  private function getMailObjectConfiguration (): array
-  {
-    return $this->getLdapTasks(
-      "(objectClass=fdTasksConf)",
-      ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
-    );
-  }
-
-  /**
-   * @param array $fdTasksConf
-   * @return int
-   * Note : Allows a safety check in case mail configuration backed within FD has been missed.
-   */
-  public function returnMaximumMailToBeSend (array $fdTasksConf): int
-  {
-    // set the maximum mails to be sent to the configured value or 50 if not set.
-    return $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
-  }
-
-  /**
-   * @param array $list_tasks
-   * @return array
-   * @throws Exception
-   */
-  public function processMailTasks (array $list_tasks): array
-  {
-    $result = [];
-
-    $fdTasksConf    = $this->getMailObjectConfiguration();
-    $maxMailsConfig = $this->returnMaximumMailToBeSend($fdTasksConf);
-
-    // Increment for anti=spam, starts at 0, each mail task only contain one email, addition if simply + one.
-    $maxMailsIncrement = 0;
-
-    if ($this->verifySpamProtection($fdTasksConf)) {
-      foreach ($list_tasks as $mail) {
-
-        // verify status before processing (to be checked with schedule as well).
-        if ($mail["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($mail["fdtasksgranularschedule"][0])) {
-
-          // Search for the related attached mail object.
-          $mailInfos   = $this->retrieveMailTemplateInfos($mail["fdtasksgranularref"][0]);
-          $mailContent = $mailInfos[0];
-
-          // Only takes arrays related to files attachments for the mail template selected
-          unset($mailInfos[0]);
-          // Re-order keys
-          $this->unsetCountKeys($mailInfos);
-          $mailAttachments = array_values($mailInfos);
-
-          $setFrom    = $mail["fdtasksgranularmailfrom"][0];
-          $setBCC     = $mail["fdtasksgranularmailbcc"][0] ?? NULL;
-          $recipients = $mail["fdtasksgranularmail"];
-          $body       = $mailContent["fdmailtemplatebody"][0];
-          $signature  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
-          $subject    = $mailContent["fdmailtemplatesubject"][0];
-          $receipt    = $mailContent["fdmailtemplatereadreceipt"][0];
-
-          foreach ($mailAttachments as $file) {
-            $fileInfo['cn']      = $file['cn'][0];
-            $fileInfo['content'] = $file['fdmailattachmentscontent'][0];
-            $attachments[]       = $fileInfo;
-          }
-
-          // Required before passing the array to the constructor mail.
-          if (empty($attachments)) {
-            $attachments = NULL;
-          }
-
-          $mail_controller = new MailController($setFrom,
-                                                $setBCC,
-                                                $recipients,
-                                                $body,
-                                                $signature,
-                                                $subject,
-                                                $receipt,
-                                                $attachments);
-
-          $mailSentResult = $mail_controller->sendMail();
-
-          if ($mailSentResult[0] == "SUCCESS") {
-
-            // The third arguments "2" is the status code of success for mail as of now 18/11/22
-            $result[$mail["dn"]]['statusUpdate']       = $this->updateTaskStatus($mail["dn"], $mail["cn"][0], "2");
-            $result[$mail["dn"]]['mailStatus']         = 'mail : ' . $mail["dn"] . ' was successfully sent';
-            $result[$mail["dn"]]['updateLastMailExec'] = $this->updateLastMailExecTime($fdTasksConf[0]["dn"]);
-
-          } else {
-            $result[$mail["dn"]]['statusUpdate'] = $this->updateTaskStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0]);
-            $result[$mail["dn"]]['Error']        = $mailSentResult;
-          }
-
-          // Verification anti-spam max mails to be sent and quit loop if matched
-          $maxMailsIncrement += 1; //Only one as recipients in mail object is always one email.
-          if ($maxMailsIncrement == $maxMailsConfig) {
-            break;
-          }
-
-        }
       }
     }
 
@@ -700,36 +591,16 @@ class TaskGateway
   }
 
   /**
-   * @param array $fdTasksConf
-   * @return bool
-   * Note : Method which verify the last executed e-mails sent
-   *  Verify if the time interval is respected in order to protect from SPAM
-   */
-  public function verifySpamProtection (array $fdTasksConf): bool
-  {
-    $lastExec     = $fdTasksConf[0]["fdtasksconflastexectime"][0] ?? NULL;
-    $spamInterval = $fdTasksConf[0]["fdtasksconfintervalemails"][0] ?? NULL;
-
-    // Multiplication is required to have the seconds
-    $spamInterval = $spamInterval * 60;
-    $antispam     = $lastExec + $spamInterval;
-    if ($antispam <= time()) {
-      return TRUE;
-    }
-
-    return FALSE;
-  }
-
-  /**
    * @param string $schedule
    * @return bool
    * @throws Exception
+   * Note : Verification of the schedule in complete string format and compare.
+   * DateTime will use the system timezone by default.
    */
-  // Verification of the schedule in complete string format and compare.
   public function verifySchedule (string $schedule): bool
   {
-    $currentDateTime   = new DateTime('now'); // Get current datetime in UTC
-    $scheduledDateTime = new DateTime($schedule); // Parse scheduled datetime string in UTC
+    $currentDateTime   = new DateTime('now'); // Get current datetime in locale timezone
+    $scheduledDateTime = new DateTime($schedule); // Parse scheduled datetime string in local timezone
 
     if ($scheduledDateTime < $currentDateTime) {
       return TRUE; // Schedule has passed
@@ -807,23 +678,18 @@ class TaskGateway
   }
 
   /**
-   * @param string $dn
-   * @return bool|string
-   * Note: Update the attribute lastExecTime from fdTasksConf.
+   * @param $objectType
+   * @return array|string[]|void
    */
-  public function updateLastMailExecTime (string $dn)
+  public function getObjectTypeTask ($objectType)
   {
-    // prepare data
-    $ldap_entry["fdTasksConfLastExecTime"] = time();
-
-    // Add data to LDAP
-    try {
-      $result = ldap_modify($this->ds, $dn, $ldap_entry);
-    } catch (Exception $e) {
-
-      $result = json_encode(["Ldap Error" => "$e"]);
+    $task = $this->getTask($objectType);
+    if (!$task) {
+      taskController::respondNotFound($objectType);
+      exit;
     }
-    return $result;
+
+    return $task;
   }
 
 }

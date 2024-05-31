@@ -1,5 +1,11 @@
 <?php
 
+/*
+ * The controller is part of the presentation layer in an MVC (Model-View-Controller) architecture.
+ * Its primary role is to handle incoming HTTP requests, process user inputs, and determine which business logic (services or models) to invoke.
+ * It then decides what response to send back to the client.
+ */
+
 class TaskController
 {
   private TaskGateway $gateway;
@@ -15,18 +21,18 @@ class TaskController
       echo json_encode($result, JSON_PRETTY_PRINT);
     } else {
       // No result received
-      echo json_encode("No results received from the endpoint");
+      echo json_encode("No results received from the endpoint, maybe nothing to be processed ?");
     }
   }
 
-    /**
-     * @param string $method
-     * @param string|null $objectType
-     * @param $jsonBody
-     * @return void
-     * @throws Exception
-     * NOTE : objectType is actually the task type.
-     */
+  /**
+   * @param string $method
+   * @param string|null $objectType
+   * @param $jsonBody
+   * @return void
+   * @throws Exception
+   * NOTE : objectType is actually the task type.
+   */
   public function processRequest (string $method, ?string $objectType, $jsonBody = NULL): void
   {
     // If no specific tasks object specified, return all tasks
@@ -39,10 +45,11 @@ class TaskController
       }
       // Otherwise continue the process of the specific task / object type specified
     } else {
-        // Define an empty array as returning result.
+      // Define an empty array as returning result.
       switch ($method) {
         // GET methods
         case "GET":
+          // The switch here is created to have potential additions later on,
           switch ($objectType) {
             case $objectType:
               if (class_exists($objectType)) {
@@ -51,18 +58,15 @@ class TaskController
               }
               break;
           }
-
-          if (!empty($result)) {
-            $this->parseJsonResult($result);
-          }
+          $this->parseJsonResult($result);
           break;
 
         // PATCH methods
         case "PATCH":
           switch ($objectType) {
-            case "mail":
-              $result = $this->gateway->processMailTasks($this->getObjectTypeTask($objectType));
-              break;
+            //            case "mail":
+            //              $result = $this->gateway->processMailTasks($this->getObjectTypeTask($objectType));
+            //              break;
             case 'lifeCycle':
               $result = $this->gateway->processLifeCycleTasks($this->getObjectTypeTask($objectType));
               break;
@@ -77,7 +81,7 @@ class TaskController
               break;
             case $objectType:
               if (class_exists($objectType)) {
-                $endpoint = new $objectType;
+                $endpoint = new $objectType($this->gateway);
                 $result   = $endpoint->processEndPointPatch($jsonBody);
               }
               break;
@@ -94,28 +98,13 @@ class TaskController
     }
   }
 
-  /**
-   * @param $objectType
-   * @return array|string[]|void
-   */
-  private function getObjectTypeTask ($objectType)
-  {
-    $task = $this->gateway->getTask($objectType);
-    if (!$task) {
-      $this->respondNotFound($objectType);
-      exit;
-    }
-
-    return $task;
-  }
-
   private function respondMethodAllowed (string $allowed_methods): void
   {
     http_response_code(405);
     header("Allow: $allowed_methods");
   }
 
-  private function respondNotFound (string $objectType): void
+  public static function respondNotFound (string $objectType): void
   {
     http_response_code(404);
     // Task ID is easier to be used - requires unique ID attributes during task creation (FD-Interface)
