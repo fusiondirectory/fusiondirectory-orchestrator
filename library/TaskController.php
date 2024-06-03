@@ -36,7 +36,7 @@ class TaskController
   public function processRequest (string $method, ?string $objectType, $jsonBody = NULL): void
   {
     // Allow result to be nullable.
-    $result = null;
+    $result = NULL;
 
     // If no specific tasks object specified, return all tasks
     if ($objectType == NULL) {

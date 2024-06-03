@@ -88,6 +88,7 @@ class TaskGateway
         unset($array[$key]);
       }
     }
+    unset($value); //unset the reference after the loop for security best practise.
   }
 
   /**

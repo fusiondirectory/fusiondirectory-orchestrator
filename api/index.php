@@ -15,7 +15,7 @@ $object_type = $parts[4] ?? NULL;
 // Parsing of the raw data potentially passed as json REST data to the API
 $rawBody = file_get_contents('php://input');
 // Decode the JSON data and set to null if no body received
-$jsonBody = !empty ($rawBody) ? json_decode($rawBody, TRUE) : null;
+$jsonBody = !empty ($rawBody) ? json_decode($rawBody, TRUE) : NULL;
 
 switch ($resource) {
 
