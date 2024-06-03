@@ -1,6 +1,6 @@
 <?php
 
-class notifications implements EndpointInterface
+class Notifications implements EndpointInterface
 {
 
   private TaskGateway $gateway;
@@ -35,7 +35,7 @@ class notifications implements EndpointInterface
    */
   public function processEndPointPatch (array $data = NULL): array
   {
-    return $this->processNotifications($this->gateway->getObjectTypeTask('notifications)'));
+    return $this->processNotifications($this->gateway->getObjectTypeTask('notifications'));
   }
 
   /**

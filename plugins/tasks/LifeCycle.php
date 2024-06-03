@@ -47,7 +47,6 @@ class LifeCycle implements EndpointInterface
    */
   public function processEndPointPatch (array $data = NULL): array
   {
-    echo json_encode('within lifeCycle patch');
     return $this->processLifeCycleTasks($this->gateway->getObjectTypeTask('lifeCycle'));
   }
 
