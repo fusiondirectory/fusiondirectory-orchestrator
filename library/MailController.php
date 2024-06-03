@@ -72,7 +72,7 @@ class MailController
       $this->mail->addBCC($this->setBCC);
     }
 
-    if ($this->receipt === TRUE) {
+    if ($this->receipt === 'TRUE') {
       $this->mail->addCustomHeader('Disposition-Notification-To', $this->setFrom);
     }
     $this->mail->Subject = $this->subject;
