@@ -52,7 +52,6 @@ class TaskController
       switch ($method) {
         // GET methods
         case "GET":
-          // The switch here is created to have potential additions later on,
           switch ($objectType) {
             case $objectType:
               if (class_exists($objectType)) {
@@ -60,6 +59,10 @@ class TaskController
                 $result   = $endpoint->processEndPointGet();
               }
               break;
+
+            default:
+              // TODO: Default result in a non getProcess method found - could enhance below error report.
+              $this->respondMethodAllowed("GET, PATCH, DELETE");
           }
           $this->parseJsonResult($result);
           break;

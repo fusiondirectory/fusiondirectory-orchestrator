@@ -23,7 +23,7 @@ class Mail implements EndpointInterface
    * @return array
    * Note : Part of the interface of orchestrator plugin to treat POST method
    */
-  public function processEndPointPost (): array
+  public function processEndPointPost (array $data = NULL): array
   {
     return [];
   }
@@ -32,17 +32,18 @@ class Mail implements EndpointInterface
    * @return array
    * Note : Part of the interface of orchestrator plugin to treat DELETE method
    */
-  public function processEndPointDelete (): array
+  public function processEndPointDelete (array $data = NULL): array
   {
     return [];
   }
 
   /**
+   * @param array|NULL $data
    * @return array
    * @throws Exception
    * Note : Part of the interface of orchestrator plugin to treat PATCH method
    */
-  public function processEndPointPatch (): array
+  public function processEndPointPatch (array $data = NULL): array
   {
     return $this->processMailTasks($this->gateway->getObjectTypeTask('Mail Object)'));
   }
@@ -114,7 +115,7 @@ class Mail implements EndpointInterface
             // The third arguments "2" is the status code of success for mail as of now 18/11/22
             $result[$mail["dn"]]['statusUpdate']       = $this->gateway->updateTaskStatus($mail["dn"], $mail["cn"][0], "2");
             $result[$mail["dn"]]['mailStatus']         = 'mail : ' . $mail["dn"] . ' was successfully sent';
-            $result[$mail["dn"]]['updateLastMailExec'] = $this->updateLastMailExecTime($fdTasksConf[0]["dn"]);
+            $result[$mail["dn"]]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($fdTasksConf[0]["dn"]);
 
           } else {
             $result[$mail["dn"]]['statusUpdate'] = $this->gateway->updateTaskStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0]);
@@ -187,26 +188,5 @@ class Mail implements EndpointInterface
   {
     return $this->gateway->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $templateName);
   }
-
-  /**
-   * @param string $dn
-   * @return bool|string
-   * Note: Update the attribute lastExecTime from fdTasksConf.
-   */
-  public function updateLastMailExecTime (string $dn)
-  {
-    // prepare data
-    $ldap_entry["fdTasksConfLastExecTime"] = time();
-
-    // Add data to LDAP
-    try {
-      $result = ldap_modify($this->gateway->ds, $dn, $ldap_entry);
-    } catch (Exception $e) {
-
-      $result = json_encode(["Ldap Error" => "$e"]);
-    }
-    return $result;
-  }
-
 
 }
