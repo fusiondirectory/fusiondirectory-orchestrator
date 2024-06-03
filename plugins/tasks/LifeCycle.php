@@ -20,29 +20,32 @@ class LifeCycle implements EndpointInterface
   }
 
   /**
+   * @param array|null $data
    * @return array
    * Note : Part of the interface of orchestrator plugin to treat POST method
    */
-  public function processEndPointPost (): array
+  public function processEndPointPost (array $data = NULL): array
   {
     return [];
   }
 
   /**
+   * @param array|null $data
    * @return array
    * Note : Part of the interface of orchestrator plugin to treat DELETE method
    */
-  public function processEndPointDelete (): array
+  public function processEndPointDelete (array $data = NULL): array
   {
     return [];
   }
 
   /**
+   * @param array|null $data
    * @return array
    * @throws Exception
    * Note : Part of the interface of orchestrator plugin to treat PATCH method
    */
-  public function processEndPointPatch (): array
+  public function processEndPointPatch (array $data = NULL): array
   {
     echo json_encode('within lifeCycle patch');
     return $this->processLifeCycleTasks($this->gateway->getObjectTypeTask('lifeCycle'));
