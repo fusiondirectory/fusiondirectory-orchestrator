@@ -314,7 +314,7 @@ class TaskGateway
   {
     $task = $this->getTask($objectType);
     if (!$task) {
-      taskController::respondNotFound($objectType);
+      TaskController::respondNotFound($objectType);
       exit;
     }
 
