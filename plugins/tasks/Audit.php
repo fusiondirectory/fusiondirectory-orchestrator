@@ -57,6 +57,7 @@ class Audit implements EndpointInterface
     $result = [];
 
     // todo - Logic to iterate through audit timestamp and delete passed time.
+    $result = ['Yeaah'];
 
     return $result;
   }
