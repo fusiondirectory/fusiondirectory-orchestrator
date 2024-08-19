@@ -186,21 +186,23 @@ class TaskGateway
                 }
                 break;
               case 'Weekly' :
-                if ($interval->d >= 7) {
+                if ($interval->days >= 7) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
               case 'Daily' :
-                if ($interval->d >= 1) {
+                if ($interval->days >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
               case 'Hourly' :
-                if ($interval->h >= 1) {
+                // When checking for hourly schedules, consider both the days and hours
+                $totalHours = $interval->days * 24 + $interval->h;
+                if ($totalHours>= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
@@ -210,7 +212,7 @@ class TaskGateway
           }
           // Case where cyclic tasks where found but the schedule is no ready.
         } else {
-          $result[$task['dn']]['Status'] = 'This cyclic task has yet to reach its scheduled date.';
+          $result[$task['dn']]['Status'] = 'This cyclic task has yet to reach its next execution cycle.';
         }
       }
     } else {
