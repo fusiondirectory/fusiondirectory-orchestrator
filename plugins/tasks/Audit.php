@@ -35,7 +35,7 @@ class Audit implements EndpointInterface
    */
   public function processEndPointPatch (array $data = NULL): array
   {
-    return $this->processAuditDeletion($this->gateway->getObjectTypeTask('audit'));
+    return $this->processAuditDeletion($this->gateway->getObjectTypeTask('Audit'));
   }
 
   /**
@@ -57,7 +57,7 @@ class Audit implements EndpointInterface
     $result = [];
 
     // todo - Logic to iterate through audit timestamp and delete passed time.
-    $result = ['Yeaah'];
+    $result = $auditSubTasks;
 
     return $result;
   }

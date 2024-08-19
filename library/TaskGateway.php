@@ -50,7 +50,7 @@ class TaskGateway
         break;
 
       case $object_type:
-        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=" . $object_type . ")");
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=" . $object_type . "))");
         $this->unsetCountKeys($list_tasks);
         break;
 
