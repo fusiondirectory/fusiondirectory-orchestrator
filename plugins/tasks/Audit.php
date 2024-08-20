@@ -35,7 +35,7 @@ class Audit implements EndpointInterface
    */
   public function processEndPointPatch (array $data = NULL): array
   {
-    $result[] = $this->processAuditDeletion($this->gateway->getObjectTypeTask('Audit'));
+    $result = $this->processAuditDeletion($this->gateway->getObjectTypeTask('Audit'));
 
     // Recursive function to filter out empty arrays at any depth
     $nonEmptyResults = $this->recursiveArrayFilter($result);
@@ -51,17 +51,26 @@ class Audit implements EndpointInterface
   /**
    * @param array $array
    * @return array
-   * Note : A simple method iterating an array and returning non empty values.
+   * Note : Recursively filters out empty values and arrays at any depth.
    */
-  private function recursiveArrayFilter(array $array): array
+  private function recursiveArrayFilter (array $array): array
   {
-    $filtered = array_filter($array, function($item) {
-      // Check if item is an array, if so recursively filter it
-      return is_array($item) ? !empty($this->recursiveArrayFilter($item)) : !empty($item);
+    // First filter the array for non-empty elements
+    $filtered = array_filter($array, function ($item) {
+      if (is_array($item)) {
+        // Recursively filter the sub-array
+        $item = $this->recursiveArrayFilter($item);
+        // Only retain non-empty arrays
+        return !empty($item);
+      } else {
+        // Retain non-empty scalar values
+        return !empty($item);
+      }
     });
 
     return $filtered;
   }
+
 
   /**
    * @param array|NULL $data
@@ -80,8 +89,6 @@ class Audit implements EndpointInterface
   public function processAuditDeletion (array $auditSubTasks): array
   {
     $result = [];
-
-    // todo - Logic to iterate through audit timestamp and delete passed time.
 
     foreach ($auditSubTasks as $task) {
       // If the tasks must be treated - status and scheduled - process the sub-tasks
@@ -125,8 +132,8 @@ class Audit implements EndpointInterface
 
       $interval = $today->diff($auditDateTime);
 
-      // Check if the interval is greater than auditRetention setting
-      if ($interval->days > $auditRetention) {
+      // Check if the interval is equal or greater than auditRetention setting
+      if ($interval->days >= $auditRetention) {
         // If greater, delete the DN audit entry, we reuse removeSubTask method from gateway.
         $result[$record['dn']]['result'] = $this->gateway->removeSubTask($record['dn']);
       }
