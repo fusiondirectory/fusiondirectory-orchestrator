@@ -35,7 +35,32 @@ class Audit implements EndpointInterface
    */
   public function processEndPointPatch (array $data = NULL): array
   {
-    return $this->processAuditDeletion($this->gateway->getObjectTypeTask('Audit'));
+    $result[] = $this->processAuditDeletion($this->gateway->getObjectTypeTask('Audit'));
+
+    // Recursive function to filter out empty arrays at any depth
+    $nonEmptyResults = $this->recursiveArrayFilter($result);
+
+    if (!empty($nonEmptyResults)) {
+      return $nonEmptyResults;
+    } else {
+      return ['No audit requiring removal'];
+    }
+
+  }
+
+  /**
+   * @param array $array
+   * @return array
+   * Note : A simple method iterating an array and returning non empty values.
+   */
+  private function recursiveArrayFilter(array $array): array
+  {
+    $filtered = array_filter($array, function($item) {
+      // Check if item is an array, if so recursively filter it
+      return is_array($item) ? !empty($this->recursiveArrayFilter($item)) : !empty($item);
+    });
+
+    return $filtered;
   }
 
   /**
@@ -72,11 +97,7 @@ class Audit implements EndpointInterface
 
     }
 
-    if (!empty($result)) {
-      return $result;
-    } else {
-      return ['No audit requiring removal'];
-    }
+    return $result;
 
   }
 
