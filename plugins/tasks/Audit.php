@@ -106,7 +106,6 @@ class Audit implements EndpointInterface
     }
 
     return $result;
-
   }
 
   /**
@@ -126,6 +125,13 @@ class Audit implements EndpointInterface
     $audit = $this->gateway->getLdapTasks('(objectClass=fdAuditEvent)', ['fdAuditDateTime'], '', '');
     // Remove the count key from the audit array.
     $this->gateway->unsetCountKeys($audit);
+
+    // In case no audit exists, we have to update the tasks as well. Meaning below loop won't be reached.
+    if (empty($audit)) {
+      $result[$subTaskCN]['result']       = TRUE;
+      $result[$subTaskCN]['info']         = 'No audit to be removed.';
+      $result[$subTaskCN]['statusUpdate'] = $this->gateway->updateTaskStatus($subTaskDN, $subTaskCN, "2");
+    }
 
     foreach ($audit as $record) {
       // Record in Human Readable date time object
