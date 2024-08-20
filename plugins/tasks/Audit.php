@@ -99,7 +99,8 @@ class Audit implements EndpointInterface
         // Simply get the days to retain audit.
         $auditRetention = $auditMainTask[0]['fdaudittasksretention'][0];
 
-        $result[] = $this->checkAuditPassedRetention($auditRetention);
+        // Verification of all audit and their potential removal based on retention days passed, also update subtasks.
+        $result[] = $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0]);
       }
 
     }
@@ -114,14 +115,14 @@ class Audit implements EndpointInterface
    * Note : This will return a validation of audit log suppression
    * @throws Exception
    */
-  public function checkAuditPassedRetention ($auditRetention): array
+  public function checkAuditPassedRetention ($auditRetention, $subTaskDN, $subTaskCN): array
   {
     $result = [];
 
     // Date time object will use the timezone defined in FD, code is in index.php
     $today = new DateTime();
 
-    // Search in LDAP for audit entries
+    // Search in LDAP for audit entries (All entries ! This can be pretty heavy.
     $audit = $this->gateway->getLdapTasks('(objectClass=fdAuditEvent)', ['fdAuditDateTime'], '', '');
     // Remove the count key from the audit array.
     $this->gateway->unsetCountKeys($audit);
@@ -134,10 +135,19 @@ class Audit implements EndpointInterface
 
       // Check if the interval is equal or greater than auditRetention setting
       if ($interval->days >= $auditRetention) {
-        // If greater, delete the DN audit entry, we reuse removeSubTask method from gateway.
-        $result[$record['dn']]['result'] = $this->gateway->removeSubTask($record['dn']);
-      }
+        // If greater, delete the DN audit entry, we reuse removeSubTask method from gateway and get ldap response.(bool).
+        $result[$subTaskCN]['result'] = $this->gateway->removeSubTask($record['dn']);
+        $result[$subTaskCN]['info']   = 'Audit record removed.';
 
+        // Update tasks accordingly if LDAP succeeded. TRUE Boolean returned by ldap.
+        if ($result[$subTaskCN]['result']) {
+          // Update the subtask with the status completed a.k.a "2".
+          $result[$subTaskCN]['statusUpdate'] = $this->gateway->updateTaskStatus($subTaskDN, $subTaskCN, "2");
+        } else {
+          // Update the task with the LDAP potential error code.
+          $result[$subTaskCN]['statusUpdate'] = $this->gateway->updateTaskStatus($subTaskDN, $subTaskCN, $result[$record['dn']]['result']);
+        }
+      }
     }
 
     return $result;
