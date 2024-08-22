@@ -91,6 +91,7 @@ class Audit implements EndpointInterface
     $result = [];
 
     foreach ($auditSubTasks as $task) {
+
       // If the tasks must be treated - status and scheduled - process the sub-tasks
       if ($this->gateway->statusAndScheduleCheck($task)) {
 
