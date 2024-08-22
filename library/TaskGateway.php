@@ -145,12 +145,13 @@ class TaskGateway
     $this->unsetCountKeys($tasks);
 
     if (!empty($tasks)) {
+
       // Initiate the object webservice.
       $webservice = new WebServiceCall($_ENV['FUSION_DIRECTORY_API_URL'] . '/login', 'POST');
 
       // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
       $webservice->setCurlSettings();
-      // Is used to verify cyclic schedule with date format.
+      // Is used to verify cyclic schedule with date format. This use de local timezone - not UTC
       $now = new DateTime('now');
 
       foreach ($tasks as $task) {
