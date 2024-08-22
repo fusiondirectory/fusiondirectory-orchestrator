@@ -203,7 +203,7 @@ class TaskGateway
               case 'Hourly' :
                 // When checking for hourly schedules, consider both the days and hours
                 $totalHours = $interval->days * 24 + $interval->h;
-                if ($totalHours>= 1) {
+                if ($totalHours >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
