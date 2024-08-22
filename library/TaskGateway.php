@@ -145,8 +145,9 @@ class TaskGateway
     $this->unsetCountKeys($tasks);
 
     if (!empty($tasks)) {
+
       // Initiate the object webservice.
-      $webservice = new WebServiceCall($_ENV['FUSION_DIRECTORY_API_URL'] . '/login', 'POST');
+      $webservice = new FusionDirectory\Rest\WebServiceCall($_ENV['FUSION_DIRECTORY_API_URL'] . '/login', 'POST');
 
       // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
       $webservice->setCurlSettings();
@@ -186,21 +187,23 @@ class TaskGateway
                 }
                 break;
               case 'Weekly' :
-                if ($interval->d >= 7) {
+                if ($interval->days >= 7) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
               case 'Daily' :
-                if ($interval->d >= 1) {
+                if ($interval->days >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
               case 'Hourly' :
-                if ($interval->h >= 1) {
+                // When checking for hourly schedules, consider both the days and hours
+                $totalHours = $interval->days * 24 + $interval->h;
+                if ($totalHours >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
