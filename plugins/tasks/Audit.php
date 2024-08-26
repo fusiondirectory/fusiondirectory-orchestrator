@@ -31,6 +31,15 @@ class Audit implements EndpointInterface
   /**
    * @param array|NULL $data
    * @return array
+   */
+  public function processEndPointDelete (array $data = NULL): array
+  {
+    return [];
+  }
+
+  /**
+   * @param array|NULL $data
+   * @return array
    * @throws Exception
    */
   public function processEndPointPatch (array $data = NULL): array
@@ -45,40 +54,6 @@ class Audit implements EndpointInterface
     } else {
       return ['No audit requiring removal'];
     }
-
-  }
-
-  /**
-   * @param array $array
-   * @return array
-   * Note : Recursively filters out empty values and arrays at any depth.
-   */
-  private function recursiveArrayFilter (array $array): array
-  {
-    // First filter the array for non-empty elements
-    $filtered = array_filter($array, function ($item) {
-      if (is_array($item)) {
-        // Recursively filter the sub-array
-        $item = $this->recursiveArrayFilter($item);
-        // Only retain non-empty arrays
-        return !empty($item);
-      } else {
-        // Retain non-empty scalar values
-        return !empty($item);
-      }
-    });
-
-    return $filtered;
-  }
-
-
-  /**
-   * @param array|NULL $data
-   * @return array
-   */
-  public function processEndPointDelete (array $data = NULL): array
-  {
-    return [];
   }
 
   /**
@@ -103,10 +78,20 @@ class Audit implements EndpointInterface
         // Verification of all audit and their potential removal based on retention days passed, also update subtasks.
         $result[] = $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0]);
       }
-
     }
 
     return $result;
+  }
+
+  /**
+   * @param string $mainTaskDn
+   * @return array
+   * Note : Simply return attributes from the main related audit tasks.
+   */
+  public function getAuditMainTask (string $mainTaskDn): array
+  {
+    // Retrieve data from the main task
+    return $this->gateway->getLdapTasks('(objectClass=fdAuditTasks)', ['fdAuditTasksRetention'], '', $mainTaskDn);
   }
 
   /**
@@ -122,11 +107,7 @@ class Audit implements EndpointInterface
     // Date time object will use the timezone defined in FD, code is in index.php
     $today = new DateTime();
 
-    // Search in LDAP for audit entries (All entries ! This can be pretty heavy.
-    $audit = $this->gateway->getLdapTasks('(objectClass=fdAuditEvent)', ['fdAuditDateTime'], '', '');
-    // Remove the count key from the audit array.
-    $this->gateway->unsetCountKeys($audit);
-
+    $audit = $this->returnLdapAuditEntries();
     // In case no audit exists, we have to update the tasks as well. Meaning below loop won't be reached.
     if (empty($audit)) {
       $result[$subTaskCN]['result']       = TRUE;
@@ -160,6 +141,42 @@ class Audit implements EndpointInterface
     return $result;
   }
 
+  /**
+   * @return array
+   * NOTE : simply return the list of audit entries existing in LDAP
+   */
+  public function returnLdapAuditEntries () : array
+  {
+    // Search in LDAP for audit entries (All entries ! This can be pretty heavy.
+    $audit = $this->gateway->getLdapTasks('(objectClass=fdAuditEvent)', ['fdAuditDateTime'], '', '');
+    // Remove the count key from the audit array.
+    $this->gateway->unsetCountKeys($audit);
+
+    return $audit;
+  }
+
+  /**
+   * @param array $array
+   * @return array
+   * Note : Recursively filters out empty values and arrays at any depth.
+   */
+  private function recursiveArrayFilter (array $array): array
+  {
+    // First filter the array for non-empty elements
+    $filtered = array_filter($array, function ($item) {
+      if (is_array($item)) {
+        // Recursively filter the sub-array
+        $item = $this->recursiveArrayFilter($item);
+        // Only retain non-empty arrays
+        return !empty($item);
+      } else {
+        // Retain non-empty scalar values
+        return !empty($item);
+      }
+    });
+
+    return $filtered;
+  }
 
   /**
    * @param $generalizeLdapDateTime
@@ -184,17 +201,6 @@ class Audit implements EndpointInterface
     $auditDate->setTimezone(new DateTimeZone(date_default_timezone_get()));
 
     return $auditDate;
-  }
-
-  /**
-   * @param string $mainTaskDn
-   * @return array
-   * Note : Simply return attributes from the main related audit tasks.
-   */
-  public function getAuditMainTask (string $mainTaskDn): array
-  {
-    // Retrieve data from the main task
-    return $this->gateway->getLdapTasks('(objectClass=fdAuditTasks)', ['fdAuditTasksRetention'], '', $mainTaskDn);
   }
 
 }
