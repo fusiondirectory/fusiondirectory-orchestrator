@@ -50,7 +50,7 @@ class TaskGateway
         break;
 
       case $object_type:
-        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=" . $object_type . ")");
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=" . $object_type . "))");
         $this->unsetCountKeys($list_tasks);
         break;
 
@@ -151,7 +151,7 @@ class TaskGateway
 
       // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
       $webservice->setCurlSettings();
-      // Is used to verify cyclic schedule with date format.
+      // Is used to verify cyclic schedule with date format. This use de local timezone - not UTC
       $now = new DateTime('now');
 
       foreach ($tasks as $task) {
@@ -213,7 +213,7 @@ class TaskGateway
           }
           // Case where cyclic tasks where found but the schedule is no ready.
         } else {
-          $result[$task['dn']]['Status'] = 'This cyclic task has yet to reach its scheduled date.';
+          $result[$task['dn']]['Status'] = 'This cyclic task has yet to reach its next execution cycle.';
         }
       }
     } else {
