@@ -226,7 +226,7 @@ class Notifications implements EndpointInterface
     foreach ($notifications as $data) {
       $numberOfRecipients = count($data['mailForm']['recipients']);
 
-      $mail_controller = new MailController(
+      $mail_controller = new \FusionDirectory\Mail\MailLib(
         $data['mailForm']['setFrom'],
         NULL,
         $data['mailForm']['recipients'],
