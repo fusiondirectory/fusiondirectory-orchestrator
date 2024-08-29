@@ -332,7 +332,6 @@ class TaskGateway
    */
   public function updateLastMailExecTime (string $dn)
   {
-    // prepare data
     $ldap_entry["fdTasksConfLastExecTime"] = time();
 
     // Add data to LDAP
