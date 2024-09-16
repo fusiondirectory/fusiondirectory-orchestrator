@@ -72,7 +72,20 @@ class Notifications implements EndpointInterface
         $auditAttributes = $this->retrieveAuditedAttributes($task);
 
         $monitoredAttrs = $notificationsMainTask[0]['fdtasksnotificationsattributes'];
+
+        // Management of Supann Status
+        $monitoredSupannResource['resource'] = $notificationsMainTask[0]['fdTasksNotificationsResource'];
+        $monitoredSupannResource['state']    = $notificationsMainTask[0]['fdTasksNotificationsState'];
+        $monitoredSupannResource['subState'] = $notificationsMainTask[0]['fdTasksNotificationsSubState'];
+
         $this->gateway->unsetCountKeys($monitoredAttrs);
+        $this->gateway->unsetCountKeys($monitoredSupannResource);
+
+        // Condition if supannResource is set
+        if ($monitoredSupannResource['resource'] !== 'None') {
+          // Verify if there was a modification of supannRessourceEtatDate in audit.
+          $matchingSupann = array_intersect($auditAttributes, ['supannRessourceEtatDate']);
+        }
 
         // Verify if there is a match between audited attributes and monitored attributes from main task.
         $matchingAttrs = array_intersect($auditAttributes, $monitoredAttrs);
