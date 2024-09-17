@@ -123,26 +123,26 @@ class Notifications implements EndpointInterface
     return $result;
   }
 
-  private function verifySupannState (array $supannResource, string $uid) : bool
+  private function verifySupannState (array $supannResource, string $uid): bool
   {
-    $result = false;
+    $result = FALSE;
     // search the supannStates for the targeted uid by reusing getLdapTasks logic
     $uidSupannStates = $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtat'], '', $uid);
     $this->gateway->unsetCountKeys($uidSupannStates);
 
     //Construct Supann Resource State as string
     if (!empty($supannResource['subState'][0])) {
-      $monitoredSupannState = '{'.$supannResource['resource'][0].'}'.$supannResource['state'][0].':'.$supannResource['subState'][0];
+      $monitoredSupannState = '{' . $supannResource['resource'][0] . '}' . $supannResource['state'][0] . ':' . $supannResource['subState'][0];
     } else {
-      $monitoredSupannState = '{'.$supannResource['resource'][0].'}'.$supannResource['state'][0];
+      $monitoredSupannState = '{' . $supannResource['resource'][0] . '}' . $supannResource['state'][0];
     }
 
     foreach ($uidSupannStates[0]['supannressourceetat'] as $supannResource) {
       if ($supannResource === $monitoredSupannState) {
-        $result = true;
+        $result = TRUE;
       }
     }
-    
+
     return $result;
   }
 
