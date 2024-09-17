@@ -74,17 +74,25 @@ class Notifications implements EndpointInterface
         $monitoredAttrs = $notificationsMainTask[0]['fdtasksnotificationsattributes'];
 
         // Management of Supann Status
-        $monitoredSupannResource['resource'] = $notificationsMainTask[0]['fdTasksNotificationsResource'];
-        $monitoredSupannResource['state']    = $notificationsMainTask[0]['fdTasksNotificationsState'];
-        $monitoredSupannResource['subState'] = $notificationsMainTask[0]['fdTasksNotificationsSubState'];
+        $monitoredSupannResource['resource'] = $notificationsMainTask[0]['fdtasksnotificationsresource'];
+        $monitoredSupannResource['state']    = $notificationsMainTask[0]['fdtasksnotificationsstate'];
+        $monitoredSupannResource['subState'] = $notificationsMainTask[0]['fdtasksnotificationssubstate'] ?? NULL;
 
+
+        // Simply remove keys with 'count' reported by ldap.
         $this->gateway->unsetCountKeys($monitoredAttrs);
         $this->gateway->unsetCountKeys($monitoredSupannResource);
 
-        // Condition if supannResource is set
+        // Verification if supannRessourceEtatDate with criteria from main tasks are matched.
         if ($monitoredSupannResource['resource'] !== 'None') {
-          // Verify if there was a modification of supannRessourceEtatDate in audit.
-          $matchingSupann = array_intersect($auditAttributes, ['supannRessourceEtatDate']);
+          if ($this->verifySupannState($monitoredSupannResource, $task['fdtasksgranulardn'][0])) {
+            // Simply inject supannRessourceEtat within monitoredAttrs to be taken into account for below logic
+            // NOTE: This is subject to change. This can always be a match if the state is present in the user but another
+            // supannRessourceEtat is reached.
+
+            array_push($monitoredAttrs, 'supannRessourceEtat');
+
+          }
         }
 
         // Verify if there is a match between audited attributes and monitored attributes from main task.
@@ -115,6 +123,29 @@ class Notifications implements EndpointInterface
     return $result;
   }
 
+  private function verifySupannState (array $supannResource, string $uid) : bool
+  {
+    $result = false;
+    // search the supannStates for the targeted uid by reusing getLdapTasks logic
+    $uidSupannStates = $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtat'], '', $uid);
+    $this->gateway->unsetCountKeys($uidSupannStates);
+
+    //Construct Supann Resource State as string
+    if (!empty($supannResource['subState'][0])) {
+      $monitoredSupannState = '{'.$supannResource['resource'][0].'}'.$supannResource['state'][0].':'.$supannResource['subState'][0];
+    } else {
+      $monitoredSupannState = '{'.$supannResource['resource'][0].'}'.$supannResource['state'][0];
+    }
+
+    foreach ($uidSupannStates[0]['supannressourceetat'] as $supannResource) {
+      if ($supannResource === $monitoredSupannState) {
+        $result = true;
+      }
+    }
+    
+    return $result;
+  }
+
   /**
    * @param string $mainTaskDn
    * @return array
@@ -123,7 +154,8 @@ class Notifications implements EndpointInterface
   {
     // Retrieve data from the main task
     return $this->gateway->getLdapTasks('(objectClass=fdTasksNotifications)', ['fdTasksNotificationsListOfRecipientsMails',
-      'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksNotificationsEmailSender'],
+      'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksNotificationsEmailSender',
+      'fdTasksNotificationsSubState', 'fdTasksNotificationsState', 'fdTasksNotificationsResource'],
                                         '', $mainTaskDn);
   }
 
