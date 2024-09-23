@@ -68,9 +68,17 @@ class Notifications implements EndpointInterface
 
         // Generate the mail form with all mail controller requirements
         $mailTemplateForm = $this->generateMainTaskMailTemplate($notificationsMainTask);
-        // Simply retrieve the list of audited attributes
-        $auditAttributes = $this->retrieveAuditedAttributes($task);
 
+        // Simply retrieve the list of audited attributes, it is a json format and require decoding.
+        $auditAttributesJson = $this->retrieveAuditedAttributes($task);
+        $auditAttributes     = NULL; // To set the var and reset its value.
+
+        // Decoding the json_format into an associative array, implode allows to put all values of array together.(forming the json correctly).
+        foreach ($auditAttributesJson as $auditAttribute) {
+          $auditAttributes[] = json_decode(implode($auditAttribute), TRUE);
+        }
+
+        // Recovering monitored attributes list from the defined notification task.
         $monitoredAttrs = $notificationsMainTask[0]['fdtasksnotificationsattributes'];
 
         // Management of Supann Status
@@ -83,20 +91,24 @@ class Notifications implements EndpointInterface
         $this->gateway->unsetCountKeys($monitoredAttrs);
         $this->gateway->unsetCountKeys($monitoredSupannResource);
 
-        // Verification if supannRessourceEtatDate with criteria from main tasks are matched.
-        if ($monitoredSupannResource['resource'] !== 'None') {
-          if ($this->verifySupannState($monitoredSupannResource, $task['fdtasksgranulardn'][0])) {
-            // Simply inject supannRessourceEtat within monitoredAttrs to be taken into account for below logic
-            // NOTE: This is subject to change. This can always be a match if the state is present in the user but another
-            // supannRessourceEtat is reached.
-
-            array_push($monitoredAttrs, 'supannRessourceEtat');
-
+        // Verify if there is a match between audited attributes and monitored attributes from main task. (values to values, not keys).
+        $matchingAttrs = NULL; // Allows to define but reset variable as well.
+        if (!empty($auditAttributes)) {
+          foreach ($auditAttributes as $auditAttribute => $attributeName) {
+            foreach ($monitoredAttrs as $monitoredAttr) {
+              if (array_key_exists($monitoredAttr, $attributeName)) {
+                $matchingAttrs[] = $monitoredAttr;
+              }
+            }
+          }
+          // Verification if supannRessourceEtatDate with criteria from main tasks are matched.
+          if ($monitoredSupannResource['resource'][0] !== 'NONE') {
+            if ($this->verifySupannState($monitoredSupannResource, $auditAttributes)) {
+              // Simply create a match between audited and supannRessourceEtat, allowing further process below.
+              $matchingAttrs[] = 'supannRessourceEtat';
+            }
           }
         }
-
-        // Verify if there is a match between audited attributes and monitored attributes from main task.
-        $matchingAttrs = array_intersect($auditAttributes, $monitoredAttrs);
 
         if (!empty($matchingAttrs)) {
           // Fill an array with UID of audited user and related matching attributes
@@ -123,12 +135,15 @@ class Notifications implements EndpointInterface
     return $result;
   }
 
-  private function verifySupannState (array $supannResource, string $uid): bool
+  /**
+   * @param array $supannResource
+   * @param array $auditedAttrs
+   * @return bool
+   * Note : Create the supann format and check for a match.
+   */
+  private function verifySupannState (array $supannResource, array $auditedAttrs): bool
   {
     $result = FALSE;
-    // search the supannStates for the targeted uid by reusing getLdapTasks logic
-    $uidSupannStates = $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtat'], '', $uid);
-    $this->gateway->unsetCountKeys($uidSupannStates);
 
     //Construct Supann Resource State as string
     if (!empty($supannResource['subState'][0])) {
@@ -137,13 +152,36 @@ class Notifications implements EndpointInterface
       $monitoredSupannState = '{' . $supannResource['resource'][0] . '}' . $supannResource['state'][0];
     }
 
-    foreach ($uidSupannStates[0]['supannressourceetat'] as $supannResource) {
-      if ($supannResource === $monitoredSupannState) {
-        $result = TRUE;
-      }
+    // Get all the values only of a multidimensional array.
+    $auditedValues = $this->getArrayValuesRecursive($auditedAttrs);
+
+    if (in_array($monitoredSupannState, $auditedValues)) {
+      $result = TRUE;
+    } else {
+      $result = FALSE;
     }
 
     return $result;
+  }
+
+  /**
+   * @param $array
+   * @return array
+   * Note : simply return all values of a multi-dimensional array.
+   */
+  public function getArrayValuesRecursive ($array)
+  {
+    $values = [];
+    foreach ($array as $value) {
+      if (is_array($value)) {
+        // If value is an array, merge its values recursively
+        $values = array_merge($values, $this->getArrayValuesRecursive($value));
+      } else {
+        // If value is not an array, add it to the result
+        $values[] = $value;
+      }
+    }
+    return $values;
   }
 
   /**
@@ -193,7 +231,8 @@ class Notifications implements EndpointInterface
    */
   protected function retrieveAuditedAttributes (array $notificationTask): array
   {
-    $auditAttributes = [];
+    $auditAttributes  = NULL;
+    $auditInformation = NULL;
 
     // Retrieve audit data attributes from the list of references set in the sub-task
     if (!empty($notificationTask['fdtasksgranularref'])) {
@@ -204,13 +243,14 @@ class Notifications implements EndpointInterface
         $auditInformation[] = $this->gateway->getLdapTasks('(&(objectClass=fdAuditEvent))',
                                                            ['fdAuditAttributes'], '', $auditDN);
       }
+
       // Again remove key: count retrieved from LDAP.
       $this->gateway->unsetCountKeys($auditInformation);
       // It is possible that an audit does not contain any attributes changes, condition is required.
       foreach ($auditInformation as $attr) {
         if (!empty($attr[0]['fdauditattributes'])) {
           // Clear and compact received results from above ldap search
-          $auditAttributes = $attr[0]['fdauditattributes'];
+          $auditAttributes[] = $attr[0]['fdauditattributes'];
         }
       }
     }
