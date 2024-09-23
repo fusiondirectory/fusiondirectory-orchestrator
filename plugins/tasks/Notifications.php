@@ -154,7 +154,6 @@ class Notifications implements EndpointInterface
    */
   private function decodeAuditAttributes (array $task): array
   {
-
     $auditAttributesJson = $this->retrieveAuditedAttributes($task);
     $auditAttributes     = [];
 
@@ -286,8 +285,8 @@ class Notifications implements EndpointInterface
    */
   protected function retrieveAuditedAttributes (array $notificationTask): array
   {
-    $auditAttributes  = NULL;
-    $auditInformation = NULL;
+    $auditAttributes  = [];
+    $auditInformation = [];
 
     // Retrieve audit data attributes from the list of references set in the sub-task
     if (!empty($notificationTask['fdtasksgranularref'])) {
