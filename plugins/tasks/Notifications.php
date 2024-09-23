@@ -96,7 +96,8 @@ class Notifications implements EndpointInterface
         if (!empty($auditAttributes)) {
           foreach ($auditAttributes as $auditAttribute => $attributeName) {
             foreach ($monitoredAttrs as $monitoredAttr) {
-              if (array_key_exists($monitoredAttr, $attributeName)) {
+              // We actually need to verify attributeName as it can be NULL following specific audit elements ...
+              if ((!empty($attributeName)) && array_key_exists($monitoredAttr, $attributeName)) {
                 $matchingAttrs[] = $monitoredAttr;
               }
             }
