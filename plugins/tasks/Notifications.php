@@ -69,46 +69,25 @@ class Notifications implements EndpointInterface
         // Generate the mail form with all mail controller requirements
         $mailTemplateForm = $this->generateMainTaskMailTemplate($notificationsMainTask);
 
-        // Simply retrieve the list of audited attributes, it is a json format and require decoding.
-        $auditAttributesJson = $this->retrieveAuditedAttributes($task);
-        $auditAttributes     = NULL; // To set the var and reset its value.
-
-        // Decoding the json_format into an associative array, implode allows to put all values of array together.(forming the json correctly).
-        foreach ($auditAttributesJson as $auditAttribute) {
-          $auditAttributes[] = json_decode(implode($auditAttribute), TRUE);
-        }
+        // Simply retrieve the list of audited attributes
+        $auditAttributes = $this->decodeAuditAttributes($task);
 
         // Recovering monitored attributes list from the defined notification task.
         $monitoredAttrs = $notificationsMainTask[0]['fdtasksnotificationsattributes'];
-
-        // Management of Supann Status
-        $monitoredSupannResource['resource'] = $notificationsMainTask[0]['fdtasksnotificationsresource'];
-        $monitoredSupannResource['state']    = $notificationsMainTask[0]['fdtasksnotificationsstate'];
-        $monitoredSupannResource['subState'] = $notificationsMainTask[0]['fdtasksnotificationssubstate'] ?? NULL;
-
+        // Reformat supann
+        $monitoredSupannResource = $this->getSupannResourceState($notificationsMainTask[0]);
 
         // Simply remove keys with 'count' reported by ldap.
         $this->gateway->unsetCountKeys($monitoredAttrs);
         $this->gateway->unsetCountKeys($monitoredSupannResource);
 
-        // Verify if there is a match between audited attributes and monitored attributes from main task. (values to values, not keys).
-        $matchingAttrs = NULL; // Allows to define but reset variable as well.
-        if (!empty($auditAttributes)) {
-          foreach ($auditAttributes as $auditAttribute => $attributeName) {
-            foreach ($monitoredAttrs as $monitoredAttr) {
-              // We actually need to verify attributeName as it can be NULL following specific audit elements ...
-              if ((!empty($attributeName)) && array_key_exists($monitoredAttr, $attributeName)) {
-                $matchingAttrs[] = $monitoredAttr;
-              }
-            }
-          }
-          // Verification if supannRessourceEtatDate with criteria from main tasks are matched.
-          if ($monitoredSupannResource['resource'][0] !== 'NONE') {
-            if ($this->verifySupannState($monitoredSupannResource, $auditAttributes)) {
-              // Simply create a match between audited and supannRessourceEtat, allowing further process below.
-              $matchingAttrs[] = 'supannRessourceEtat';
-            }
-          }
+        // Find matching attributes between audited and monitored attributes
+        $matchingAttrs = $this->findMatchingAttributes($auditAttributes, $monitoredAttrs);
+
+        // Verify Supann resource state if applicable
+        if ($this->shouldVerifySupannResource($monitoredSupannResource, $auditAttributes)) {
+          // Adds it to the mating attrs for further notification process.
+          $matchingAttrs[] = 'supannRessourceEtat';
         }
 
         if (!empty($matchingAttrs)) {
@@ -134,6 +113,81 @@ class Notifications implements EndpointInterface
     }
 
     return $result;
+  }
+
+  /**
+   * Determine if Supann resource verification is needed.
+   *
+   * @param array $monitoredSupannResource
+   * @param array|null $auditAttributes
+   * @return bool
+   */
+  private function shouldVerifySupannResource (array $monitoredSupannResource, ?array $auditAttributes): bool
+  {
+    if (!empty($auditAttributes)) {
+      return $monitoredSupannResource['resource'][0] !== 'NONE' &&
+        $this->verifySupannState($monitoredSupannResource, $auditAttributes);
+    }
+    return FALSE;
+  }
+
+  /**
+   * Get the Supann resource state.
+   *
+   * @param array $notificationsMainTask
+   * @return array
+   */
+  private function getSupannResourceState (array $notificationsMainTask): array
+  {
+    return [
+      'resource' => $notificationsMainTask['fdtasksnotificationsresource'],
+      'state'    => $notificationsMainTask['fdtasksnotificationsstate'],
+      'subState' => $notificationsMainTask['fdtasksnotificationssubstate'] ?? NULL
+    ];
+  }
+
+  /**
+   * Decode audit attributes from the task.
+   *
+   * @param array $task
+   * @return array|null
+   */
+  private function decodeAuditAttributes (array $task): ?array
+  {
+
+    $auditAttributesJson = $this->retrieveAuditedAttributes($task);
+    $auditAttributes     = [];
+
+    // Decoding the json_format into an associative array, implode allows to put all values of array together.(forming the json correctly).
+    foreach ($auditAttributesJson as $auditAttribute) {
+      $auditAttributes[] = json_decode(implode($auditAttribute), TRUE);
+    }
+
+    return $auditAttributes;
+  }
+
+  /**
+   * Find matching attributes between audit and monitored attributes.
+   *
+   * @param array|null $auditAttributes
+   * @param array $monitoredAttrs
+   * @return array
+   */
+  private function findMatchingAttributes (?array $auditAttributes, array $monitoredAttrs): array
+  {
+    $matchingAttrs = [];
+
+    if (!empty($auditAttributes)) {
+      foreach ($auditAttributes as $attributeName) {
+        foreach ($monitoredAttrs as $monitoredAttr) {
+          if (!empty($attributeName) && array_key_exists($monitoredAttr, $attributeName)) {
+            $matchingAttrs[] = $monitoredAttr;
+          }
+        }
+      }
+    }
+
+    return $matchingAttrs;
   }
 
   /**
@@ -374,6 +428,5 @@ class Notifications implements EndpointInterface
 
     return $result;
   }
-
 
 }
