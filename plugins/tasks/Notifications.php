@@ -152,7 +152,7 @@ class Notifications implements EndpointInterface
    * @param array $task
    * @return array|null
    */
-  private function decodeAuditAttributes (array $task): ?array
+  private function decodeAuditAttributes (array $task): array
   {
 
     $auditAttributesJson = $this->retrieveAuditedAttributes($task);
