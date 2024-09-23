@@ -150,7 +150,7 @@ class Notifications implements EndpointInterface
    * Decode audit attributes from the task.
    *
    * @param array $task
-   * @return array|null
+   * @return array
    */
   private function decodeAuditAttributes (array $task): array
   {
