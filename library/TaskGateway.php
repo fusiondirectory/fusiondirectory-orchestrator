@@ -38,6 +38,11 @@ class TaskGateway
         $this->unsetCountKeys($list_tasks);
         break;
 
+      case "reminder":
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Reminder))");
+        $this->unsetCountKeys($list_tasks);
+        break;
+
       case "removeSubTasks":
       case "activateCyclicTasks":
         // No need to get any parent tasks here, but to note break logic - we will return an array.

@@ -58,6 +58,9 @@ class Reminder implements EndpointInterface
     // It will contain all required reminders to be potentially sent per main task.
     $reminders = [];
 
+    print_r($reminderSubTasks);
+    exit;
+
     foreach ($reminderSubTasks as $task) {
       // If the tasks must be treated - status and scheduled - process the sub-tasks
       if ($this->gateway->statusAndScheduleCheck($task)) {
