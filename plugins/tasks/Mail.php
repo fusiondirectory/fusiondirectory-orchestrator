@@ -45,7 +45,7 @@ class Mail implements EndpointInterface
    */
   public function processEndPointPatch (array $data = NULL): array
   {
-    return $this->processMailTasks($this->gateway->getObjectTypeTask('Mail Object)'));
+    return $this->processMailTasks($this->gateway->getObjectTypeTask('Mail Object'));
   }
 
   /**
@@ -56,7 +56,7 @@ class Mail implements EndpointInterface
   public function processMailTasks (array $tasks): array
   {
     $result = [];
-
+    // DEBUGGING
     $fdTasksConf    = $this->getMailObjectConfiguration();
     $maxMailsConfig = $this->returnMaximumMailToBeSend($fdTasksConf);
 
@@ -66,6 +66,7 @@ class Mail implements EndpointInterface
     if ($this->verifySpamProtection($fdTasksConf)) {
       // Note : if list_tasks is empty, the controller receive null as result and will log/process it properly.
       foreach ($tasks as $mail) {
+
 
         // verify status before processing (to be checked with schedule as well).
         if ($mail["fdtasksgranularstatus"][0] == 1 && $this->gateway->verifySchedule($mail["fdtasksgranularschedule"][0])) {
@@ -99,7 +100,7 @@ class Mail implements EndpointInterface
             $attachments = NULL;
           }
 
-          $mail_controller = new MailController($setFrom,
+          $mail_controller = new \FusionDirectory\Mail\MailLib($setFrom,
                                                 $setBCC,
                                                 $recipients,
                                                 $body,

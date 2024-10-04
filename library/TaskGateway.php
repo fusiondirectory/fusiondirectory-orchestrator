@@ -50,7 +50,7 @@ class TaskGateway
         break;
 
       case $object_type:
-        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=" . $object_type . ")");
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=" . $object_type . "))");
         $this->unsetCountKeys($list_tasks);
         break;
 
@@ -145,12 +145,13 @@ class TaskGateway
     $this->unsetCountKeys($tasks);
 
     if (!empty($tasks)) {
+
       // Initiate the object webservice.
-      $webservice = new WebServiceCall($_ENV['FUSION_DIRECTORY_API_URL'] . '/login', 'POST');
+      $webservice = new FusionDirectory\Rest\WebServiceCall($_ENV['FUSION_DIRECTORY_API_URL'] . '/login', 'POST');
 
       // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
       $webservice->setCurlSettings();
-      // Is used to verify cyclic schedule with date format.
+      // Is used to verify cyclic schedule with date format. This use de local timezone - not UTC
       $now = new DateTime('now');
 
       foreach ($tasks as $task) {
@@ -186,21 +187,23 @@ class TaskGateway
                 }
                 break;
               case 'Weekly' :
-                if ($interval->d >= 7) {
+                if ($interval->days >= 7) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
               case 'Daily' :
-                if ($interval->d >= 1) {
+                if ($interval->days >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
               case 'Hourly' :
-                if ($interval->h >= 1) {
+                // When checking for hourly schedules, consider both the days and hours
+                $totalHours = $interval->days * 24 + $interval->h;
+                if ($totalHours >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
@@ -210,7 +213,7 @@ class TaskGateway
           }
           // Case where cyclic tasks where found but the schedule is no ready.
         } else {
-          $result[$task['dn']]['Status'] = 'This cyclic task has yet to reach its scheduled date.';
+          $result[$task['dn']]['Status'] = 'This cyclic task has yet to reach its next execution cycle.';
         }
       }
     } else {
@@ -329,7 +332,6 @@ class TaskGateway
    */
   public function updateLastMailExecTime (string $dn)
   {
-    // prepare data
     $ldap_entry["fdTasksConfLastExecTime"] = time();
 
     // Add data to LDAP
