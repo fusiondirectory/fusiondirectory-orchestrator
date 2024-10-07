@@ -102,18 +102,10 @@ class Reminder implements EndpointInterface
         // Generate the mail form with all mail controller requirements
         $mailTemplateForm = $this->generateMainTaskMailTemplate($remindersMainTask);
 
-        // Simply retrieve the list of audited attributes
-        $auditAttributes = $this->decodeAuditAttributes($task);
-
-        // Recovering monitored attributes list from the defined reminder task.
-        $monitoredAttrs = $remindersMainTask[0]['fdtasksremindersattributes'];
-        // Reformat supann
         $monitoredSupannResource = $this->getSupannResourceState($remindersMainTask[0]);
 
-        // Simply remove keys with 'count' reported by ldap.
-        $this->gateway->unsetCountKeys($monitoredAttrs);
-        $this->gateway->unsetCountKeys($monitoredSupannResource);
-
+        print_r($monitoredSupannResource);
+        exit;
         // Find matching attributes between audited and monitored attributes
         $matchingAttrs = $this->findMatchingAttributes($auditAttributes, $monitoredAttrs);
 
@@ -173,9 +165,9 @@ class Reminder implements EndpointInterface
   private function getSupannResourceState (array $remindersMainTask): array
   {
     return [
-      'resource' => $remindersMainTask['fdtasksremindersresource'],
-      'state'    => $remindersMainTask['fdtasksremindersstate'],
-      'subState' => $remindersMainTask['fdtasksreminderssubstate'] ?? NULL
+      'resource' => $remindersMainTask['fdtasksreminderresource'],
+      'state'    => $remindersMainTask['fdtasksreminderstate'],
+      'subState' => $remindersMainTask['fdtasksremindersubstate'] ?? NULL
     ];
   }
 
@@ -291,13 +283,11 @@ class Reminder implements EndpointInterface
    */
   private function generateMainTaskMailTemplate (array $mainTask): array
   {
-    print_r($mainTask);
-    exit;
-    // Generate email configuration for each result of subtasks having the same main task.w
-    $recipients = $mainTask[0]["fdtasksreminderslistofrecipientsmails"];
+    // Generate email configuration for each result of subtasks having the same main task.
+    $recipients = $mainTask[0]["fdtasksreminderlistofrecipientsmails"];
     $this->gateway->unsetCountKeys($recipients);
-    $sender           = $mainTask[0]["fdtasksremindersemailsender"][0];
-    $mailTemplateName = $mainTask[0]['fdtasksremindersmailtemplate'][0];
+    $sender           = $mainTask[0]['fdtasksreminderemailsender'][0];
+    $mailTemplateName = $mainTask[0]['fdtasksremindermailtemplate'][0];
 
     $mailInfos   = $this->gateway->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $mailTemplateName);
     $mailContent = $mailInfos[0];
