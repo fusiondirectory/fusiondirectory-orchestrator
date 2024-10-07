@@ -58,7 +58,7 @@ class Reminder implements EndpointInterface
     // It will contain all required reminders to be potentially sent per main task.
     $reminders = [];
 
- //[fdtasksgranularmaster] => Array
+    //[fdtasksgranularmaster] => Array
     //                (
     //                    [0] => cn=Reminder,ou=tasks,dc=example,dc=com
     //                )
@@ -104,32 +104,18 @@ class Reminder implements EndpointInterface
 
         $monitoredSupannResource = $this->getSupannResourceState($remindersMainTask[0]);
 
-        print_r($monitoredSupannResource);
-        exit;
-        // Find matching attributes between audited and monitored attributes
-        $matchingAttrs = $this->findMatchingAttributes($auditAttributes, $monitoredAttrs);
 
-        // Verify Supann resource state if applicable
-        if ($this->shouldVerifySupannResource($monitoredSupannResource, $auditAttributes)) {
-          // Adds it to the mating attrs for further reminder process.
-          $matchingAttrs[] = 'supannRessourceEtat';
-        }
+        // Require to be set for updating the status of the task later on.
+        $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
+        $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+        $reminders[$remindersMainTaskName]['mailForm']                       = $mailTemplateForm;
+        // Here we must have a logic to create the token for the subTask.
+        $reminders = $this->completeremindersBody($reminders, $remindersMainTaskName);
 
-        if (!empty($matchingAttrs)) {
-          // Fill an array with UID of audited user and related matching attributes
-          $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['attrs'] = $matchingAttrs;
+        // Removal subtask
+        $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
+        $result[$task['dn']]['Status']  = 'No matching audited attributes with monitored attributes, safely removed!';
 
-          // Require to be set for updating the status of the task later on.
-          $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
-          $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
-          $reminders[$remindersMainTaskName]['mailForm']                       = $mailTemplateForm;
-          // Overwrite array reminders with complementing mail form body with uid and related attributes.
-          $reminders = $this->completeremindersBody($reminders, $remindersMainTaskName);
-
-        } else { // Simply remove the subTask has no reminders are required
-          $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
-          $result[$task['dn']]['Status']  = 'No matching audited attributes with monitored attributes, safely removed!';
-        }
       }
     }
 
@@ -164,11 +150,21 @@ class Reminder implements EndpointInterface
    */
   private function getSupannResourceState (array $remindersMainTask): array
   {
-    return [
+    $supannArray = [
       'resource' => $remindersMainTask['fdtasksreminderresource'],
       'state'    => $remindersMainTask['fdtasksreminderstate'],
       'subState' => $remindersMainTask['fdtasksremindersubstate'] ?? NULL
     ];
+
+    if ($remindersMainTask['fdTasksReminderAccountProlongation']) {
+      $supannArray[] = [
+        'nextResource' => $remindersMainTask['fdtasksremindernextresource'],
+        'nextState'    => $remindersMainTask['fdtasksremindernextstate'],
+        'nextSubState' => $remindersMainTask['fdtasksremindernextsubstate'],
+      ];
+    }
+
+    return $supannArray;
   }
 
   /**
@@ -188,30 +184,6 @@ class Reminder implements EndpointInterface
     }
 
     return $auditAttributes;
-  }
-
-  /**
-   * Find matching attributes between audit and monitored attributes.
-   *
-   * @param array|null $auditAttributes
-   * @param array $monitoredAttrs
-   * @return array
-   */
-  private function findMatchingAttributes (?array $auditAttributes, array $monitoredAttrs): array
-  {
-    $matchingAttrs = [];
-
-    if (!empty($auditAttributes)) {
-      foreach ($auditAttributes as $attributeName) {
-        foreach ($monitoredAttrs as $monitoredAttr) {
-          if (!empty($attributeName) && array_key_exists($monitoredAttr, $attributeName)) {
-            $matchingAttrs[] = $monitoredAttr;
-          }
-        }
-      }
-    }
-
-    return $matchingAttrs;
   }
 
   /**
@@ -270,10 +242,11 @@ class Reminder implements EndpointInterface
   public function getRemindersMainTask (string $mainTaskDn): array
   {
     // Retrieve data from the main Reminder task
-    return $this->gateway->getLdapTasks('(objectClass=fdTasksReminder)', ['fdTasksReminderListOfRecipientsMails',
+    return $this->gateway->getLdapTasks(                                                     '(objectClass=fdTasksReminder)', ['fdTasksReminderListOfRecipientsMails',
       'fdTasksReminderResource', 'fdTasksReminderState', 'fdTasksReminderPosix', 'fdTasksReminderMailTemplate',
       'fdTasksReminderPPolicy', 'fdTasksReminderSupannNewEndDate', 'fdTasksReminderRecipientsMembers', 'fdTasksReminderEmailSender',
-      'fdTasksReminderManager', 'fdTasksReminderAccountProlongation', 'fdTasksReminderMembers'], '', $mainTaskDn);
+      'fdTasksReminderManager', 'fdTasksReminderAccountProlongation', 'fdTasksReminderMembers', 'fdTasksReminderNextResource',
+      'fdTasksReminderNextState', 'fdTasksReminderNextSubState', 'fdTasksReminderSubState'], '', $mainTaskDn);
   }
 
   /**
@@ -301,69 +274,6 @@ class Reminder implements EndpointInterface
     $mailForm['receipt']    = $mailContent["fdmailtemplatereadreceipt"][0];
 
     return $mailForm;
-  }
-
-  /**
-   * @param array $reminderTask
-   * @return array
-   * NOTE : receive a unique tasks of type reminder (one subtask at a time)
-   */
-  protected function retrieveAuditedAttributes (array $reminderTask): array
-  {
-    $auditAttributes  = [];
-    $auditInformation = [];
-
-    // Retrieve audit data attributes from the list of references set in the sub-task
-    if (!empty($reminderTask['fdtasksgranularref'])) {
-      // Remove count keys (count is shared by ldap).
-      $this->gateway->unsetCountKeys($reminderTask);
-
-      foreach ($reminderTask['fdtasksgranularref'] as $auditDN) {
-        $auditInformation[] = $this->gateway->getLdapTasks('(&(objectClass=fdAuditEvent))',
-                                                           ['fdAuditAttributes'], '', $auditDN);
-      }
-
-      // Again remove key: count retrieved from LDAP.
-      $this->gateway->unsetCountKeys($auditInformation);
-      // It is possible that an audit does not contain any attributes changes, condition is required.
-      foreach ($auditInformation as $attr) {
-        if (!empty($attr[0]['fdauditattributes'])) {
-          // Clear and compact received results from above ldap search
-          $auditAttributes[] = $attr[0]['fdauditattributes'];
-        }
-      }
-    }
-
-    return $auditAttributes;
-  }
-
-  /**
-   * @param array $reminders
-   * @param string $remindersMainTaskName
-   * @return array
-   * Note : This method is present to add to the mailForm body the proper uid and attrs info.
-   */
-  private function completeremindersBody (array $reminders, string $remindersMainTaskName): array
-  {
-    // Iterate through each subTask and related attrs
-    $uidAttrsText = [];
-
-    foreach ($reminders[$remindersMainTaskName]['subTask'] as $value) {
-      $uidName = $value['uid'];
-      $attrs   = [];
-
-      foreach ($value['attrs'] as $attr) {
-        $attrs[] = $attr;
-      }
-      $uidAttrsText[] = "\n$uidName attrs=[" . implode(', ', $attrs) . "]";
-    }
-
-    // Make the array unique, avoiding uid and same attribute duplication.
-    $uidAttrsText = array_unique($uidAttrsText);
-    // Add uid names and related attrs to mailForm['body']
-    $reminders[$remindersMainTaskName]['mailForm']['body'] .= " " . implode(" ", $uidAttrsText);
-
-    return $reminders;
   }
 
   /**
