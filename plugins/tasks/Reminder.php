@@ -97,12 +97,16 @@ class Reminder implements EndpointInterface
         // Retrieve data from the main task
         $remindersMainTaskName = $task['fdtasksgranularmaster'][0];
         $remindersMainTask     = $this->getRemindersMainTask($remindersMainTaskName);
-
+        // remove the count keys
+        $this->gateway->unsetCountKeys($remindersMainTask);
 
         // Generate the mail form with all mail controller requirements
         $mailTemplateForm = $this->generateMainTaskMailTemplate($remindersMainTask);
 
-        $monitoredSupannResource = $this->getSupannResourceState($remindersMainTask[0]);
+        // Get monitored resources
+        $monitoredResources = $this->getMonitoredResources($remindersMainTask[0]);
+        print_r($monitoredResources);
+        exit;
 
 
         // Require to be set for updating the status of the task later on.
@@ -143,48 +147,37 @@ class Reminder implements EndpointInterface
   }
 
   /**
-   * Get the Supann resource state.
+   * Get the monitored resources for reminder to be activated.
    *
    * @param array $remindersMainTask
    * @return array
    */
-  private function getSupannResourceState (array $remindersMainTask): array
+  private function getMonitoredResources (array $remindersMainTask): array
   {
-    $supannArray = [
+    $monitoredResourcesArray = [
       'resource' => $remindersMainTask['fdtasksreminderresource'],
       'state'    => $remindersMainTask['fdtasksreminderstate'],
       'subState' => $remindersMainTask['fdtasksremindersubstate'] ?? NULL
     ];
 
-    if ($remindersMainTask['fdTasksReminderAccountProlongation']) {
-      $supannArray[] = [
-        'nextResource' => $remindersMainTask['fdtasksremindernextresource'],
-        'nextState'    => $remindersMainTask['fdtasksremindernextstate'],
-        'nextSubState' => $remindersMainTask['fdtasksremindernextsubstate'],
-      ];
+    // Boolean returned by ldap is a string.
+    if (isset($remindersMainTask['fdtasksreminderaccountprolongation'][0]) && $remindersMainTask['fdtasksreminderaccountprolongation'][0] === 'TRUE') {
+      // Add the potential next resources states to the array
+      if (isset($remindersMainTask['fdtasksremindernextresource'])) {
+
+        $monitoredResourcesArray['nextResource'] = $remindersMainTask['fdtasksremindernextresource'];
+        $monitoredResourcesArray['nextState']    = $remindersMainTask['fdtasksremindernextstate'];
+        $monitoredResourcesArray['nextSubState'] = $remindersMainTask['fdtasksremindernextsubstate'] ?? NULL;
+      }
+
+      $monitoredResourcesArray['fdTasksReminderPosix']   = $remindersMainTask['fdtasksreminderposix'] ?? FALSE;
+      $monitoredResourcesArray['fdTasksReminderPPolicy'] = $remindersMainTask['fdtasksreminderppolicy'] ?? FALSE;
+
     }
 
-    return $supannArray;
+    return $monitoredResourcesArray;
   }
 
-  /**
-   * Decode audit attributes from the task.
-   *
-   * @param array $task
-   * @return array
-   */
-  private function decodeAuditAttributes (array $task): array
-  {
-    $auditAttributesJson = $this->retrieveAuditedAttributes($task);
-    $auditAttributes     = [];
-
-    // Decoding the json_format into an associative array, implode allows to put all values of array together.(forming the json correctly).
-    foreach ($auditAttributesJson as $auditAttribute) {
-      $auditAttributes[] = json_decode(implode($auditAttribute), TRUE);
-    }
-
-    return $auditAttributes;
-  }
 
   /**
    * @param array $supannResource
@@ -281,7 +274,7 @@ class Reminder implements EndpointInterface
    * @return array
    * Note : Collect information and send reminder email.
    */
-  protected function sendremindersMail (array $reminders): array
+  protected function sendRemindersMail (array $reminders): array
   {
     $result = [];
     // Re-use of the same mail processing template logic
