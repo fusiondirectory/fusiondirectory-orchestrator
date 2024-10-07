@@ -106,10 +106,18 @@ class Reminder implements EndpointInterface
         // Get monitored resources
         $monitoredResources = $this->getMonitoredResources($remindersMainTask[0]);
 
+        // Case where no supann are monitored nor prolongation desired. (Useless subTask).
         if ($monitoredResources['resource'][0] === 'NONE' && $monitoredResources['prolongation'] === 'FALSE') {
           // Removal subtask
           $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
           $result[$task['dn']]['Status']  = 'No reminder triggers were found, therefore removing the sub-task!';
+        }
+
+        // Case where supann is set monitored but no prolongation desired.
+        if ($monitoredResources['resource'][0] !== 'NONE' && $monitoredResources['prolongation'] === 'FALSE') {
+          if ($this->supannAboutToExpire($task['fdtasksgranulardn'][0]), $monitoredResources, $fdtasksgranularhelper[0]) {
+
+          }
         }
 
 
@@ -134,20 +142,19 @@ class Reminder implements EndpointInterface
   }
 
   /**
-   * Determine if Supann resource verification is needed.
-   *
-   * @param array $monitoredSupannResource
-   * @param array|null $auditAttributes
+   * @param $task
    * @return bool
+   * Note : Verify the account status of the DN with the requirements of main tasks.
    */
-  private function shouldVerifySupannResource (array $monitoredSupannResource, ?array $auditAttributes): bool
+  private function supannAboutToExpire (string $DN, array $monitoredResources, int $days) : bool
   {
-    if (!empty($auditAttributes)) {
-      return $monitoredSupannResource['resource'][0] !== 'NONE' &&
-        $this->verifySupannState($monitoredSupannResource, $auditAttributes);
-    }
-    return FALSE;
+    $result = FALSE;
+
+    // Search the DN for supannRessourceState
+
+    return $result;
   }
+
 
   /**
    * Get the monitored resources for reminder to be activated.
