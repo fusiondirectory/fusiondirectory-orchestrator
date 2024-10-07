@@ -58,16 +58,46 @@ class Reminder implements EndpointInterface
     // It will contain all required reminders to be potentially sent per main task.
     $reminders = [];
 
-    print_r($reminderSubTasks);
-    exit;
+ //[fdtasksgranularmaster] => Array
+    //                (
+    //                    [0] => cn=Reminder,ou=tasks,dc=example,dc=com
+    //                )
+    //
+    //            [3] => fdtasksgranularmaster
+    //            [fdtasksgranulartype] => Array
+    //                (
+    //                    [0] => Reminder
+    //                )
+    //
+    //            [4] => fdtasksgranulartype
+    //            [fdtasksgranularhelper] => Array
+    //                (
+    //                    [0] => 30
+    //                )
+    //
+    //            [5] => fdtasksgranularhelper
+    //            [fdtasksgranularschedule] => Array
+    //                (
+    //                    [0] => 20240926010000
+    //                )
+    //
+    //            [6] => fdtasksgranularschedule
+    //            [fdtasksgranulardn] => Array
+    //                (
+    //                    [0] => uid=testing2,ou=people,dc=example,dc=com
+    //                )
+    //
+    //            [7] => fdtasksgranulardn
+    //            [dn] => cn=Reminder-SubTask-1728293363_4827,ou=tasks,dc=example,dc=com
 
     foreach ($reminderSubTasks as $task) {
       // If the tasks must be treated - status and scheduled - process the sub-tasks
       if ($this->gateway->statusAndScheduleCheck($task)) {
 
         // Retrieve data from the main task
-        $remindersMainTask     = $this->getremindersMainTask($task['fdtasksgranularmaster'][0]);
         $remindersMainTaskName = $task['fdtasksgranularmaster'][0];
+        $remindersMainTask     = $this->getRemindersMainTask($remindersMainTaskName);
+
 
         // Generate the mail form with all mail controller requirements
         $mailTemplateForm = $this->generateMainTaskMailTemplate($remindersMainTask);
@@ -245,13 +275,13 @@ class Reminder implements EndpointInterface
    * @param string $mainTaskDn
    * @return array
    */
-  public function getremindersMainTask (string $mainTaskDn): array
+  public function getRemindersMainTask (string $mainTaskDn): array
   {
-    // Retrieve data from the main task
-    return $this->gateway->getLdapTasks('(objectClass=fdTasksreminders)', ['fdTasksremindersListOfRecipientsMails',
-      'fdTasksremindersAttributes', 'fdTasksremindersMailTemplate', 'fdTasksremindersEmailSender',
-      'fdTasksremindersSubState', 'fdTasksremindersState', 'fdTasksremindersResource'],
-                                        '', $mainTaskDn);
+    // Retrieve data from the main Reminder task
+    return $this->gateway->getLdapTasks('(objectClass=fdTasksReminder)', ['fdTasksReminderListOfRecipientsMails',
+      'fdTasksReminderResource', 'fdTasksReminderState', 'fdTasksReminderPosix', 'fdTasksReminderMailTemplate',
+      'fdTasksReminderPPolicy', 'fdTasksReminderSupannNewEndDate', 'fdTasksReminderRecipientsMembers', 'fdTasksReminderEmailSender',
+      'fdTasksReminderManager', 'fdTasksReminderAccountProlongation', 'fdTasksReminderMembers'], '', $mainTaskDn);
   }
 
   /**
@@ -261,6 +291,8 @@ class Reminder implements EndpointInterface
    */
   private function generateMainTaskMailTemplate (array $mainTask): array
   {
+    print_r($mainTask);
+    exit;
     // Generate email configuration for each result of subtasks having the same main task.w
     $recipients = $mainTask[0]["fdtasksreminderslistofrecipientsmails"];
     $this->gateway->unsetCountKeys($recipients);
