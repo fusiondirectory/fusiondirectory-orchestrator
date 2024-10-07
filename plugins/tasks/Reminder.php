@@ -105,27 +105,30 @@ class Reminder implements EndpointInterface
 
         // Get monitored resources
         $monitoredResources = $this->getMonitoredResources($remindersMainTask[0]);
-        print_r($monitoredResources);
-        exit;
+
+        if ($monitoredResources['resource'][0] === 'NONE' && $monitoredResources['prolongation'] === 'FALSE') {
+          // Removal subtask
+          $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
+          $result[$task['dn']]['Status']  = 'No reminder triggers were found, therefore removing the sub-task!';
+        }
 
 
-        // Require to be set for updating the status of the task later on.
-        $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
-        $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
-        $reminders[$remindersMainTaskName]['mailForm']                       = $mailTemplateForm;
-        // Here we must have a logic to create the token for the subTask.
-        $reminders = $this->completeremindersBody($reminders, $remindersMainTaskName);
 
-        // Removal subtask
-        $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
-        $result[$task['dn']]['Status']  = 'No matching audited attributes with monitored attributes, safely removed!';
+//        // Require to be set for updating the status of the task later on.
+//        $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
+//        $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+//        $reminders[$remindersMainTaskName]['mailForm']                       = $mailTemplateForm;
+//        // Here we must have a logic to create the token for the subTask.
+//        $reminders = $this->completeremindersBody($reminders, $remindersMainTaskName);
+//
+
 
       }
     }
 
-    if (!empty($reminders)) {
-      $result[] = $this->sendremindersMail($reminders);
-    }
+//    if (!empty($reminders)) {
+//      $result[] = $this->sendRemindersMail($reminders);
+//    }
 
     return $result;
   }
@@ -154,6 +157,7 @@ class Reminder implements EndpointInterface
    */
   private function getMonitoredResources (array $remindersMainTask): array
   {
+
     $monitoredResourcesArray = [
       'resource' => $remindersMainTask['fdtasksreminderresource'],
       'state'    => $remindersMainTask['fdtasksreminderstate'],
@@ -174,6 +178,9 @@ class Reminder implements EndpointInterface
       $monitoredResourcesArray['fdTasksReminderPPolicy'] = $remindersMainTask['fdtasksreminderppolicy'] ?? FALSE;
 
     }
+
+    // For development logic, add the prolongation attribute. It will be checked later in the logic process.
+    $monitoredResourcesArray['prolongation'] = $remindersMainTask['fdtasksreminderaccountprolongation'][0] ?? FALSE;
 
     return $monitoredResourcesArray;
   }
