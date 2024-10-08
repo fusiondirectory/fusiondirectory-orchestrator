@@ -116,27 +116,32 @@ class Reminder implements EndpointInterface
         // Case where supann is set monitored but no prolongation desired.
         if ($monitoredResources['resource'][0] !== 'NONE' && $monitoredResources['prolongation'] === 'FALSE') {
           if ($this->supannAboutToExpire($task['fdtasksgranulardn'][0], $monitoredResources, $task['fdtasksgranularhelper'][0])) {
+            // About to expire, thefefore send email
+            // Require to be set for updating the status of the task later on.
 
+            $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
+            $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+            $reminders[$remindersMainTaskName]['mailForm']                       = $mailTemplateForm;
+
+          } else {
+            // Not about to expire, delete subTask
+            $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
+            $result[$task['dn']]['Status']  = 'No reminder triggers were found, therefore removing the sub-task!';
           }
         }
 
 
-
-//        // Require to be set for updating the status of the task later on.
-//        $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
-//        $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
-//        $reminders[$remindersMainTaskName]['mailForm']                       = $mailTemplateForm;
-//        // Here we must have a logic to create the token for the subTask.
-//        $reminders = $this->completeremindersBody($reminders, $remindersMainTaskName);
-//
+        //        // Here we must have a logic to create the token for the subTask.
+        //        $reminders = $this->completeremindersBody($reminders, $remindersMainTaskName);
+        //
 
 
       }
     }
 
-//    if (!empty($reminders)) {
-//      $result[] = $this->sendRemindersMail($reminders);
-//    }
+    if (!empty($reminders)) {
+      $result[] = $this->sendRemindersMail($reminders);
+    }
 
     return $result;
   }
@@ -146,13 +151,27 @@ class Reminder implements EndpointInterface
    * @return bool
    * Note : Verify the account status of the DN with the requirements of main tasks.
    */
-  private function supannAboutToExpire (string $dn, array $monitoredResources, int $days) : bool
+  private function supannAboutToExpire (string $dn, array $monitoredResources, int $days): bool
   {
     $result = FALSE;
 
     // Search the DN for supannRessourceState
     $supannResources = $this->retrieveSupannResources($dn);
-    $this->verifySupannState($monitoredResources, $supannResources);
+    if ($this->verifySupannState($monitoredResources, $supannResources)) {
+      // verify the date
+      $DnSupannDateObject = $this->retrieveDateFromSupannResouceState($supannResources['supannressourceetatdate'][0]);
+
+      //Verification if the time is lower or equal than the reminder time.
+      if ($DnSupannDateObject !== FALSE) {
+        $today    = new DateTime();
+        $interval = $today->diff($DnSupannDateObject);
+
+        // Interval can be negative if date is in the past - we make sure it is not in the past by using invert.
+        if ($interval->days <= $days && $interval->invert == 0) {
+          $result = TRUE;
+        }
+      }
+    }
 
     return $result;
   }
@@ -162,15 +181,19 @@ class Reminder implements EndpointInterface
    * @return array
    * Note : Simply return supann resource array from the specific passed DN.
    */
-  private function retrieveSupannResources($dn) : array
+  private function retrieveSupannResources ($dn): array
   {
     $supannResources = [];
-    $supannResources= $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate', 'supannRessourceEtat'],
-                                        '', $dn);
+    $supannResources = $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate', 'supannRessourceEtat'],
+                                                    '', $dn);
     // Simply remove key "count"
     $this->gateway->unsetCountKeys($supannResources);
     // Removing unrequired keys
-    $supannResources = $supannResources[0];
+    print_r($supannResources);
+
+    if (!empty($supannResources)) {
+      $supannResources = $supannResources[0];
+    }
 
     return $supannResources;
 
@@ -231,29 +254,28 @@ class Reminder implements EndpointInterface
       $monitoredSupannState = '{' . $reminderSupann['resource'][0] . '}' . $reminderSupann['state'][0];
     }
 
-    if ($dnSupann['supannressourceetat'][0] === $monitoredSupannState) {
-      // verify the date
-      $DnSupannDateObject = $this->retrieveDateFromSupannResouceState($dnSupann['supannressourceetatdate'][0]);
 
-      //Verification if the time is lower or equal than the reminder time.
-      if ($DnSupannDateObject !== FALSE) {
-        $today  = new DateTime();
-        $interval = $today->diff($DnSupannDateObject);
+    if (!empty ($dnSupann['supannressourceetat][0]']) && $dnSupann['supannressourceetat'][0] === $monitoredSupannState) {
 
-        if ($interval->days <= )
-
-      }
+      $result = TRUE;
     }
 
     return $result;
   }
 
-  private function retrieveDateFromSupannResouceState ($supannEtatDate) : ?DateTime
+  /**
+   * @param $supannEtatDate
+   * @return DateTime|false
+   * Note : Simply transform string date of supann to a dateTime object.
+   * Can return bool (false) or dateTime object.
+   */
+  private function retrieveDateFromSupannResouceState ($supannEtatDate)
   {
+    $dateString = NULL;
     // Simply take the last 8 digit
     preg_match('/(\d{8})$/', $supannEtatDate, $matches);
 
-    if (!empty($matches[0])) {
+    if (!empty($matches)) {
       $dateString = $matches[0];
     }
 
