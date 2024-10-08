@@ -115,7 +115,7 @@ class Reminder implements EndpointInterface
 
         // Case where supann is set monitored but no prolongation desired.
         if ($monitoredResources['resource'][0] !== 'NONE' && $monitoredResources['prolongation'] === 'FALSE') {
-          if ($this->supannAboutToExpire($task['fdtasksgranulardn'][0]), $monitoredResources, $fdtasksgranularhelper[0]) {
+          if ($this->supannAboutToExpire($task['fdtasksgranulardn'][0], $monitoredResources, $task['fdtasksgranularhelper'][0])) {
 
           }
         }
@@ -146,13 +146,34 @@ class Reminder implements EndpointInterface
    * @return bool
    * Note : Verify the account status of the DN with the requirements of main tasks.
    */
-  private function supannAboutToExpire (string $DN, array $monitoredResources, int $days) : bool
+  private function supannAboutToExpire (string $dn, array $monitoredResources, int $days) : bool
   {
     $result = FALSE;
 
     // Search the DN for supannRessourceState
+    $supannResources = $this->retrieveSupannResources($dn);
+    $this->verifySupannState($monitoredResources, $supannResources);
 
     return $result;
+  }
+
+  /**
+   * @param $dn
+   * @return array
+   * Note : Simply return supann resource array from the specific passed DN.
+   */
+  private function retrieveSupannResources($dn) : array
+  {
+    $supannResources = [];
+    $supannResources= $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate', 'supannRessourceEtat'],
+                                        '', $dn);
+    // Simply remove key "count"
+    $this->gateway->unsetCountKeys($supannResources);
+    // Removing unrequired keys
+    $supannResources = $supannResources[0];
+
+    return $supannResources;
+
   }
 
 
@@ -199,27 +220,44 @@ class Reminder implements EndpointInterface
    * @return bool
    * Note : Create the supann format and check for a match.
    */
-  private function verifySupannState (array $supannResource, array $auditedAttrs): bool
+  private function verifySupannState (array $reminderSupann, array $dnSupann): bool
   {
     $result = FALSE;
 
-    //Construct Supann Resource State as string
-    if (!empty($supannResource['subState'][0])) {
-      $monitoredSupannState = '{' . $supannResource['resource'][0] . '}' . $supannResource['state'][0] . ':' . $supannResource['subState'][0];
+    //Construct the reminder Supann Resource State as string
+    if (!empty($reminderSupann['subState'][0])) {
+      $monitoredSupannState = '{' . $reminderSupann['resource'][0] . '}' . $reminderSupann['state'][0] . ':' . $reminderSupann['subState'][0];
     } else {
-      $monitoredSupannState = '{' . $supannResource['resource'][0] . '}' . $supannResource['state'][0];
+      $monitoredSupannState = '{' . $reminderSupann['resource'][0] . '}' . $reminderSupann['state'][0];
     }
 
-    // Get all the values only of a multidimensional array.
-    $auditedValues = $this->getArrayValuesRecursive($auditedAttrs);
+    if ($dnSupann['supannressourceetat'][0] === $monitoredSupannState) {
+      // verify the date
+      $DnSupannDateObject = $this->retrieveDateFromSupannResouceState($dnSupann['supannressourceetatdate'][0]);
 
-    if (in_array($monitoredSupannState, $auditedValues)) {
-      $result = TRUE;
-    } else {
-      $result = FALSE;
+      //Verification if the time is lower or equal than the reminder time.
+      if ($DnSupannDateObject !== FALSE) {
+        $today  = new DateTime();
+        $interval = $today->diff($DnSupannDateObject);
+
+        if ($interval->days <= )
+
+      }
     }
 
     return $result;
+  }
+
+  private function retrieveDateFromSupannResouceState ($supannEtatDate) : ?DateTime
+  {
+    // Simply take the last 8 digit
+    preg_match('/(\d{8})$/', $supannEtatDate, $matches);
+
+    if (!empty($matches[0])) {
+      $dateString = $matches[0];
+    }
+
+    return DateTime::createFromFormat('Ymd', $dateString);
   }
 
   /**
