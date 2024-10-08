@@ -188,9 +188,8 @@ class Reminder implements EndpointInterface
                                                     '', $dn);
     // Simply remove key "count"
     $this->gateway->unsetCountKeys($supannResources);
-    // Removing unrequired keys
-    print_r($supannResources);
 
+    // Removing unrequired keys
     if (!empty($supannResources)) {
       $supannResources = $supannResources[0];
     }
@@ -255,7 +254,7 @@ class Reminder implements EndpointInterface
     }
 
 
-    if (!empty ($dnSupann['supannressourceetat][0]']) && $dnSupann['supannressourceetat'][0] === $monitoredSupannState) {
+    if (!empty($dnSupann['supannressourceetat'][0]) && $dnSupann['supannressourceetat'][0] === $monitoredSupannState) {
 
       $result = TRUE;
     }
