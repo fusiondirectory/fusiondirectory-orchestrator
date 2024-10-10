@@ -73,7 +73,7 @@ class Reminder implements EndpointInterface
 
         // Retrieve email attribute for the monitored members requiring reminding.
         $mailOfTheReminded = $this->getEmailFromReminded($task['fdtasksgranulardn'][0]);
-        $mailTemplateRecipients = $this->generateMainTaskMailTemplate($remindersMainTask, $mailOfTheReminded);
+        $mailTemplateReminded = $this->generateMainTaskMailTemplate($remindersMainTask, $mailOfTheReminded);
 
         // Get monitored resources
         $monitoredResources = $this->getMonitoredResources($remindersMainTask[0]);
@@ -92,6 +92,7 @@ class Reminder implements EndpointInterface
             // Require to be set for updating the status of the task later on and sent the email.
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+            // Recipient email form
             $reminders[$remindersMainTaskName]['recipients']                     = $mailTemplateRecipients;
             // Add the reminded email form
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $mailTemplateReminded;
