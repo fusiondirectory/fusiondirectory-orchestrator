@@ -58,38 +58,6 @@ class Reminder implements EndpointInterface
     // It will contain all required reminders to be potentially sent per main task.
     $reminders = [];
 
-    //[fdtasksgranularmaster] => Array
-    //                (
-    //                    [0] => cn=Reminder,ou=tasks,dc=example,dc=com
-    //                )
-    //
-    //            [3] => fdtasksgranularmaster
-    //            [fdtasksgranulartype] => Array
-    //                (
-    //                    [0] => Reminder
-    //                )
-    //
-    //            [4] => fdtasksgranulartype
-    //            [fdtasksgranularhelper] => Array
-    //                (
-    //                    [0] => 30
-    //                )
-    //
-    //            [5] => fdtasksgranularhelper
-    //            [fdtasksgranularschedule] => Array
-    //                (
-    //                    [0] => 20240926010000
-    //                )
-    //
-    //            [6] => fdtasksgranularschedule
-    //            [fdtasksgranulardn] => Array
-    //                (
-    //                    [0] => uid=testing2,ou=people,dc=example,dc=com
-    //                )
-    //
-    //            [7] => fdtasksgranulardn
-    //            [dn] => cn=Reminder-SubTask-1728293363_4827,ou=tasks,dc=example,dc=com
-
     foreach ($reminderSubTasks as $task) {
       // If the tasks must be treated - status and scheduled - process the sub-tasks
       if ($this->gateway->statusAndScheduleCheck($task)) {
@@ -101,7 +69,10 @@ class Reminder implements EndpointInterface
         $this->gateway->unsetCountKeys($remindersMainTask);
 
         // Generate the mail form with all mail controller requirements
-        $mailTemplateForm = $this->generateMainTaskMailTemplate($remindersMainTask);
+        $mailTemplateRecipients = $this->generateMainTaskMailTemplate($remindersMainTask, FALSE);
+
+        // Retrieve email attribute for the monitored members requiring reminding.
+        $mailTemplateMonitoredMember = $this->getEmailFromReminded($task['fdtasksgranulardn'][0]);
 
         // Get monitored resources
         $monitoredResources = $this->getMonitoredResources($remindersMainTask[0]);
@@ -116,12 +87,13 @@ class Reminder implements EndpointInterface
         // Case where supann is set monitored but no prolongation desired.
         if ($monitoredResources['resource'][0] !== 'NONE' && $monitoredResources['prolongation'] === 'FALSE') {
           if ($this->supannAboutToExpire($task['fdtasksgranulardn'][0], $monitoredResources, $task['fdtasksgranularhelper'][0])) {
-            // About to expire, thefefore send email
-            // Require to be set for updating the status of the task later on.
 
+            // Require to be set for updating the status of the task later on and sent the email.
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
-            $reminders[$remindersMainTaskName]['mailForm']                       = $mailTemplateForm;
+            $reminders[$remindersMainTaskName]['mailForm']                       = $mailTemplateRecipients;
+            // Add the reminded email form
+            $reminders[$remindersMainTaskName]['mailForm']                       = $mailTemplateMonitoredMember;
 
           } else {
             // Not about to expire, delete subTask
@@ -147,6 +119,28 @@ class Reminder implements EndpointInterface
   }
 
   /**
+   * @param string $dn
+   * @return string
+   * Note : return the mail attribute from gosaMail objectclass.
+   */
+  private function getEmailFromReminded (string $dn): string
+  {
+    // in case the DN do not have an email set. - Return string FALSE.
+    $result = "FALSE";
+    $email  = $this->gateway->getLdapTasks('(objectClass=gosaMailAccount)', ['mail'],
+                                           '', $dn);
+    // Simply remove key "count"
+    $this->gateway->unsetCountKeys($email);
+
+    // Removing un-required keys (ldap return array with count and 0).
+    if (!empty($email[0]['mail'][0])) {
+      $result = $email[0]['mail'][0];
+    }
+
+    return $result;
+  }
+
+  /**
    * @param $task
    * @return bool
    * Note : Verify the account status of the DN with the requirements of main tasks.
@@ -155,11 +149,11 @@ class Reminder implements EndpointInterface
   {
     $result = FALSE;
 
-    // Search the DN for supannRessourceState
+    // Search the DN for supannResourceState
     $supannResources = $this->retrieveSupannResources($dn);
     if ($this->verifySupannState($monitoredResources, $supannResources)) {
       // verify the date
-      $DnSupannDateObject = $this->retrieveDateFromSupannResouceState($supannResources['supannressourceetatdate'][0]);
+      $DnSupannDateObject = $this->retrieveDateFromSupannResourceState($supannResources['supannressourceetatdate'][0]);
 
       //Verification if the time is lower or equal than the reminder time.
       if ($DnSupannDateObject !== FALSE) {
@@ -189,7 +183,7 @@ class Reminder implements EndpointInterface
     // Simply remove key "count"
     $this->gateway->unsetCountKeys($supannResources);
 
-    // Removing unrequired keys
+    // Removing un-required keys
     if (!empty($supannResources)) {
       $supannResources = $supannResources[0];
     }
@@ -268,7 +262,7 @@ class Reminder implements EndpointInterface
    * Note : Simply transform string date of supann to a dateTime object.
    * Can return bool (false) or dateTime object.
    */
-  private function retrieveDateFromSupannResouceState ($supannEtatDate)
+  private function retrieveDateFromSupannResourceState ($supannEtatDate)
   {
     $dateString = NULL;
     // Simply take the last 8 digit
@@ -317,19 +311,26 @@ class Reminder implements EndpointInterface
 
   /**
    * @param array $mainTask
+   * @param bool $reminded
    * @return array
    * Note : Simply generate the email to be sent as reminder.
+   * Note 2 : The boolean is created to generate the token and is only sent to reminded. Not recipients.
    */
-  private function generateMainTaskMailTemplate (array $mainTask): array
+  private function generateMainTaskMailTemplate (array $mainTask, bool $reminded): array
   {
     // Generate email configuration for each result of subtasks having the same main task.
-    $recipients = $mainTask[0]["fdtasksreminderlistofrecipientsmails"];
-    $this->gateway->unsetCountKeys($recipients);
     $sender           = $mainTask[0]['fdtasksreminderemailsender'][0];
     $mailTemplateName = $mainTask[0]['fdtasksremindermailtemplate'][0];
 
     $mailInfos   = $this->gateway->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $mailTemplateName);
     $mailContent = $mailInfos[0];
+
+    if (!$reminded) {
+      $recipients = $mainTask[0]["fdtasksreminderlistofrecipientsmails"];
+      $this->gateway->unsetCountKeys($recipients);
+    } else {
+      // reminded with token creation.
+    }
 
     // Set the reminder array with all required variable for all sub-tasks of same main task origin.
     $mailForm['setFrom']    = $sender;
@@ -358,7 +359,7 @@ class Reminder implements EndpointInterface
     $maxMailsConfig = $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
 
     /*
-      Increment var starts a zero and added values will be the humber or recipients per main tasks, as one mail is
+      Increment var starts a zero and added values will be the number of recipients per main tasks, as one mail is
       sent per main task.
     */
     $maxMailsIncrement = 0;
