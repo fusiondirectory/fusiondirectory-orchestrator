@@ -68,12 +68,11 @@ class Reminder implements EndpointInterface
         // remove the count keys
         $this->gateway->unsetCountKeys($remindersMainTask);
 
-        // Generate the mail form with all mail controller requirements
-        $mailTemplateRecipients = $this->generateMainTaskMailTemplate($remindersMainTask, NULL);
-
         // Retrieve email attribute for the monitored members requiring reminding.
         $mailOfTheReminded = $this->getEmailFromReminded($task['fdtasksgranulardn'][0]);
-        $mailTemplateReminded = $this->generateMainTaskMailTemplate($remindersMainTask, $mailOfTheReminded);
+
+        // Generate the mail form with all mail controller requirements
+        $mailTemplateForm = $this->generateMainTaskMailTemplate($remindersMainTask, $mailOfTheReminded);
 
         // Get monitored resources
         $monitoredResources = $this->getMonitoredResources($remindersMainTask[0]);
@@ -93,9 +92,7 @@ class Reminder implements EndpointInterface
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
             // Recipient email form
-            $reminders[$remindersMainTaskName]['recipients']                     = $mailTemplateRecipients;
-            // Add the reminded email form
-            $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $mailTemplateReminded;
+            $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $mailTemplateForm;
 
           } else {
             // Not about to expire, delete subTask
@@ -108,8 +105,6 @@ class Reminder implements EndpointInterface
 
     if (!empty($reminders)) {
       $result[] = $this->sendRemindersMail($reminders);
-//      $result[] = $this->sendRemindersMail($reminders, 'mailFormRecipients');
-//      $result[] = $this->sendRemindersMail($reminders, 'mailFormReminded');
     }
 
     return $result;
@@ -308,12 +303,12 @@ class Reminder implements EndpointInterface
 
   /**
    * @param array $mainTask
-   * @param bool $reminded
+   * @param string $remindedEmail
    * @return array
    * Note : Simply generate the email to be sent as reminder.
    * Note 2 : The boolean is created to generate the token and is only sent to reminded. Not recipients.
    */
-  private function generateMainTaskMailTemplate (array $mainTask, ?string $remindedEmail): array
+  private function generateMainTaskMailTemplate (array $mainTask, string $remindedEmail): array
   {
     // Generate email configuration for each result of subtasks having the same main task.
     $sender           = $mainTask[0]['fdtasksreminderemailsender'][0];
@@ -322,13 +317,18 @@ class Reminder implements EndpointInterface
     $mailInfos   = $this->gateway->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $mailTemplateName);
     $mailContent = $mailInfos[0];
 
-    if (empty($remindedEmail)) {
-      $recipients = $mainTask[0]["fdtasksreminderlistofrecipientsmails"];
+    // If no forward-to mail recipients is set, simply send the reminder to the monitored members.
+    if (!empty($mainTask[0]["fdtasksreminderlistofrecipientsmails"])) {
+      $recipients = array_merge($mainTask[0]["fdtasksreminderlistofrecipientsmails"], [$remindedEmail]);
       $this->gateway->unsetCountKeys($recipients);
+
+      // There is no reason to send an email twice to the same person. Render the array unique.
+      $recipients = array_unique($recipients);
     } else {
-      // Recipients are processed by send mail and is expecting an array.
-      $recipients = [$remindedEmail];
+      $recipients = $remindedEmail;
     }
+
+    // Render the array unique.
 
     // Set the reminder array with all required variable for all sub-tasks of same main task origin.
     $mailForm['setFrom']    = $sender;
@@ -362,28 +362,35 @@ class Reminder implements EndpointInterface
     */
     $maxMailsIncrement = 0;
 
-    foreach ($reminders as $data) {
-      $numberOfRecipients = count($data['mailForm']['recipients']);
+    // Each reminders
+    foreach ($reminders as $reminder) {
+      // Each main task reminder
+      foreach ($reminder as $reminderItem) {
+        // Each subTask reminder
+        foreach($reminderItem as $mailDetails) {
+          $numberOfRecipients = count($mailDetails['mail']['recipients']);
 
-      $mail_controller = new \FusionDirectory\Mail\MailLib(
-        $data['mailForm']['setFrom'],
-        NULL,
-        $data['mailForm']['recipients'],
-        $data['mailForm']['body'],
-        $data['mailForm']['signature'],
-        $data['mailForm']['subject'],
-        $data['mailForm']['receipt'],
-        NULL
-      );
+          $mail_controller = new \FusionDirectory\Mail\MailLib(
+            $mailDetails['mail']['setFrom'],
+            NULL,
+            $mailDetails['mail']['recipients'],
+            $mailDetails['mail']['body'],
+            $mailDetails['mail']['signature'],
+            $mailDetails['mail']['subject'],
+            $mailDetails['mail']['receipt'],
+            NULL
+          );
 
-      $mailSentResult = $mail_controller->sendMail();
-      // Here we incremented as well the counter of spam to the backend.
-      $result[]       = $this->processMailResponseAndUpdateTasks($mailSentResult, $data, $fdTasksConf);
+          $mailSentResult = $mail_controller->sendMail();
+          // Here we incremented as well the counter of spam to the backend.
+          $result[] = $this->processMailResponseAndUpdateTasks($mailSentResult, $reminder, $fdTasksConf);
 
-      // Verification anti-spam max mails to be sent and quit loop if matched.
-      $maxMailsIncrement += $numberOfRecipients;
-      if ($maxMailsIncrement == $maxMailsConfig) {
-        break;
+          // Verification anti-spam max mails to be sent and quit loop if matched.
+          $maxMailsIncrement += $numberOfRecipients;
+          if ($maxMailsIncrement == $maxMailsConfig) {
+            break;
+          }
+        }
       }
     }
 
