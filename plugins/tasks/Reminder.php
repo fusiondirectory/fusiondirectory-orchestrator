@@ -100,6 +100,23 @@ class Reminder implements EndpointInterface
             $result[$task['dn']]['Status']  = 'No reminder triggers were found, therefore removing the sub-task!';
           }
         }
+
+        // Case where supann is set and prolongation is desired.
+        if ($monitoredResources['resource'][0] !== 'NONE' && $monitoredResources['prolongation'] === 'TRUE') {
+          if ($this->supannAboutToExpire($task['fdtasksgranulardn'][0], $monitoredResources, $task['fdtasksgranularhelper'][0])) {
+
+            // Require to be set for updating the status of the task later on and sent the email.
+            $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
+            $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+            // Recipient email form
+            $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $mailTemplateForm;
+
+          } else {
+            // Not about to expire, delete subTask
+            $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
+            $result[$task['dn']]['Status']  = 'No reminder triggers were found, therefore removing the sub-task!';
+          }
+        }
       }
     }
 
