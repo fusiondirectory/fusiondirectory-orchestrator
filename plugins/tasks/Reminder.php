@@ -108,8 +108,18 @@ class Reminder implements EndpointInterface
             // Require to be set for updating the status of the task later on and sent the email.
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+
+            // Create timeStamp expiration for token
+            $tokenExpire = $this->getTokenExpiration($task['fdtasksgranularhelper'][0],
+                                                     $remindersMainTask['fdtasksreminderfirstcall'][0],
+                                                     $remindersMainTask['fdtasksremindersecondcall'][0]);
+            // Create token for SubTask
+            $token = $this->generateToken($task['fdtasksgranulardn'][0], $timeStamp);
+            // Edit the mailForm with the url link containing the token
+            $tokenMailTemplateForm = $this->includeTokenToMailForm($token, $mailTemplateForm);
             // Recipient email form
-            $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $mailTemplateForm;
+            $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $tokenMailTemplateForm;
+
 
           } else {
             // Not about to expire, delete subTask
@@ -125,6 +135,91 @@ class Reminder implements EndpointInterface
     }
 
     return $result;
+  }
+
+  private function includeTokenToMailForm($token, $mailTemplateForm) : array
+  {
+
+  }
+
+  /**
+   * @param int $subTaskCall
+   * @param int $firstCall
+   * @param int $secondCall
+   * @return int
+   * Note : Simply return the difference between first and second call. (First call can be null).
+   */
+  private function getTokenExpiration (int $subTaskCall, int $firstCall, int $secondCall) : int
+  {
+    // if firstCall is empty, secondCall is the timestamp expiry for the token.
+    $result = $secondCall;
+
+    if (!empty($firstCall)) {
+      // Verification if the subTask is the second reminder or the first reminder.
+      if ($subTaskCall === $firstCall) {
+        $result = $firstCall - $secondCall;
+      }
+    }
+
+    return $result;
+  }
+
+  /**
+   * @param string $uid
+   * @return array
+   */
+  private function generateToken (string $uid, int $timeStamp): array
+  {
+    // Salt has been generated with APG.
+    $salt    = '8onOlEsItKond';
+    $payload = json_encode($uid . $salt);
+
+    // Create hmac with sha256 alg and the key provided for JWT token signature in ENV.
+    $token_hmac = hash_hmac("sha256", $payload, $_ENV["SECRET_KEY"], TRUE);
+
+    // We need to have a token allowed to be used within an URL.
+    $token = $this->base64urlEncode($token_hmac);
+
+    // Save token within LDAP
+    $this->saveTokenInLdap($uid, $token, $timeStamp);
+
+    exit;
+  }
+
+  /**
+   * @param string $uid
+   * @param string $token
+   * NOTE : UID is the full DN of the user. (uid=...).
+   * @param int $timeStamp
+   */
+  private function saveTokenInLdap (string $uid, string $token, int $timeStamp)
+  {
+    $result = [];
+
+    // Status subject to change
+    $ldap_entry["fdTokenUserDN"]    = $uid;
+    $ldap_entry["fdTokenType"]      = 'reminder';
+    $ldap_entry["fdToken"]          = $token;
+    $ldap_entry["fdTokenTimestamp"] = $timeStamp;
+
+    // Add status to LDAP
+    try {
+      $result = ldap_modify($this->gateway->ds, 'ou=fdTokenEntry'.$_ENV["LDAP_BASE"], $ldap_entry); // bool returned
+    } catch (Exception $e) {
+      $result = json_encode(["Ldap Error" => "$e"]); // string returned
+    }
+
+    return $result;
+  }
+
+  /**
+   * @param string $text
+   * @return string
+   * Note : This come from jwtToken, as it is completely private - it is cloned here for now.
+   */
+  private function base64urlEncode (string $text): string
+  {
+    return str_replace(["+", "/", "="], ["-", "_", ""], base64_encode($text));
   }
 
   /**
@@ -204,7 +299,6 @@ class Reminder implements EndpointInterface
 
   /**
    * Get the monitored resources for reminder to be activated.
-   *
    * @param array $remindersMainTask
    * @return array
    */
@@ -315,7 +409,7 @@ class Reminder implements EndpointInterface
       'fdTasksReminderResource', 'fdTasksReminderState', 'fdTasksReminderPosix', 'fdTasksReminderMailTemplate',
       'fdTasksReminderPPolicy', 'fdTasksReminderSupannNewEndDate', 'fdTasksReminderRecipientsMembers', 'fdTasksReminderEmailSender',
       'fdTasksReminderManager', 'fdTasksReminderAccountProlongation', 'fdTasksReminderMembers', 'fdTasksReminderNextResource',
-      'fdTasksReminderNextState', 'fdTasksReminderNextSubState', 'fdTasksReminderSubState'], '', $mainTaskDn);
+      'fdTasksReminderNextState', 'fdTasksReminderNextSubState', 'fdTasksReminderSubState', 'fdTasksReminderFirstCall', 'fdTasksReminderSecondCall'], '', $mainTaskDn);
   }
 
   /**
@@ -384,7 +478,7 @@ class Reminder implements EndpointInterface
       // Each main task reminder
       foreach ($reminder as $reminderItem) {
         // Each subTask reminder
-        foreach($reminderItem as $mailDetails) {
+        foreach ($reminderItem as $mailDetails) {
           $numberOfRecipients = count($mailDetails['mail']['recipients']);
 
           $mail_controller = new \FusionDirectory\Mail\MailLib(
