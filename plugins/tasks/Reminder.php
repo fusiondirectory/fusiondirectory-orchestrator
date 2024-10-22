@@ -215,9 +215,13 @@ class Reminder implements EndpointInterface
    * @return bool
    * @throws Exception
    */
-  private function saveTokenInLdap (string $userDN, string $token, int $timeStamp): bool
+  private function saveTokenInLdap (string $userDN, string $token, int $days): bool
   {
     $result = FALSE;
+
+    $currentTimestamp = time();
+    // Calculate the future timestamp by adding days to the current timestamp (We actually adds number of seconds).
+    $futureTimestamp = $currentTimestamp + ($days * 24 * 60 * 60);
 
     preg_match('/uid=([^,]+),ou=/', $userDN, $matches);
     $uid = $matches[1];
@@ -227,7 +231,7 @@ class Reminder implements EndpointInterface
     $ldap_entry["fdTokenUserDN"]    = $userDN;
     $ldap_entry["fdTokenType"]      = 'reminder';
     $ldap_entry["fdToken"]          = $token;
-    $ldap_entry["fdTokenTimestamp"] = $timeStamp;
+    $ldap_entry["fdTokenTimestamp"] = $futureTimestamp;
     $ldap_entry["cn"]               = $uid;
 
     // set the dn for the token, only take what's between "uid=" and ",ou="
