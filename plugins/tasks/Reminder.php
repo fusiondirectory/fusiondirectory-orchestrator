@@ -151,7 +151,7 @@ class Reminder implements EndpointInterface
 
     // Remove the API URI
     $cleanedUrl = preg_replace('#/rest\.php/v1$#', '', $_ENV['FUSION_DIRECTORY_API_URL']);
-    $url        = $cleanedUrl . '/account_prolongation.php?token=' . $token . '&task=' . $taskName;
+    $url        = $cleanedUrl . '/accountProlongation.php?token=' . $token . '&task=' . $taskName;
 
     $mailTemplateForm['body'] .= $url;
 
