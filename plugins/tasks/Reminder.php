@@ -331,7 +331,7 @@ class Reminder implements EndpointInterface
    */
   private function base64urlEncode (string $text): string
   {
-    return str_replace(["+", "/", "="], ["-", "_", ""], base64_encode($text));
+    return str_replace(["+", "/", "="], ["A", "B", ""], base64_encode($text));
   }
 
   /**
