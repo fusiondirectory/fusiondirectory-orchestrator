@@ -63,7 +63,7 @@ class Reminder implements EndpointInterface
       if ($this->gateway->statusAndScheduleCheck($task)) {
 
         // Retrieve data from the main task
-        $remindersMainTaskName = $task['fdtasksgranularmaster'][0];
+        $remindersMainTaskName = $task['fdtasksgranularmaster'][0]; //dn
         $remindersMainTask     = $this->getRemindersMainTask($remindersMainTaskName);
         // remove the count keys
         $this->gateway->unsetCountKeys($remindersMainTask);
@@ -116,7 +116,7 @@ class Reminder implements EndpointInterface
             // Create token for SubTask
             $token = $this->generateToken($task['fdtasksgranulardn'][0], $tokenExpire);
             // Edit the mailForm with the url link containing the token
-            $tokenMailTemplateForm = $this->includeTokenToMailForm($token, $mailTemplateForm);
+            $tokenMailTemplateForm = $this->generateTokenUrl($token, $mailTemplateForm, $remindersMainTaskName);
             // Recipient email form
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $tokenMailTemplateForm;
 
@@ -137,9 +137,25 @@ class Reminder implements EndpointInterface
     return $result;
   }
 
-  private function includeTokenToMailForm ($token, $mailTemplateForm): array
+  /**
+   * @param string $token
+   * @param array $mailTemplateForm
+   * @param string $taskName
+   * @return array
+   */
+  private function generateTokenUrl (string $token, array $mailTemplateForm, string $taskDN): array
   {
+    //Only take the cn of the main task name :
+    preg_match('/cn=([^,]+),ou=/', $taskDN, $matches);
+    $taskName = $matches[1];
 
+    // Remove the API URI
+    $cleanedUrl = preg_replace('#/rest\.php/v1$#', '', $_ENV['FUSION_DIRECTORY_API_URL']);
+    $url        = $cleanedUrl . '/account_prolongation.php?token=' . $token . '&task=' . $taskName;
+
+    $mailTemplateForm['body'] .= $url;
+
+    return $mailTemplateForm;
   }
 
   /**
@@ -177,10 +193,10 @@ class Reminder implements EndpointInterface
     $salt    = '8onOlEsItKond';
     $payload = json_encode($userDN . $salt);
     // This allows the token to be different every time.
-    $time    = time();
+    $time = time();
 
     // Create hmac with sha256 alg and the key provided for JWT token signature in ENV.
-    $token_hmac = hash_hmac("sha256", $time.$payload, $_ENV["SECRET_KEY"], TRUE);
+    $token_hmac = hash_hmac("sha256", $time . $payload, $_ENV["SECRET_KEY"], TRUE);
 
     // We need to have a token allowed to be used within an URL.
     $token = $this->base64urlEncode($token_hmac);
@@ -192,7 +208,7 @@ class Reminder implements EndpointInterface
   }
 
   /**
-   * @param string $uid
+   * @param string $userDN
    * @param string $token
    * NOTE : UID is the full DN of the user. (uid=...).
    * @param int $timeStamp
@@ -205,14 +221,14 @@ class Reminder implements EndpointInterface
 
     preg_match('/uid=([^,]+),ou=/', $userDN, $matches);
     $uid = $matches[1];
-    $dn = 'cn=' . $uid . ',' . 'ou=tokens' . ',' . $_ENV["LDAP_BASE"];
+    $dn  = 'cn=' . $uid . ',' . 'ou=tokens' . ',' . $_ENV["LDAP_BASE"];
 
     $ldap_entry["objectClass"]      = ['top', 'fdTokenEntry'];
     $ldap_entry["fdTokenUserDN"]    = $userDN;
     $ldap_entry["fdTokenType"]      = 'reminder';
     $ldap_entry["fdToken"]          = $token;
     $ldap_entry["fdTokenTimestamp"] = $timeStamp;
-    $ldap_entry["cn"] = $uid;
+    $ldap_entry["cn"]               = $uid;
 
     // set the dn for the token, only take what's between "uid=" and ",ou="
 
@@ -224,7 +240,7 @@ class Reminder implements EndpointInterface
     }
 
     // The user token DN creation
-    $userTokenDN = 'cn='.$uid.',ou=tokens' . ',' . $_ENV["LDAP_BASE"];
+    $userTokenDN = 'cn=' . $uid . ',ou=tokens' . ',' . $_ENV["LDAP_BASE"];
     // Verify if a token already exists for specified user and remove it to create new one correctly.
     if ($this->tokenBranchExist($userTokenDN)) {
       // Remove the user token
@@ -247,7 +263,7 @@ class Reminder implements EndpointInterface
    * @return void
    * Note : Simply remove the token for specific user DN
    */
-  private function removeUserToken($userTokenDN): void
+  private function removeUserToken ($userTokenDN): void
   {
     // Add token to LDAP for specific UID
     try {
