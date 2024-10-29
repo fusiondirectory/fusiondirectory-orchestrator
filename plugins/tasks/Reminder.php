@@ -127,12 +127,101 @@ class Reminder implements EndpointInterface
             $result[$task['dn']]['Status']  = 'No reminder triggers were found, therefore removing the sub-task!';
           }
         }
+
+        // Case where prolongation is set without supann. Case of posix and PPolicy
+        if ($monitoredResources['resource'][0] === 'NONE' && $monitoredResources['prolongation'] === 'TRUE') {
+          if ($this->posixAboutToExpire($task['fdtasksgranulardn'][0], $task['fdtasksgranularhelper'][0]) ||
+          $this->pPolicyAboutToExpire($task['fdtasksgranulardn'][0], $task['fdtasksgranularhelper'][0])) {
+
+            // Require to be set for updating the status of the task later on and sent the email.
+            $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
+            $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+
+            // Create timeStamp expiration for token
+            $tokenExpire = $this->getTokenExpiration($task['fdtasksgranularhelper'][0],
+                                                     $remindersMainTask[0]['fdtasksreminderfirstcall'][0],
+                                                     $remindersMainTask[0]['fdtasksremindersecondcall'][0]);
+            // Create token for SubTask
+            $token = $this->generateToken($task['fdtasksgranulardn'][0], $tokenExpire);
+            // Edit the mailForm with the url link containing the token
+            $tokenMailTemplateForm = $this->generateTokenUrl($token, $mailTemplateForm, $remindersMainTaskName);
+            // Recipient email form
+            $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $tokenMailTemplateForm;
+
+
+          } else {
+            // Not about to expire, delete subTask
+            $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
+            $result[$task['dn']]['Status']  = 'No reminder triggers were found, therefore removing the sub-task!';
+          }
+        }
       }
     }
 
     if (!empty($reminders)) {
       $result[] = $this->sendRemindersMail($reminders);
     }
+
+    return $result;
+  }
+
+  /**
+   * @param $dn
+   * @param $days
+   * @return bool
+   * Note : Compare the date of today and the shadowExpire epoch to see if expiration is soon to happen.
+   */
+  private function posixAboutToExpire ($dn, $days) : bool
+  {
+    $result = FALSE;
+
+    $userShadowExpire = $this->retrieveUserPosix($dn);
+    // Verification if shadowExpire was retrieved
+    if (!empty($userShadowExpire)) {
+      // Create the date of today
+      $today    = new DateTime();
+      // Create a proper timestamp for verification
+      $epoch = new DateTime("1970-01-01");
+      // Add the shadowExpire days to the epoch
+      $epoch->add(new DateInterval("P{$userShadowExpire}D"));
+
+      // Get the interval between today and the expiration of shadow expire.
+      $interval = $today->diff($epoch);
+
+      // Interval can be negative if date is in the past - we make sure it is not in the past by using invert.
+      if ($interval->days <= $days && $interval->invert == 0) {
+        $result = TRUE;
+      }
+    }
+
+    return $result;
+  }
+
+  /**
+   * @param $dn
+   * @return string
+   * Note : Simply retrieve shadowExpire attribute for the DN specified.
+   */
+  private function retrieveUserPosix ($dn) : string
+  {
+    $result = '';
+    $userPosix = $this->gateway->getLdapTasks('(objectClass=shadowAccount)', ['shadowExpire'],
+                                                    '', $dn);
+
+    // Simply remove key "count"
+    $this->gateway->unsetCountKeys($userPosix);
+
+    // Removing un-required keys
+    if (!empty($userPosix[0]['shadowexpire'][0])) {
+      $result = $userPosix[0]['shadowexpire'][0];
+    }
+
+    return $result;
+  }
+
+  private function pPolicyAboutToExpire ($dn, $days) : bool
+  {
+    $result = FALSE;
 
     return $result;
   }
