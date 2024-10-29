@@ -104,7 +104,7 @@ class Reminder implements EndpointInterface
         // Case where supann is set and prolongation is desired.
         if ($monitoredResources['resource'][0] !== 'NONE' && $monitoredResources['prolongation'] === 'TRUE') {
           if ($this->supannAboutToExpire($task['fdtasksgranulardn'][0], $monitoredResources, $task['fdtasksgranularhelper'][0])) {
-
+            echo "within supann and prolongation";
             // Require to be set for updating the status of the task later on and sent the email.
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
@@ -463,7 +463,6 @@ class Reminder implements EndpointInterface
     if ($this->verifySupannState($monitoredResources, $supannResources)) {
       // verify the date
       $DnSupannDateObject = $this->retrieveDateFromSupannResourceState($supannResources['supannressourceetatdate'][0]);
-
       //Verification if the time is lower or equal than the reminder time.
       if ($DnSupannDateObject !== FALSE) {
         $today    = new DateTime();
@@ -547,6 +546,9 @@ class Reminder implements EndpointInterface
   private function verifySupannState (array $reminderSupann, array $dnSupann): bool
   {
     $result = FALSE;
+    print_r($reminderSupann);
+    print_r($dnSupann);
+
 
     //Construct the reminder Supann Resource State as string
     if (!empty($reminderSupann['subState'][0])) {
@@ -555,6 +557,7 @@ class Reminder implements EndpointInterface
       $monitoredSupannState = '{' . $reminderSupann['resource'][0] . '}' . $reminderSupann['state'][0];
     }
 
+    //TODO here we have an error, we have to iterate on the list of supannRessource and not taking 0 as default key !!
 
     if (!empty($dnSupann['supannressourceetat'][0]) && $dnSupann['supannressourceetat'][0] === $monitoredSupannState) {
 
