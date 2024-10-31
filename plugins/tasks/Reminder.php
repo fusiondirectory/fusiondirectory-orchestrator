@@ -508,7 +508,6 @@ class Reminder implements EndpointInterface
    */
   private function getMonitoredResources (array $remindersMainTask): array
   {
-
     $monitoredResourcesArray = [
       'resource' => $remindersMainTask['fdtasksreminderresource'],
       'state'    => $remindersMainTask['fdtasksreminderstate'],
@@ -556,7 +555,7 @@ class Reminder implements EndpointInterface
 
     if (!empty($dnSupann['supannressourceetat'])) {
       // Simply iterate within the resource available till a match is found.
-      foreach($dnSupann['supannressourceetat'] as $resource) {
+      foreach ($dnSupann['supannressourceetat'] as $resource) {
         if ($monitoredSupannState === $resource) {
           $result = TRUE;
           break;
