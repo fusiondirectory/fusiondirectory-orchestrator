@@ -546,9 +546,6 @@ class Reminder implements EndpointInterface
   private function verifySupannState (array $reminderSupann, array $dnSupann): bool
   {
     $result = FALSE;
-    print_r($reminderSupann);
-    print_r($dnSupann);
-
 
     //Construct the reminder Supann Resource State as string
     if (!empty($reminderSupann['subState'][0])) {
@@ -557,11 +554,14 @@ class Reminder implements EndpointInterface
       $monitoredSupannState = '{' . $reminderSupann['resource'][0] . '}' . $reminderSupann['state'][0];
     }
 
-    //TODO here we have an error, we have to iterate on the list of supannRessource and not taking 0 as default key !!
-
-    if (!empty($dnSupann['supannressourceetat'][0]) && $dnSupann['supannressourceetat'][0] === $monitoredSupannState) {
-
-      $result = TRUE;
+    if (!empty($dnSupann['supannressourceetat'])) {
+      // Simply iterate within the resource available till a match is found.
+      foreach($dnSupann['supannressourceetat'] as $resource) {
+        if ($monitoredSupannState === $resource) {
+          $result = TRUE;
+          break;
+        }
+      }
     }
 
     return $result;
