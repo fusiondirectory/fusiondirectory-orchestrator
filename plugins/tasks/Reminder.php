@@ -127,10 +127,9 @@ class Reminder implements EndpointInterface
           }
         }
 
-        // Case where prolongation is set without supann. Case of posix and PPolicy
+        // Case where prolongation is set without supann.
         if ($monitoredResources['resource'][0] === 'NONE' && $monitoredResources['prolongation'] === 'TRUE') {
-          if ($this->posixAboutToExpire($task['fdtasksgranulardn'][0], $task['fdtasksgranularhelper'][0]) ||
-          $this->pPolicyAboutToExpire($task['fdtasksgranulardn'][0], $task['fdtasksgranularhelper'][0])) {
+          if ($this->posixAboutToExpire($task['fdtasksgranulardn'][0], $task['fdtasksgranularhelper'][0])) {
 
             // Require to be set for updating the status of the task later on and sent the email.
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
@@ -214,13 +213,6 @@ class Reminder implements EndpointInterface
     if (!empty($userPosix[0]['shadowexpire'][0])) {
       $result = $userPosix[0]['shadowexpire'][0];
     }
-
-    return $result;
-  }
-
-  private function pPolicyAboutToExpire ($dn, $days) : bool
-  {
-    $result = FALSE;
 
     return $result;
   }
@@ -522,9 +514,8 @@ class Reminder implements EndpointInterface
         $monitoredResourcesArray['nextState']    = $remindersMainTask['fdtasksremindernextstate'];
         $monitoredResourcesArray['nextSubState'] = $remindersMainTask['fdtasksremindernextsubstate'] ?? NULL;
       }
-
+      // Posix attributes
       $monitoredResourcesArray['fdTasksReminderPosix']   = $remindersMainTask['fdtasksreminderposix'] ?? FALSE;
-      $monitoredResourcesArray['fdTasksReminderPPolicy'] = $remindersMainTask['fdtasksreminderppolicy'] ?? FALSE;
 
     }
 
@@ -613,7 +604,7 @@ class Reminder implements EndpointInterface
     // Retrieve data from the main Reminder task
     return $this->gateway->getLdapTasks(                                                                                                              '(objectClass=fdTasksReminder)', ['fdTasksReminderListOfRecipientsMails',
       'fdTasksReminderResource', 'fdTasksReminderState', 'fdTasksReminderPosix', 'fdTasksReminderMailTemplate',
-      'fdTasksReminderPPolicy', 'fdTasksReminderSupannNewEndDate', 'fdTasksReminderRecipientsMembers', 'fdTasksReminderEmailSender',
+      'fdTasksReminderSupannNewEndDate', 'fdTasksReminderRecipientsMembers', 'fdTasksReminderEmailSender',
       'fdTasksReminderManager', 'fdTasksReminderAccountProlongation', 'fdTasksReminderMembers', 'fdTasksReminderNextResource',
       'fdTasksReminderNextState', 'fdTasksReminderNextSubState', 'fdTasksReminderSubState', 'fdTasksReminderFirstCall', 'fdTasksReminderSecondCall'], '', $mainTaskDn);
   }
