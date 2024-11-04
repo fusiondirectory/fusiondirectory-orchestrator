@@ -48,7 +48,7 @@ class Reminder implements EndpointInterface
   }
 
   /**
-   * @param array $notificationsSubTasks
+   * @param array $reminderSubTasks
    * @return array
    * @throws Exception
    */
@@ -104,7 +104,6 @@ class Reminder implements EndpointInterface
         // Case where supann is set and prolongation is desired.
         if ($monitoredResources['resource'][0] !== 'NONE' && $monitoredResources['prolongation'] === 'TRUE') {
           if ($this->supannAboutToExpire($task['fdtasksgranulardn'][0], $monitoredResources, $task['fdtasksgranularhelper'][0])) {
-            echo "within supann and prolongation";
             // Require to be set for updating the status of the task later on and sent the email.
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
@@ -229,7 +228,7 @@ class Reminder implements EndpointInterface
   /**
    * @param string $token
    * @param array $mailTemplateForm
-   * @param string $taskName
+   * @param string $taskDN
    * @return array
    */
   private function generateTokenUrl (string $token, array $mailTemplateForm, string $taskDN): array
@@ -300,7 +299,7 @@ class Reminder implements EndpointInterface
    * @param string $userDN
    * @param string $token
    * NOTE : UID is the full DN of the user. (uid=...).
-   * @param int $timeStamp
+   * @param int $days
    * @return bool
    * @throws Exception
    */
@@ -537,8 +536,8 @@ class Reminder implements EndpointInterface
 
 
   /**
-   * @param array $supannResource
-   * @param array $auditedAttrs
+   * @param array $reminderSupann
+   * @param array $dnSupann
    * @return bool
    * Note : Create the supann format and check for a match.
    */
