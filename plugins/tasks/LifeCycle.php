@@ -70,20 +70,17 @@ class LifeCycle implements EndpointInterface
       if ($this->gateway->statusAndScheduleCheck($task)) {
 
         // Simply retrieve the lifeCycle behavior from the main related tasks, sending the dns and desired attributes
-        $lifeCycleBehavior = $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
-          'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
-          'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate'],
-                                                          '', $task['fdtasksgranularmaster'][0]);
+        $lifeCycleBehavior = $this->getLifeCycleBehaviorFromMainTask($task['fdtasksgranularmaster'][0]);
 
         // Simply retrieve the current supannStatus of the user DN related to the task at hand.
-        $currentUserLifeCycle = $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate'],
-                                                             '', $task['fdtasksgranulardn'][0]);
+        $currentUserLifeCycle = $this->getUserSupannHistory($task['fdtasksgranulardn'][0]);
 
         // Compare both the required schedule and the current user status - returning TRUE if modification is required.
         if ($this->isLifeCycleRequiringModification($lifeCycleBehavior, $currentUserLifeCycle)) {
 
           // This will call a method to modify the ressourcesSupannEtatDate of the DN linked to the subTask
-          $lifeCycleResult = $this->updateLifeCycle($lifeCycleBehavior, $task['fdtasksgranulardn'][0]);
+          $lifeCycleResult = $this->updateLifeCycle($lifeCycleBehavior, $task['fdtasksgranulardn'][0], $currentUserLifeCycle);
+
           if ($lifeCycleResult === TRUE) {
 
             $result[$task['dn']]['results'] = json_encode("Account states have been successfully modified for " . $task['fdtasksgranulardn'][0]);
@@ -138,31 +135,35 @@ class LifeCycle implements EndpointInterface
     if (empty($currentUserLifeCycle[0]['supannressourceetatdate'][0])) {
       return FALSE;
     }
-    // Perform the regular expression match
-    preg_match($pattern, $currentUserLifeCycle[0]['supannressourceetatdate'][0], $matches);
-
-    // Extracting values of current user
-    $userSupann['Resource'] = $matches[1] ?? '';
-    $userSupann['State']    = $matches[2] ?? '';
-    $userSupann['SubState'] = $matches[3] ?? '';
-    // Array index 4 is skipped, we only use end date to apply our life cycle logic. Start date has no use here.
-    $userSupann['EndDate'] = $matches[5] ?? '';
 
     // Extracting values of desired pre-state behavior
     $preStateSupann['Resource'] = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0];
     $preStateSupann['State']    = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0];
     $preStateSupann['SubState'] = $lifeCycleBehavior[0]['fdtaskslifecyclepresubstate'][0] ?? ''; //SubState is optional
 
-    //  Verifying if the user end date for selected resource is overdue
-    if (!empty($userSupann['EndDate']) && strtotime($userSupann['EndDate']) <= time()) {
-      // Comparing value in a nesting conditions
-      if ($userSupann['Resource'] == $preStateSupann['Resource']) {
-        if ($userSupann['State'] == $preStateSupann['State']) {
-          // as SubState is optional, if both resource and state match at this point, modification is allowed.
-          if (empty($preStateSupann['SubState'])) {
-            $result = TRUE;
-          } else if ($preStateSupann['SubState'] == $userSupann['SubState']) {
-            $result = TRUE;
+    // Iteration of all potential existing supann states of the user in order to find a match
+    foreach ($currentUserLifeCycle[0]['supannressourceetatdate'] as $resource) {
+      // Perform the regular expression match
+      preg_match($pattern, $resource, $matches);
+
+      // Extracting values of current user
+      $userSupann['Resource'] = $matches[1] ?? '';
+      $userSupann['State']    = $matches[2] ?? '';
+      $userSupann['SubState'] = $matches[3] ?? '';
+      // Array index 4 is skipped, we only use end date to apply our life cycle logic. Start date has no use here.
+      $userSupann['EndDate'] = $matches[5] ?? '';
+
+      //  Verifying if the user end date for selected resource is overdue
+      if (!empty($userSupann['EndDate']) && strtotime($userSupann['EndDate']) <= time()) {
+        // Comparing value in a nesting conditions
+        if ($userSupann['Resource'] == $preStateSupann['Resource']) {
+          if ($userSupann['State'] == $preStateSupann['State']) {
+            // as SubState is optional, if both resource and state match at this point, modification is allowed.
+            if (empty($preStateSupann['SubState'])) {
+              $result = TRUE;
+            } else if ($preStateSupann['SubState'] == $userSupann['SubState']) {
+              $result = TRUE;
+            }
           }
         }
       }
@@ -174,10 +175,19 @@ class LifeCycle implements EndpointInterface
   /**
    * @param array $lifeCycleBehavior
    * @param string $userDN
+   * @param array $currentUserLifeCycle
    * @return bool|string
+   * Note receive the required behavior and the previous list of supann state to update in LDAP.
    */
-  protected function updateLifeCycle (array $lifeCycleBehavior, string $userDN)
+  protected function updateLifeCycle (array $lifeCycleBehavior, string $userDN, array $currentUserLifeCycle)
   {
+    // Only keep the supann state from the received array and removing the count key
+    $userStateHistory = $currentUserLifeCycle[0]['supannressourceetatdate'];
+    $this->gateway->unsetCountKeys($userStateHistory);
+
+    // Hosting the final entry of supann attributes to be pushed to LDAP
+    $ldapEntry = [];
+
     // Extracting values of desired post-state behavior
     $newEntry['Resource'] = $lifeCycleBehavior[0]['fdtaskslifecyclepostresource'][0];
     $newEntry['State']    = $lifeCycleBehavior[0]['fdtaskslifecyclepoststate'][0];
@@ -191,12 +201,25 @@ class LifeCycle implements EndpointInterface
     $newEndDate->modify("+" . $newEntry['EndDate'] . " days");
 
     // Prepare the ldap entry to be modified
-    $ldapEntry                            = [];
-    $ldapEntry['supannRessourceEtatDate'] = "{" . $newEntry['Resource'] . "}"
-      . $newEntry['State'] . ":"
-      . $newEntry['SubState'] . ":" .
-      $currentDate->format('Ymd') . ":"
-      . $newEndDate->format('Ymd');
+    $newEntry = "{" . $newEntry['Resource'] . "}" . $newEntry['State'] . ":" . $newEntry['SubState'] . ":"
+    . $currentDate->format('Ymd') . ":" . $newEndDate->format('Ymd');
+    // Used to compare if the resource exists in history
+    $newResource = $this->returnSupannResourceBetweenBrackets($newEntry);
+
+    // Iterate through the supann state and update the array of new entry while keeping history untouched
+    foreach ($userStateHistory as $userState => $value) {
+      // Extract resource in curly braces (brackets) from the current supannRessourceEtatDate
+      $currentResource = $this->returnSupannResourceBetweenBrackets($value);
+
+      // If resources matches, replace the resource with the new one.
+      if ($currentResource === $newResource) {
+        $userStateHistory[$userState] = $newEntry;
+        break;
+      }
+    }
+
+    // Creation of the ldap entry
+    $ldapEntry['supannRessourceEtatDate'] = $userStateHistory;
 
     try {
       $result = ldap_modify($this->gateway->ds, $userDN, $ldapEntry);
@@ -205,6 +228,41 @@ class LifeCycle implements EndpointInterface
     }
 
     return $result;
+  }
+
+  /**
+   * @param string $supannRessourceEtatDate
+   * @return string|null
+   * Note : Simple method to return the content between {} of a supannRessourceEtatDate.
+   */
+  private function returnSupannResourceBetweenBrackets (string $supannRessourceEtatDate) : ?string
+  {
+    preg_match('/\{(.*?)\}/', $supannRessourceEtatDate, $matches);
+    return $matches[1] ?? NULL;
+  }
+
+  /**
+   * @param string $taskDN
+   * @return array
+   * Note : Simply return attributes from main task, here supann desired behavior
+   */
+  private function getLifeCycleBehaviorFromMainTask (string $taskDN) : array
+  {
+    return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
+      'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
+      'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate'],
+                                 '', $taskDN);
+  }
+
+  /**
+   * @param $userDN
+   * @return array
+   * Note : simply return the current values of supannRessourceEtatDate of the specified user.
+   */
+  private function getUserSupannHistory ($userDN) : array
+  {
+    return $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate'],
+                                        '', $userDN);
   }
 
 }
