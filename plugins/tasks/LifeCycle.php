@@ -138,31 +138,35 @@ class LifeCycle implements EndpointInterface
     if (empty($currentUserLifeCycle[0]['supannressourceetatdate'][0])) {
       return FALSE;
     }
-    // Perform the regular expression match
-    preg_match($pattern, $currentUserLifeCycle[0]['supannressourceetatdate'][0], $matches);
-
-    // Extracting values of current user
-    $userSupann['Resource'] = $matches[1] ?? '';
-    $userSupann['State']    = $matches[2] ?? '';
-    $userSupann['SubState'] = $matches[3] ?? '';
-    // Array index 4 is skipped, we only use end date to apply our life cycle logic. Start date has no use here.
-    $userSupann['EndDate'] = $matches[5] ?? '';
 
     // Extracting values of desired pre-state behavior
     $preStateSupann['Resource'] = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0];
     $preStateSupann['State']    = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0];
     $preStateSupann['SubState'] = $lifeCycleBehavior[0]['fdtaskslifecyclepresubstate'][0] ?? ''; //SubState is optional
 
-    //  Verifying if the user end date for selected resource is overdue
-    if (!empty($userSupann['EndDate']) && strtotime($userSupann['EndDate']) <= time()) {
-      // Comparing value in a nesting conditions
-      if ($userSupann['Resource'] == $preStateSupann['Resource']) {
-        if ($userSupann['State'] == $preStateSupann['State']) {
-          // as SubState is optional, if both resource and state match at this point, modification is allowed.
-          if (empty($preStateSupann['SubState'])) {
-            $result = TRUE;
-          } else if ($preStateSupann['SubState'] == $userSupann['SubState']) {
-            $result = TRUE;
+    // Iteration of all potential existing supann states of the user in order to find a match
+    foreach ($currentUserLifeCycle[0]['supannressourceetatdate'] as $resource) {
+      // Perform the regular expression match
+      preg_match($pattern, $resource, $matches);
+
+      // Extracting values of current user
+      $userSupann['Resource'] = $matches[1] ?? '';
+      $userSupann['State']    = $matches[2] ?? '';
+      $userSupann['SubState'] = $matches[3] ?? '';
+      // Array index 4 is skipped, we only use end date to apply our life cycle logic. Start date has no use here.
+      $userSupann['EndDate'] = $matches[5] ?? '';
+
+      //  Verifying if the user end date for selected resource is overdue
+      if (!empty($userSupann['EndDate']) && strtotime($userSupann['EndDate']) <= time()) {
+        // Comparing value in a nesting conditions
+        if ($userSupann['Resource'] == $preStateSupann['Resource']) {
+          if ($userSupann['State'] == $preStateSupann['State']) {
+            // as SubState is optional, if both resource and state match at this point, modification is allowed.
+            if (empty($preStateSupann['SubState'])) {
+              $result = TRUE;
+            } else if ($preStateSupann['SubState'] == $userSupann['SubState']) {
+              $result = TRUE;
+            }
           }
         }
       }
