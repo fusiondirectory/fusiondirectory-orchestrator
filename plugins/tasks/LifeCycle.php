@@ -235,10 +235,10 @@ class LifeCycle implements EndpointInterface
    * @return string|null
    * Note : Simple method to return the content between {} of a supannRessourceEtatDate.
    */
-  private function returnSupannResourceBetweenBrackets(string $supannRessourceEtatDate) : ?string
+  private function returnSupannResourceBetweenBrackets (string $supannRessourceEtatDate) : ?string
   {
     preg_match('/\{(.*?)\}/', $supannRessourceEtatDate, $matches);
-    return $matches[1] ?? null;
+    return $matches[1] ?? NULL;
   }
 
   /**
@@ -248,10 +248,10 @@ class LifeCycle implements EndpointInterface
    */
   private function getLifeCycleBehaviorFromMainTask (string $taskDN) : array
   {
-    return ($this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
+    return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
       'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
       'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate'],
-                                 '', $taskDN));
+                                 '', $taskDN);
   }
 
   /**
