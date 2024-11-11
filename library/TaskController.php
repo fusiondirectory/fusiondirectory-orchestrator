@@ -61,7 +61,6 @@ class TaskController
               break;
 
             default:
-              // TODO: Default result in a non getProcess method found - could enhance below error report.
               $this->respondMethodAllowed("GET, PATCH, DELETE");
           }
           $this->parseJsonResult($result);
