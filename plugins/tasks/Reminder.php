@@ -449,11 +449,14 @@ class Reminder implements EndpointInterface
   {
     $result = FALSE;
 
-    // Search the DN for supannResourceState
+    // Search the DN for supannRessourceEtatDate (With DATE)
     $supannResources = $this->retrieveSupannResources($dn);
-    if ($this->verifySupannState($monitoredResources, $supannResources)) {
-      // verify the date
-      $DnSupannDateObject = $this->retrieveDateFromSupannResourceState($supannResources['supannressourceetatdate'][0]);
+    // Get the matching resource (without date)
+    $matchedResource = $this->verifySupannState($monitoredResources, $supannResources);
+
+    if ($matchedResource) {
+      // verify
+      $DnSupannDateObject = $this->retrieveDateFromSupannResourceState($supannResources['supannressourceetatdate'], $matchedResource);
       //Verification if the time is lower or equal than the reminder time.
       if ($DnSupannDateObject !== FALSE) {
         $today    = new DateTime();
@@ -529,12 +532,13 @@ class Reminder implements EndpointInterface
   /**
    * @param array $reminderSupann
    * @param array $dnSupann
-   * @return bool
+   * @return string
    * Note : Create the supann format and check for a match.
    */
-  private function verifySupannState (array $reminderSupann, array $dnSupann): bool
+  private function verifySupannState (array $reminderSupann, array $dnSupann): string
   {
-    $result = FALSE;
+    // Result will contain the supann resource matching.
+    $result = '';
 
     //Construct the reminder Supann Resource State as string
     if (!empty($reminderSupann['subState'][0])) {
@@ -547,7 +551,7 @@ class Reminder implements EndpointInterface
       // Simply iterate within the resource available till a match is found.
       foreach ($dnSupann['supannressourceetat'] as $resource) {
         if ($monitoredSupannState === $resource) {
-          $result = TRUE;
+          $result = $resource;
           break;
         }
       }
@@ -557,16 +561,29 @@ class Reminder implements EndpointInterface
   }
 
   /**
-   * @param $supannEtatDate
+   * @param array $supannEtatDate
+   * @param string $resource
    * @return DateTime|false
    * Note : Simply transform string date of supann to a dateTime object.
    * Can return bool (false) or dateTime object.
    */
-  private function retrieveDateFromSupannResourceState ($supannEtatDate)
+  private function retrieveDateFromSupannResourceState (array $supannEtatDate, string $resource)
   {
     $dateString = NULL;
+    $matchFound = null;  // Variable to store the match if found
+
+    // Create a regex pattern to match the exact resource at the beginning, followed by ":" or ":::".
+    $pattern = '/^' . preg_quote($resource, '/') . '(:|:::)?.*/';
+
+    foreach ($supannEtatDate as $resourceWithDate) {
+      if (preg_match($pattern, $resourceWithDate)) {
+        $matchFound = $resourceWithDate;
+        break; // Stop once a match is found
+      }
+    }
+
     // Simply take the last 8 digit
-    preg_match('/(\d{8})$/', $supannEtatDate, $matches);
+    preg_match('/(\d{8})$/', $matchFound, $matches);
 
     if (!empty($matches)) {
       $dateString = $matches[0];
