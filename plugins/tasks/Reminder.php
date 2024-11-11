@@ -570,7 +570,7 @@ class Reminder implements EndpointInterface
   private function retrieveDateFromSupannResourceState (array $supannEtatDate, string $resource)
   {
     $dateString = NULL;
-    $matchFound = null;  // Variable to store the match if found
+    $matchFound = NULL;  // Variable to store the match if found
 
     // Create a regex pattern to match the exact resource at the beginning, followed by ":" or ":::".
     $pattern = '/^' . preg_quote($resource, '/') . '(:|:::)?.*/';
