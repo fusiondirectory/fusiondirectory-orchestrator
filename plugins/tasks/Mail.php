@@ -56,7 +56,6 @@ class Mail implements EndpointInterface
   public function processMailTasks (array $tasks): array
   {
     $result = [];
-    // DEBUGGING
     $fdTasksConf    = $this->getMailObjectConfiguration();
     $maxMailsConfig = $this->returnMaximumMailToBeSend($fdTasksConf);
 
