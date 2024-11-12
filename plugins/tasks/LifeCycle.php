@@ -181,6 +181,9 @@ class LifeCycle implements EndpointInterface
    */
   protected function updateLifeCycle (array $lifeCycleBehavior, string $userDN, array $currentUserLifeCycle)
   {
+    // Will contain the supann resource to be updated
+    $matchedResource = '';
+
     // Only keep the supann state from the received array and removing the count key
     $userStateHistory = $currentUserLifeCycle[0]['supannressourceetatdate'];
     $this->gateway->unsetCountKeys($userStateHistory);
@@ -194,26 +197,38 @@ class LifeCycle implements EndpointInterface
     $newEntry['SubState'] = $lifeCycleBehavior[0]['fdtaskslifecyclepostsubstate'][0] ?? ''; //SubState is optional
     $newEntry['EndDate']  = $lifeCycleBehavior[0]['fdtaskslifecyclepostenddate'][0] ?? 0; //EndDate is optional
 
-    // Require the date of today to update the start of the new resources (If change of status).
-    $currentDate = new DateTime();
-    // Date of today + numbers of days to add for end date.
-    $newEndDate = new DateTime();
-    $newEndDate->modify("+" . $newEntry['EndDate'] . " days");
-
     // Prepare the ldap entry to be modified
-    $newEntry = "{" . $newEntry['Resource'] . "}" . $newEntry['State'] . ":" . $newEntry['SubState'] . ":"
-    . $currentDate->format('Ymd') . ":" . $newEndDate->format('Ymd');
+    $newResource = "{" . $newEntry['Resource'] . "}" . $newEntry['State'] . ":" . $newEntry['SubState'];
     // Used to compare if the resource exists in history
-    $newResource = $this->returnSupannResourceBetweenBrackets($newEntry);
+    $newResourceName = $this->returnSupannResourceBetweenBrackets($newResource);
 
-    // Iterate through the supann state and update the array of new entry while keeping history untouched
+    // Iterate through the supann state and get a match
+    foreach ($userStateHistory as $value) {
+      // Extract resource in curly braces (brackets) from the current supannRessourceEtatDate
+      $currentResource = $this->returnSupannResourceBetweenBrackets($value);
+
+      // Get the resource matched
+      if ($currentResource === $newResourceName) {
+        $matchedResource = $value;
+        break;
+      }
+    }
+
+    // Fetch the end date of the matched resource.
+    $currentEndDate = $this->extractCurrentEndDate($matchedResource);
+    // Create a DateTime object from the string
+    $currentEndDateObject = DateTime::createFromFormat("Ymd", $currentEndDate);
+    $currentEndDateObject->modify("+" . $newEntry['EndDate'] . " days");
+    $finalRessourceEtatDate = $newResource . ':' . $currentEndDate . ':' . $currentEndDateObject->format('Ymd');
+
+    // Iterate again through the supann state and get a match
     foreach ($userStateHistory as $userState => $value) {
       // Extract resource in curly braces (brackets) from the current supannRessourceEtatDate
       $currentResource = $this->returnSupannResourceBetweenBrackets($value);
 
-      // If resources matches, replace the resource with the new one.
-      if ($currentResource === $newResource) {
-        $userStateHistory[$userState] = $newEntry;
+      // Get the resource matched
+      if ($currentResource === $newResourceName) {
+        $userStateHistory[$userState] = $finalRessourceEtatDate;
         break;
       }
     }
@@ -231,11 +246,23 @@ class LifeCycle implements EndpointInterface
   }
 
   /**
+   * @param string|null $matchedResource
+   * @return string
+   * Note : Simply return the end date of a supann ressource etat date
+   */
+  private function extractCurrentEndDate (?string $matchedResource): string
+  {
+    $parts = explode(":", $matchedResource);
+    // Get the last element, which is the date
+    return end($parts);
+  }
+
+  /**
    * @param string $supannRessourceEtatDate
    * @return string|null
    * Note : Simple method to return the content between {} of a supannRessourceEtatDate.
    */
-  private function returnSupannResourceBetweenBrackets (string $supannRessourceEtatDate) : ?string
+  private function returnSupannResourceBetweenBrackets (string $supannRessourceEtatDate): ?string
   {
     preg_match('/\{(.*?)\}/', $supannRessourceEtatDate, $matches);
     return $matches[1] ?? NULL;
@@ -246,12 +273,12 @@ class LifeCycle implements EndpointInterface
    * @return array
    * Note : Simply return attributes from main task, here supann desired behavior
    */
-  private function getLifeCycleBehaviorFromMainTask (string $taskDN) : array
+  private function getLifeCycleBehaviorFromMainTask (string $taskDN): array
   {
     return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
       'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
       'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate'],
-                                 '', $taskDN);
+                                        '', $taskDN);
   }
 
   /**
@@ -259,7 +286,7 @@ class LifeCycle implements EndpointInterface
    * @return array
    * Note : simply return the current values of supannRessourceEtatDate of the specified user.
    */
-  private function getUserSupannHistory ($userDN) : array
+  private function getUserSupannHistory ($userDN): array
   {
     return $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate'],
                                         '', $userDN);
