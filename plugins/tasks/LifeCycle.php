@@ -238,14 +238,14 @@ class LifeCycle implements EndpointInterface
    * @return string|null
    * Note : Simple helper method to return the matched resource.
    */
-  private function findMatchedResource(array $userStateHistory, string $newResourceName): ?string
+  private function findMatchedResource (array $userStateHistory, string $newResourceName): ?string
   {
     foreach ($userStateHistory as $value) {
       if ($this->returnSupannResourceBetweenBrackets($value) === $newResourceName) {
         return $value;
       }
     }
-    return null;
+    return NULL;
   }
 
   /**
@@ -253,7 +253,7 @@ class LifeCycle implements EndpointInterface
    * @return array
    * Simple helper method for readiness.
    */
-  private function prepareNewEntry(array $lifeCycleBehavior): array
+  private function prepareNewEntry (array $lifeCycleBehavior): array
   {
     return [
       'Resource' => $lifeCycleBehavior['fdtaskslifecyclepostresource'][0],
