@@ -181,68 +181,86 @@ class LifeCycle implements EndpointInterface
    */
   protected function updateLifeCycle (array $lifeCycleBehavior, string $userDN, array $currentUserLifeCycle)
   {
-    // Will contain the supann resource to be updated
-    $matchedResource = '';
+    // Init return value
+    $result = '';
+    // Hosting the final entry of supann attributes to be pushed to LDAP
+    $ldapEntry = [];
 
     // Only keep the supann state from the received array and removing the count key
     $userStateHistory = $currentUserLifeCycle[0]['supannressourceetatdate'];
     $this->gateway->unsetCountKeys($userStateHistory);
 
-    // Hosting the final entry of supann attributes to be pushed to LDAP
-    $ldapEntry = [];
-
     // Extracting values of desired post-state behavior
-    $newEntry['Resource'] = $lifeCycleBehavior[0]['fdtaskslifecyclepostresource'][0];
-    $newEntry['State']    = $lifeCycleBehavior[0]['fdtaskslifecyclepoststate'][0];
-    $newEntry['SubState'] = $lifeCycleBehavior[0]['fdtaskslifecyclepostsubstate'][0] ?? ''; //SubState is optional
-    $newEntry['EndDate']  = $lifeCycleBehavior[0]['fdtaskslifecyclepostenddate'][0] ?? 0; //EndDate is optional
+    $newEntry = $this->prepareNewEntry($lifeCycleBehavior[0]);
 
-    // Prepare the ldap entry to be modified
+    // Create the new resource without start / end date
     $newResource = "{" . $newEntry['Resource'] . "}" . $newEntry['State'] . ":" . $newEntry['SubState'];
-    // Used to compare if the resource exists in history
+    // Get the resource name, it will be used to compare if the resource exists in history
     $newResourceName = $this->returnSupannResourceBetweenBrackets($newResource);
 
-    // Iterate through the supann state and get a match
-    foreach ($userStateHistory as $value) {
-      // Extract resource in curly braces (brackets) from the current supannRessourceEtatDate
-      $currentResource = $this->returnSupannResourceBetweenBrackets($value);
+    // Find a matching resource in the user state history
+    $matchedResource = $this->findMatchedResource($userStateHistory, $newResourceName);
+    if ($matchedResource) {
 
-      // Get the resource matched
-      if ($currentResource === $newResourceName) {
-        $matchedResource = $value;
-        break;
+      // Fetch the end date of the matched resource.
+      $currentEndDate = $this->extractCurrentEndDate($matchedResource);
+      // Create a DateTime object from the string
+      $currentEndDateObject = DateTime::createFromFormat("Ymd", $currentEndDate);
+      $currentEndDateObject->modify("+" . $newEntry['EndDate'] . " days");
+      $finalRessourceEtatDate = $newResource . ':' . $currentEndDate . ':' . $currentEndDateObject->format('Ymd');
+
+      // Iterate again through the supann state and get a match
+      foreach ($userStateHistory as $userState => $value) {
+        // Extract resource in curly braces (brackets) from the current supannRessourceEtatDate
+        $currentResource = $this->returnSupannResourceBetweenBrackets($value);
+
+        // Get the resource matched
+        if ($currentResource === $newResourceName) {
+          $userStateHistory[$userState] = $finalRessourceEtatDate;
+          break;
+        }
+      }
+
+      // Creation of the ldap entry
+      $ldapEntry['supannRessourceEtatDate'] = $userStateHistory;
+      try {
+        $result = ldap_modify($this->gateway->ds, $userDN, $ldapEntry);
+      } catch (Exception $e) {
+        $result = json_encode(["Ldap Error" => "$e"]);
       }
     }
-
-    // Fetch the end date of the matched resource.
-    $currentEndDate = $this->extractCurrentEndDate($matchedResource);
-    // Create a DateTime object from the string
-    $currentEndDateObject = DateTime::createFromFormat("Ymd", $currentEndDate);
-    $currentEndDateObject->modify("+" . $newEntry['EndDate'] . " days");
-    $finalRessourceEtatDate = $newResource . ':' . $currentEndDate . ':' . $currentEndDateObject->format('Ymd');
-
-    // Iterate again through the supann state and get a match
-    foreach ($userStateHistory as $userState => $value) {
-      // Extract resource in curly braces (brackets) from the current supannRessourceEtatDate
-      $currentResource = $this->returnSupannResourceBetweenBrackets($value);
-
-      // Get the resource matched
-      if ($currentResource === $newResourceName) {
-        $userStateHistory[$userState] = $finalRessourceEtatDate;
-        break;
-      }
-    }
-
-    // Creation of the ldap entry
-    $ldapEntry['supannRessourceEtatDate'] = $userStateHistory;
-
-    try {
-      $result = ldap_modify($this->gateway->ds, $userDN, $ldapEntry);
-    } catch (Exception $e) {
-      $result = json_encode(["Ldap Error" => "$e"]);
-    }
-
     return $result;
+  }
+
+  /**
+   * @param array $userStateHistory
+   * @param string $newResourceName
+   * @return string|null
+   * Note : Simple helper method to return the matched resource.
+   */
+  private function findMatchedResource(array $userStateHistory, string $newResourceName): ?string
+  {
+    foreach ($userStateHistory as $value) {
+      if ($this->returnSupannResourceBetweenBrackets($value) === $newResourceName) {
+        return $value;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * @param array $lifeCycleBehavior
+   * @return array
+   * Simple helper method for readiness.
+   */
+  private function prepareNewEntry(array $lifeCycleBehavior): array
+  {
+    return [
+      'Resource' => $lifeCycleBehavior['fdtaskslifecyclepostresource'][0],
+      'State'    => $lifeCycleBehavior['fdtaskslifecyclepoststate'][0],
+      'SubState' => $lifeCycleBehavior['fdtaskslifecyclepostsubstate'][0] ?? '',
+      'EndDate'  => $lifeCycleBehavior['fdtaskslifecyclepostenddate'][0] ?? 0,
+    ];
   }
 
   /**
