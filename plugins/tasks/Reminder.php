@@ -110,8 +110,8 @@ class Reminder implements EndpointInterface
 
             // Create timeStamp expiration for token
             $tokenExpire = $this->getTokenExpiration($task['fdtasksgranularhelper'][0],
-                                                     $remindersMainTask[0]['fdtasksreminderfirstcall'][0],
-                                                     $remindersMainTask[0]['fdtasksremindersecondcall'][0]);
+              $remindersMainTask[0]['fdtasksreminderfirstcall'][0],
+              $remindersMainTask[0]['fdtasksremindersecondcall'][0]);
             // Create token for SubTask
             $token = $this->generateToken($task['fdtasksgranulardn'][0], $tokenExpire);
             // Edit the mailForm with the url link containing the token
@@ -137,8 +137,8 @@ class Reminder implements EndpointInterface
 
             // Create timeStamp expiration for token
             $tokenExpire = $this->getTokenExpiration($task['fdtasksgranularhelper'][0],
-                                                     $remindersMainTask[0]['fdtasksreminderfirstcall'][0],
-                                                     $remindersMainTask[0]['fdtasksremindersecondcall'][0]);
+              $remindersMainTask[0]['fdtasksreminderfirstcall'][0],
+              $remindersMainTask[0]['fdtasksremindersecondcall'][0]);
             // Create token for SubTask
             $token = $this->generateToken($task['fdtasksgranulardn'][0], $tokenExpire);
             // Edit the mailForm with the url link containing the token
@@ -204,7 +204,7 @@ class Reminder implements EndpointInterface
   {
     $result = '';
     $userPosix = $this->gateway->getLdapTasks('(objectClass=shadowAccount)', ['shadowExpire'],
-                                                    '', $dn);
+      '', $dn);
 
     // Simply remove key "count"
     $this->gateway->unsetCountKeys($userPosix);
@@ -428,7 +428,7 @@ class Reminder implements EndpointInterface
     // in case the DN do not have an email set. - Return string FALSE.
     $result = "FALSE";
     $email  = $this->gateway->getLdapTasks('(objectClass=gosaMailAccount)', ['mail'],
-                                           '', $dn);
+      '', $dn);
     // Simply remove key "count"
     $this->gateway->unsetCountKeys($email);
 
@@ -481,7 +481,7 @@ class Reminder implements EndpointInterface
   {
     $supannResources = [];
     $supannResources = $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate', 'supannRessourceEtat'],
-                                                    '', $dn);
+      '', $dn);
     // Simply remove key "count"
     $this->gateway->unsetCountKeys($supannResources);
 
@@ -693,6 +693,12 @@ class Reminder implements EndpointInterface
       foreach ($reminder as $reminderItem) {
         // Each subTask reminder
         foreach ($reminderItem as $mailDetails) {
+
+          // It is not impossible that only one recipient exist, therefore it won't be an array.
+          if (!is_array($mailDetails['mail']['recipients'])) {
+            // Simply transform the string into an array
+            $mailDetails['mail']['recipients'] = [$mailDetails['mail']['recipients']];
+          }
           $numberOfRecipients = count($mailDetails['mail']['recipients']);
 
           $mail_controller = new \FusionDirectory\Mail\MailLib(
