@@ -1,30 +1,48 @@
 # FusionDirectory Orchestrator 
 
-FusionDirectory Orchestrator is a REST API orchestrator.
-It is a part of our new workflow management system defined in FusionDirectory
-Is purpose is to execute tasks defined in FusionDirectory.
+FusionDirectory Orchestrator is a RESTful web service using JWT authentication, designed to manage and execute tasks efficiently.
+
+It supports multiple endpoints with plugin integration for custom processing or specialized tasks.
+
+Tasks are defined within FusionDirectory, with a client available to query endpoints and manage workflows.
+
+Common tasks include account lifecycle, notifications, reminders, mail automation, audit log management, and more.
 
 ## Features
 
 * Tasks management.
 * Tasks execution.
+* Workflow management.
 * JWT Authentication methods
 
 ## Tasks management
 
-FusionDirectory Orchestrator REST API allows the retrieval of existing created tasks.
-It offers a simple view on the status of each task. 
+FusionDirectory Orchestrator REST API provides seamless management and retrieval of tasks created within FusionDirectory.
+It offers a clear and concise view of the status of each task, including subtasks, allowing for detailed tracking and reporting.
 
-It is possible to retrieve specialized tasks and see their content.
+With its extensible design, the Orchestrator supports specialized tasks such as mail automation, notifications, reminders,
+account lifecycle management, and audit log processing, enabling tailored workflows to meet diverse needs
 
 ## Tasks execution
 
-One of the main aspects of FusionDirectory Orchestrator is to allow processing of some desired tasks.
+One of the core functionalities of the **FusionDirectory Orchestrator** is the execution and processing of various tasks as defined within FusionDirectory.
 
-For example :
+- **Mail Tasks**:
+  When triggered, tasks of type "Mail" will automatically send the relevant emails if the scheduled conditions are met, ensuring timely communication.
 
-*  In case of a task of type "Mail", the list of related emails will be sent if scheduled is matched.
-*  In case of a task of type "Life Cycle", the specialized supann attributes will be updated accordingly.
+- **Life Cycle Tasks**:
+  These tasks are responsible for updating specialized attributes, such as *supann* attributes, in accordance with defined lifecycle processes.
+
+- **Notification Tasks**:
+  When attributes are modified, "Notification" tasks will send automated email alerts to keep users informed of changes.
+
+- **Reminder Tasks**:
+  These tasks send reminders to users, potentially including links to extend or prolong their account, ensuring critical actions are not missed.
+
+- **Audit Tasks**:
+  Tasks of this type allow for the management of audit logs, including the deletion of logs based on configurable retention policies, ensuring compliance and data management.
+
+The **Orchestrator client** provides a user-friendly interface to activate and manage these tasks, allowing for seamless workflow execution and efficient task orchestration across the system.
 
 ## Get help
 
@@ -36,12 +54,10 @@ There are a couple of ways you can try [to get help][get help].
 
 Professional support is provided through of subscription.
 
-We have two type of subscription :
+* [FusionDirectory Subscription][subscription-fusiondirectory] : Global subscription for FusionDirectory 
 
-* [FusionDirectory][subscription-fusiondirectory] : Global subscription for FusionDirectory and all the plugins
-* [FusionDirectory Plus][subscription-fusiondirectory-plus] : Expert Support on Education, Deployment and Infrastructure plugins
-
-The subscription provides access to FusionDirectory's stable enterprise repository, providing reliable software updates and security enhancements, as well as technical help and support.
+The subscription provides access to FusionDirectory's enterprise repository, tested and pre-packaged versions with patches between versions, 
+providing reliable software updates and security enhancements, as well as technical help and support.
 
 Choose the plan that's right for you. Our subscriptions are flexible and scalable according to your needs
 
@@ -59,9 +75,7 @@ If you like us and want to send us a small contribution, you can use the followi
 
 * [donate-kofi]
 
-* [donate-opencollective]
-
-* [donate-communitybridge]
+* [donate-github]
   
 ## License
 
@@ -69,13 +83,11 @@ If you like us and want to send us a small contribution, you can use the followi
 
 [FusionDirectory]: https://www.fusiondirectory.org/
 
-[fusiondirectory-install]: https://fusiondirectory-user-manual.readthedocs.io/en/1.4/fusiondirectory/install/index.html
+[fusiondirectory-install]: https://fusiondirectory-user-manual.readthedocs.io/en/latest/fusiondirectory/install/index.html
 
 [get help]: https://fusiondirectory-user-manual.readthedocs.io/en/latest/support/index.html
 
-[subscription-fusiondirectory]: https://www.fusiondirectory.org/en/subscription-fusiondirectory/
-
-[subscription-fusiondirectory-plus]: https://www.fusiondirectory.org/en/subscriptions-fusiondirectory-plus/
+[subscription-fusiondirectory]: https://www.fusiondirectory.org/en/iam-tool-service-subscriptions/
 
 [register]: https://register.fusiondirectory.org
 
@@ -83,9 +95,5 @@ If you like us and want to send us a small contribution, you can use the followi
 
 [donate-kofi]: https://ko-fi.com/fusiondirectory
 
-[donate-opencollective]: https://opencollective.com/fusiondirectory
-
-[donate-communitybridge]: https://funding.communitybridge.org/projects/fusiondirectory
-
-
+[donate-github]: https://github.com/fusiondirectory
 
