@@ -1,3 +1,35 @@
+## %"FusionDirectory Orchestrator 1.1" - 2025-01-31
+
+### Added
+
+#### fusiondirectory-orchestrator
+- fusiondirectory-orchestrator#39 [Orchestrator] - New endpoint notifications in order to manage notifications tasks
+- fusiondirectory-orchestrator#43 [Orchestrator] - Create a possible plugin endpoints, allowing new endpoints developed to be considered as plugin base.
+- fusiondirectory-orchestrator#48 [Orchestrator] - Add options mailAuth and mail_sec_verify in orchestrator configuration file
+- fusiondirectory-orchestrator#52 [Orchestrator] - AUDIT - automatic deletion from audit tasks
+- fusiondirectory-orchestrator#57 [Orchestrator] - New endpoint for userReminder allowing to send notification to use with token to extend their account longevity
+- fusiondirectory-orchestrator#62 [Orchestrator] - lifeCycle prolongation adds time from date of process and not from resource end date
+- fusiondirectory-orchestrator#64 [Orchestrator] - Reminder - Removal of fdTasksReminderManager
+- fusiondirectory-orchestrator#65 [Orchestrator] - Format of the orchestrator.conf updates
+
+### Changed
+
+#### fusiondirectory-orchestrator
+- fusiondirectory-orchestrator#55 [Orchestrator] - Notifications must be updated to be aware of supannStatus values
+
+### Removed
+
+#### fusiondirectory-orchestrator
+- fusiondirectory-orchestrator#37 [Orchestrator] - Analyze the library mail to integrate it to integrator
+
+### Fixed
+
+#### fusiondirectory-orchestrator
+- fusiondirectory-orchestrator#46 [Orchestrator] - taskGateway verify schedule strtotime issues
+- fusiondirectory-orchestrator#47 Use overload instead of load for dotenv
+- fusiondirectory-orchestrator#61 [Orchestrator] - LifeCycle array supann is analyzed with static numbering
+- fusiondirectory-orchestrator#66 [Orchestrator] - user-reminder - issue when only one members is set
+
 ## %"FusionDirectory Orchestrator 1.0" - 2024-04-05
 
 ### Added
