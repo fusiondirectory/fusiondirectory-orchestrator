@@ -2,10 +2,16 @@
 
 /**
  * Note : Tasks engine for FusionDirectory.
+ * The gateway, often known as a data gateway or data access layer, is responsible for abstracting and encapsulating the interaction with an external system or a data source.
+ * (e.g., an LDAP, an API, or another service).
+ * It provides a unified interface for these operations.
  */
 class TaskGateway
 {
-  private $ds;
+  /**
+   * @var resource|null
+   */
+  public $ds;
 
   // Variable type can be LDAP : enhancement
   public function __construct ($ldap_connect)
@@ -21,14 +27,20 @@ class TaskGateway
   public function getTask (?string $object_type): array
   {
     switch ($object_type) {
-      case "mail":
-        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Mail Object))");
-        unset($list_tasks["count"]);
-        break;
 
       case "lifeCycle":
         $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Life Cycle))");
-        unset($list_tasks["count"]);
+        $this->unsetCountKeys($list_tasks);
+        break;
+
+      case "notifications":
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Notifications))");
+        $this->unsetCountKeys($list_tasks);
+        break;
+
+      case "reminder":
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Reminder))");
+        $this->unsetCountKeys($list_tasks);
         break;
 
       case "removeSubTasks":
@@ -42,6 +54,11 @@ class TaskGateway
         $list_tasks = $this->getLdapTasks("(objectClass=fdTasks)", ["cn", "objectClass"]);
         break;
 
+      case $object_type:
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=" . $object_type . "))");
+        $this->unsetCountKeys($list_tasks);
+        break;
+
       //Will match any object type passed not found.
       default:
         // return empty array which will be interpreted as FALSE by parent.
@@ -53,205 +70,37 @@ class TaskGateway
   }
 
   /**
-   * @param array $list_tasks
-   * @return array
+   * @param array $task
+   * @return bool
+   * @throws Exception
    */
-  public function processMailTasks (array $list_tasks): array
+  public function statusAndScheduleCheck (array $task): bool
   {
-    $result = [];
-
-    $fdTasksConf = $this->getLdapTasks(
-      "(objectClass=fdTasksConf)",
-      ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
-    );
-
-    // set the maximum mails to be sent to the configured value or 50 if not set.
-    $maxMailsConfig = $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
-
-    if ($this->verifySpamProtection($fdTasksConf)) {
-      foreach ($list_tasks as $mail) {
-
-        $maxMailsIncrement = 0;
-
-        // verify status before processing (to be checked with schedule as well).
-        if ($mail["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($mail["fdtasksgranularschedule"][0])) {
-
-          // Search for the related attached mail object.
-          $cn          = $mail["fdtasksgranularref"][0];
-          $mailInfos   = $this->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $cn);
-          $mailContent = $mailInfos[0];
-
-          // Only takes arrays related to files attachments for the mail template selected
-          unset($mailInfos[0]);
-          // Re-order keys
-          unset($mailInfos['count']);
-          $mailAttachments = array_values($mailInfos);
-
-          $setFrom    = $mail["fdtasksgranularmailfrom"][0];
-          $setBCC     = $mail["fdtasksgranularmailbcc"][0] ?? NULL;
-          $recipients = $mail["fdtasksgranularmail"];
-          $body       = $mailContent["fdmailtemplatebody"][0];
-          $signature  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
-          $subject    = $mailContent["fdmailtemplatesubject"][0];
-          $receipt    = $mailContent["fdmailtemplatereadreceipt"][0];
-
-          foreach ($mailAttachments as $file) {
-            $fileInfo['cn']      = $file['cn'][0];
-            $fileInfo['content'] = $file['fdmailattachmentscontent'][0];
-            $attachments[]       = $fileInfo;
-          }
-
-          // Required before passing the array to the constructor mail.
-          if (empty($attachments)) {
-            $attachments = NULL;
-          }
-
-          $mail_controller = new MailController($setFrom,
-            $setBCC,
-            $recipients,
-            $body,
-            $signature,
-            $subject,
-            $receipt,
-            $attachments);
-
-          $mailSentResult = $mail_controller->sendMail();
-
-          if ($mailSentResult[0] == "SUCCESS") {
-
-            // The third arguments "2" is the status code of success for mail as of now 18/11/22
-            $result[$mail["dn"]]['statusUpdate']   = $this->updateTaskStatus($mail["dn"], $mail["cn"][0], "2");
-            $result[$mail["dn"]]['mailStatus']     = 'mail : ' . $mail["dn"] . ' was successfully sent';
-            $result[$mail["dn"]]['updateLastExec'] = $this->updateLastMailExecTime($fdTasksConf[0]["dn"]);
-
-          } else {
-            $result[$mail["dn"]]['statusUpdate'] = $this->updateTaskStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0]);
-            $result[$mail["dn"]]                 = $mailSentResult;
-          }
-
-          // Verification anti-spam max mails to be sent and quit loop if matched
-          $maxMailsIncrement += 1;
-          if ($maxMailsIncrement == $maxMailsConfig) {
-            break;
-          }
-
-        }
-      }
-    }
-
-    return $result;
+    return $task["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($task["fdtasksgranularschedule"][0]);
   }
 
   /**
-   * @param array $list_tasks
-   * @return array
-   * Note : Verify the status and schedule as well as searching for the correct life cycle behavior from main task.
+   * @param $array
+   * @return void
+   * Simple take an array as referenced and loop to remove all key having count
    */
-  public function processLifeCycleTasks (array $list_tasks): array
+  public function unsetCountKeys (&$array)
   {
-    // Array representing the status of the subtask.
-    $result = [];
-    // Initiate the object webservice.
-    $webservice = new WebServiceCall($_ENV['FUSION_DIRECTORY_API_URL'] . '/login', 'POST');
-    // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
-    $webservice->setCurlSettings();
-
-    foreach ($list_tasks as $task) {
-      // If the tasks must be treated - status and scheduled - process the sub-tasks
-      if ($task["fdtasksgranularstatus"][0] == 1 && $this->verifySchedule($task["fdtasksgranularschedule"][0])) {
-
-        // Simply retrieve the lifeCycle behavior from the main related tasks, sending the dns and desired attributes
-        $lifeCycleBehavior = $this->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
-          'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
-          'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate'],
-          '', $task['fdtasksgranularmaster'][0]);
-
-        // Simply retrieve the current supannStatus of the user DN related to the task at hand.
-        $currentUserLifeCycle = $this->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate'],
-          '', $task['fdtasksgranulardn'][0]);
-
-        // Compare both the required schedule and the current user status - returning TRUE if modification is required.
-        if ($this->isLifeCycleRequiringModification($lifeCycleBehavior, $currentUserLifeCycle)) {
-
-          // This will call a method to modify the ressourcesSupannEtatDate of the DN linked to the subTask
-          $lifeCycleResult = $this->updateLifeCycle($lifeCycleBehavior, $task['fdtasksgranulardn'][0]);
-          if ($lifeCycleResult === TRUE) {
-
-            $result[$task['dn']]['results'] = json_encode("Account states have been successfully modified for " . $task['fdtasksgranulardn'][0]);
-            // Status of the task must be updated to success
-            $updateResult = $this->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-
-            // Here the user is refresh in order to activate methods based on supann Status changes.
-            $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
-
-            // In case the modification failed
-          } else {
-            $result[$task['dn']]['results'] = json_encode("Error updating " . $task['fdtasksgranulardn'][0] . "-" . $lifeCycleResult);
-            // Update of the task status error message
-            $updateResult = $this->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult);
-          }
-          // Verification if the sub-task status has been updated correctly
-          if ($updateResult === TRUE) {
-            $result[$task['dn']]['statusUpdate'] = 'Success';
-          } else {
-            $result[$task['dn']]['statusUpdate'] = $updateResult;
-          }
-          // Remove the subtask has it is not required to update it nor to process it.
-        } else {
-          $result[$task['dn']]['results']      = 'Sub-task removed for : ' . $task['fdtasksgranulardn'][0] . ' with result : '
-            . $this->removeSubTask($task['dn']);
-          $result[$task['dn']]['statusUpdate'] = 'No updates required, sub-task will be removed.';
-        }
+    foreach ($array as $key => &$value) {
+      if (is_array($value)) {
+        $this->unsetCountKeys($value);
+      } elseif ($key === 'count') {
+        unset($array[$key]);
       }
     }
-    // If array is empty, no tasks of type life cycle needs to be treated.
-    if (empty($result)) {
-      $result = 'No tasks of type "Life Cycle" requires processing.';
-    }
-    return [$result];
-  }
-
-  /**
-   * @param array $lifeCycleBehavior
-   * @param string $userDN
-   * @return bool|string
-   */
-  protected function updateLifeCycle (array $lifeCycleBehavior, string $userDN)
-  {
-    // Extracting values of desired post-state behavior
-    $newEntry['Resource'] = $lifeCycleBehavior[0]['fdtaskslifecyclepostresource'][0];
-    $newEntry['State']    = $lifeCycleBehavior[0]['fdtaskslifecyclepoststate'][0];
-    $newEntry['SubState'] = $lifeCycleBehavior[0]['fdtaskslifecyclepostsubstate'][0] ?? ''; //SubState is optional
-    $newEntry['EndDate']  = $lifeCycleBehavior[0]['fdtaskslifecyclepostenddate'][0] ?? 0; //EndDate is optional
-
-    // Require the date of today to update the start of the new resources (If change of status).
-    $currentDate = new DateTime();
-    // Date of today + numbers of days to add for end date.
-    $newEndDate = new DateTime();
-    $newEndDate->modify("+" . $newEntry['EndDate'] . " days");
-
-    // Prepare the ldap entry to be modified
-    $ldapEntry                            = [];
-    $ldapEntry['supannRessourceEtatDate'] = "{" . $newEntry['Resource'] . "}"
-      . $newEntry['State'] . ":"
-      . $newEntry['SubState'] . ":" .
-      $currentDate->format('Ymd') . ":"
-      . $newEndDate->format('Ymd');
-
-    try {
-      $result = ldap_modify($this->ds, $userDN, $ldapEntry);
-    } catch (Exception $e) {
-      $result = json_encode(["Ldap Error" => "$e"]);
-    }
-
-    return $result;
+    unset($value); //unset the reference after the loop for security best practise.
   }
 
   /**
    * @param bool|string $subTaskDn
    * @return bool|string
    */
-  protected function removeSubTask ($subTaskDn)
+  public function removeSubTask ($subTaskDn)
   {
     try {
       $result = ldap_delete($this->ds, $subTaskDn);
@@ -274,7 +123,7 @@ class TaskGateway
       ["dn"]
     );
     // remove the count key from the arrays, keeping only DN.
-    unset($subTasksCompleted['count']);
+    $this->unsetCountKeys($subTasksCompleted);
     if (!empty($subTasksCompleted)) {
       foreach ($subTasksCompleted as $subTasks) {
         $result[$subTasks['dn']]['result'] = $this->removeSubTask($subTasks['dn']);
@@ -298,16 +147,17 @@ class TaskGateway
       ["dn", "fdTasksRepeatableSchedule", "fdTasksLastExec", "fdTasksScheduleDate"]
     );
     // remove the count key from the arrays, keeping only DN.
-    unset($tasks['count']);
+    $this->unsetCountKeys($tasks);
 
     if (!empty($tasks)) {
+
       // Initiate the object webservice.
-      $webservice = new WebServiceCall($_ENV['FUSION_DIRECTORY_API_URL'] . '/login', 'POST');
+      $webservice = new FusionDirectory\Rest\WebServiceCall($_ENV['FUSION_DIRECTORY_API_URL'] . '/login', 'POST');
 
       // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
       $webservice->setCurlSettings();
-      // Is used to verify cyclic schedule with date format.
-      $now = new DateTime('now', new DateTimeZone('UTC'));
+      // Is used to verify cyclic schedule with date format. This use de local timezone - not UTC
+      $now = new DateTime('now');
 
       foreach ($tasks as $task) {
         // Transform schedule time (it is a simple string)
@@ -322,6 +172,7 @@ class TaskGateway
             // Case where the tasks were once run, verification of the cyclic schedule and last exec.
           } else if (!empty($task['fdtasksrepeatableschedule'][0])) {
             $lastExec = new DateTime($task['fdtaskslastexec'][0]);
+
             // Efficient way to verify timelapse
             $interval = $now->diff($lastExec);
 
@@ -341,21 +192,23 @@ class TaskGateway
                 }
                 break;
               case 'Weekly' :
-                if ($interval->d >= 7) {
+                if ($interval->days >= 7) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
               case 'Daily' :
-                if ($interval->d >= 1) {
+                if ($interval->days >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
                 }
                 break;
               case 'Hourly' :
-                if ($interval->h >= 7) {
+                // When checking for hourly schedules, consider both the days and hours
+                $totalHours = $interval->days * 24 + $interval->h;
+                if ($totalHours >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
                   $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
@@ -365,7 +218,7 @@ class TaskGateway
           }
           // Case where cyclic tasks where found but the schedule is no ready.
         } else {
-          $result[$task['dn']]['Status'] = 'This cyclic task has yet to reach its scheduled date.';
+          $result[$task['dn']]['Status'] = 'This cyclic task has yet to reach its next execution cycle.';
         }
       }
     } else {
@@ -376,87 +229,19 @@ class TaskGateway
   }
 
   /**
-   * @param array $lifeCycleBehavior
-   * @param array $currentUserLifeCycle
-   * @return bool
-   * Note receive the life cycle behavior desired and compare it the received current user life cycle, returning TRUE
-   * if there is indeed a difference and therefore must update the user information.
-   * In case the comparison is impossible due to the use not having a status listed, it will report false.
-   */
-  protected function isLifeCycleRequiringModification (array $lifeCycleBehavior, array $currentUserLifeCycle): bool
-  {
-    $result = FALSE;
-    // Regular expression in order to extract the supann format within an array
-    $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
-
-    // In case the tasks is launched without supann being activated on the user account, return error
-    if (empty($currentUserLifeCycle[0]['supannressourceetatdate'][0])) {
-      return FALSE;
-    }
-    // Perform the regular expression match
-    preg_match($pattern, $currentUserLifeCycle[0]['supannressourceetatdate'][0], $matches);
-
-    // Extracting values of current user
-    $userSupann['Resource'] = $matches[1] ?? '';
-    $userSupann['State']    = $matches[2] ?? '';
-    $userSupann['SubState'] = $matches[3] ?? '';
-    // Array index 4 is skipped, we only use end date to apply our life cycle logic. Start date has no use here.
-    $userSupann['EndDate'] = $matches[5] ?? '';
-
-    // Extracting values of desired pre-state behavior
-    $preStateSupann['Resource'] = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0];
-    $preStateSupann['State']    = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0];
-    $preStateSupann['SubState'] = $lifeCycleBehavior[0]['fdtaskslifecyclepresubstate'][0] ?? ''; //SubState is optional
-
-    //  Verifying if the user end date for selected resource is overdue
-    if (!empty($userSupann['EndDate']) && strtotime($userSupann['EndDate']) <= time()) {
-      // Comparing value in a nesting conditions
-      if ($userSupann['Resource'] == $preStateSupann['Resource']) {
-        if ($userSupann['State'] == $preStateSupann['State']) {
-          // as SubState is optional, if both resource and state match at this point, modification is allowed.
-          if (empty($preStateSupann['SubState'])) {
-            $result = TRUE;
-          } else if ($preStateSupann['SubState'] == $userSupann['SubState']) {
-            $result = TRUE;
-          }
-        }
-      }
-    }
-
-    return $result;
-  }
-
-  /**
-   * @param array $fdTasksConf
-   * @return bool
-   * Note : Method which verify the last executed e-mails sent
-   *  Verify if the time interval is respected in order to protect from SPAM
-   */
-  public function verifySpamProtection (array $fdTasksConf): bool
-  {
-    $lastExec     = $fdTasksConf[0]["fdtasksconflastexectime"][0] ?? NULL;
-    $spamInterval = $fdTasksConf[0]["fdtasksconfintervalemails"][0] ?? NULL;
-
-    // Multiplication is required to have the seconds
-    $spamInterval = $spamInterval * 60;
-    $antispam     = $lastExec + $spamInterval;
-    if ($antispam <= time()) {
-      return TRUE;
-    }
-
-    return FALSE;
-  }
-
-  /**
    * @param string $schedule
    * @return bool
+   * @throws Exception
+   * Note : Verification of the schedule in complete string format and compare.
+   * DateTime will use the system timezone by default.
    */
-  // Verification of the schedule in complete string format and compare.
   public function verifySchedule (string $schedule): bool
   {
-    $schedule = strtotime($schedule);
-    if ($schedule < time()) {
-      return TRUE;
+    $currentDateTime   = new DateTime('now'); // Get current datetime in locale timezone
+    $scheduledDateTime = new DateTime($schedule); // Parse scheduled datetime string in local timezone
+
+    if ($scheduledDateTime < $currentDateTime) {
+      return TRUE; // Schedule has passed
     }
 
     return FALSE;
@@ -513,7 +298,10 @@ class TaskGateway
   public function updateTaskStatus (string $dn, string $cn, string $status)
   {
     // prepare data
-    $ldap_entry["cn"] = $cn;
+    if (!empty($dn)) {
+      $ldap_entry["cn"] = $cn;
+    }
+
     // Status subject to change
     $ldap_entry["fdTasksGranularStatus"] = $status;
 
@@ -528,13 +316,27 @@ class TaskGateway
   }
 
   /**
+   * @param $objectType
+   * @return array|string[]|void
+   */
+  public function getObjectTypeTask ($objectType)
+  {
+    $task = $this->getTask($objectType);
+    if (!$task) {
+      TaskController::respondNotFound($objectType);
+      exit;
+    }
+
+    return $task;
+  }
+
+  /**
    * @param string $dn
    * @return bool|string
    * Note: Update the attribute lastExecTime from fdTasksConf.
    */
   public function updateLastMailExecTime (string $dn)
   {
-    // prepare data
     $ldap_entry["fdTasksConfLastExecTime"] = time();
 
     // Add data to LDAP
@@ -546,5 +348,4 @@ class TaskGateway
     }
     return $result;
   }
-
 }
