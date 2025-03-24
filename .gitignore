@@ -1,2 +1,9 @@
 .vendor/
 .composer.lock
+filelist
+phpstan.neon
+.idea/fusiondirectory-orchestrator.iml
+.idea/modules.xml
+.idea/php.xml
+.idea/vcs.xml
+.idea/codeStyles/codeStyleConfig.xml
