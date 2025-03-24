@@ -12,7 +12,7 @@ class TokenUtils
    * @return string
    * @throws Exception
    */
-  public static function generateToken (string $userDN, int $timeStamp): string
+  public static function generateToken (string $userDN, int $timeStamp, TaskGateway $gateway): string
   {
     $token = NULL;
     // Salt has been generated with APG.
@@ -28,7 +28,7 @@ class TokenUtils
     $token = Utils::base64urlEncode($token_hmac);
 
     // Save token within LDAP
-    self::saveTokenInLdap($userDN, $token, $timeStamp);
+    self::saveTokenInLdap($userDN, $token, $timeStamp, $gateway);
 
     return $token;
   }
@@ -64,17 +64,17 @@ class TokenUtils
 
 
     // Verify if token ou branch exists
-    if (!self::tokenBranchExist('ou=tokens' . ',' . $_ENV["LDAP_BASE"])) {
+    if (!self::tokenBranchExist('ou=tokens' . ',' . $_ENV["LDAP_BASE"], $gateway)) {
       // Create the branch
-      self::createBranchToken();
+      self::createBranchToken($gateway);
     }
 
     // The user token DN creation
     $userTokenDN = 'cn=' . $uid . ',ou=tokens' . ',' . $_ENV["LDAP_BASE"];
     // Verify if a token already exists for specified user and remove it to create new one correctly.
-    if (self::tokenBranchExist($userTokenDN)) {
+    if (self::tokenBranchExist($userTokenDN, $gateway)) {
       // Remove the user token
-      self::removeUserToken($userTokenDN);
+      self::removeUserToken($userTokenDN, $gateway);
     }
 
     // Add token to LDAP for specific UID

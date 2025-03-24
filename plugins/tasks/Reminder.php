@@ -113,7 +113,7 @@ class Reminder implements EndpointInterface
               $remindersMainTask[0]['fdtasksreminderfirstcall'][0],
               $remindersMainTask[0]['fdtasksremindersecondcall'][0]);
             // Create token for SubTask
-            $token = TokenUtils::generateToken($task['fdtasksgranulardn'][0], $tokenExpire);
+            $token = TokenUtils::generateToken($task['fdtasksgranulardn'][0], $tokenExpire, $this->gateway);
             // Edit the mailForm with the url link containing the token
             $tokenMailTemplateForm = TokenUtils::generateTokenUrl($token, $mailTemplateForm, $remindersMainTaskName);
             // Recipient email form
@@ -140,7 +140,7 @@ class Reminder implements EndpointInterface
               $remindersMainTask[0]['fdtasksreminderfirstcall'][0],
               $remindersMainTask[0]['fdtasksremindersecondcall'][0]);
             // Create token for SubTask
-            $token = TokenUtils::generateToken($task['fdtasksgranulardn'][0], $tokenExpire);
+            $token = TokenUtils::generateToken($task['fdtasksgranulardn'][0], $tokenExpire, $this->gateway);
             // Edit the mailForm with the url link containing the token
             $tokenMailTemplateForm = TokenUtils::generateTokenUrl($token, $mailTemplateForm, $remindersMainTaskName);
             // Recipient email form
