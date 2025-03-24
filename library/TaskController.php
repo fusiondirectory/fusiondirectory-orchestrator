@@ -55,7 +55,7 @@ class TaskController
           switch ($objectType) {
             case $objectType:
               if (class_exists($objectType)) {
-                $endpoint = new $objectType;
+                $endpoint = new $objectType($this->gateway);
                 $result   = $endpoint->processEndPointGet();
               }
               break;
