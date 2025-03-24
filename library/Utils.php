@@ -2,7 +2,9 @@
 
 class Utils
 {
-  private function __construct () {}
+  private function __construct ()
+  {
+  }
 
   /**
    * @param array $array
