@@ -17,7 +17,7 @@ class Utils
     $filtered = array_filter($array, function ($item) {
       if (is_array($item)) {
         // Recursively filter the sub-array
-        $item = $this->recursiveArrayFilter($item);
+        $item = self::recursiveArrayFilter($item);
         // Only retain non-empty arrays
         return !empty($item);
       } else {
