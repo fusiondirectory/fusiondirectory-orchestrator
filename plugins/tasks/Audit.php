@@ -47,7 +47,7 @@ class Audit implements EndpointInterface
     $result = $this->processAuditDeletion($this->gateway->getObjectTypeTask('Audit'));
 
     // Recursive function to filter out empty arrays at any depth
-    $nonEmptyResults = $this->recursiveArrayFilter($result);
+    $nonEmptyResults = Utils::recursiveArrayFilter($result);
 
     if (!empty($nonEmptyResults)) {
       return $nonEmptyResults;
@@ -118,28 +118,5 @@ class Audit implements EndpointInterface
     $this->gateway->unsetCountKeys($audit);
 
     return $audit;
-  }
-
-  /**
-   * @param array $array
-   * @return array
-   * Note : Recursively filters out empty values and arrays at any depth.
-   */
-  private function recursiveArrayFilter (array $array): array
-  {
-    // First filter the array for non-empty elements
-    $filtered = array_filter($array, function ($item) {
-      if (is_array($item)) {
-        // Recursively filter the sub-array
-        $item = $this->recursiveArrayFilter($item);
-        // Only retain non-empty arrays
-        return !empty($item);
-      } else {
-        // Retain non-empty scalar values
-        return !empty($item);
-      }
-    });
-
-    return $filtered;
   }
 }
