@@ -2,11 +2,11 @@
 
 class MailUtils
 {
-  private function __construct()
+  private function __construct ()
   {
   }
 
-  public static function sendMail($setFrom, $setBCC, $recipients, $body, $signature, $subject, $receipt, $attachments)
+  public static function sendMail ($setFrom, $setBCC, $recipients, $body, $signature, $subject, $receipt, $attachments)
   {
     $mail_controller = new \FusionDirectory\Mail\MailLib($setFrom,
       $setBCC,
