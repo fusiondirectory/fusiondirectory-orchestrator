@@ -136,7 +136,7 @@ class TokenUtils
       ldap_add(
         $gateway->ds, 'ou=tokens' . ',' . $_ENV["LDAP_BASE"],
         [
-          'ou'      => 'tokens',
+          'ou'          => 'tokens',
           'objectClass' => 'organizationalUnit',
         ]
       );
