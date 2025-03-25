@@ -32,43 +32,45 @@ class Archive implements EndpointInterface
     $result = [];
     $archiveTasks = $this->gateway->getObjectTypeTask('archive');
 
+    // Initialize the WebServiceCall object for login
+    $webServiceCall = new WebServiceCall($_ENV['FUSION_DIRECTORY_API_URL'] . '/login', 'POST');
+    $webServiceCall->setCurlSettings(); // Perform login and set the token
+
     foreach ($archiveTasks as $task) {
-      // Verify the task status and schedule
-      if ($this->gateway->statusAndScheduleCheck($task)) {
-        // Retrieve the user's supannAccountStatus
-        $userStatus = $this->getUserSupannAccountStatus($task['fdtasksgranulardn'][0]);
+        try {
+            if (!$this->gateway->statusAndScheduleCheck($task)) {
+                // Skip this task if it does not meet the status and schedule criteria
+                continue;
+            }
 
-        // Check if the user meets the "toBeArchived" condition
-        if ($userStatus === 'toBeArchived') {
-          // Construct the archive URL
-          $archiveUrl = $_ENV['FUSION_DIRECTORY_API_URL'] . '/archive/user/' . rawurlencode($task['fdtasksgranulardn'][0]);
+            // Receive null or 'toBeArchived'
+            $supannState = $this->getUserSupannAccountStatus($task['fdtasksgranulardn'][0]);
 
-          // Initialize the WebServiceCall object
-          $webServiceCall = new WebServiceCall($archiveUrl, 'POST');
-          $webServiceCall->setCurlSettings();
+            if ($supannState !== 'toBeArchived') {
+                // The task does not meet the criteria for archiving and can therefore be suppressed
+                $result[$task['dn']]['result'] = "User does not meet the criteria for archiving.";
+                $this->gateway->removeSubTask($task['dn']);
+                continue;
+            }
 
-          // Execute the request
-          $response = curl_exec($webServiceCall->ch);
+            // Set the archive endpoint and method using the same WebServiceCall object
+            $archiveUrl = $_ENV['FUSION_DIRECTORY_API_URL'] . '/archive/user/' . rawurlencode($task['fdtasksgranulardn'][0]);
+            $webServiceCall->setCurlSettings($archiveUrl, [], 'POST'); // Update settings for the archive request
+            $response = $webServiceCall->execute();
 
-          // Handle any cURL errors
-          $webServiceCall->handleCurlError($webServiceCall->ch);
+            print_r([$response]);
+              exit;
 
-          // Decode and process the response
-          $responseData = json_decode($response, true);
-          if ($responseData && isset($responseData['success']) && $responseData['success'] === true) {
-            $result[$task['dn']]['result'] = "User successfully archived.";
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2'); // Mark task as completed
-          } else {
-            $result[$task['dn']]['result'] = "Error archiving user.";
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '3'); // Mark task as failed
-          }
-
-          // Close the cURL resource
-          curl_close($webServiceCall->ch);
-        } else {
-          $result[$task['dn']]['result'] = "User does not meet the criteria for archiving.";
+            if (isset($response['success']) && $response['success'] === true) {
+                $result[$task['dn']]['result'] = "User successfully archived.";
+                $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            } else {
+                throw new Exception("Invalid API response format");
+            }
+        } catch (Exception $e) {
+            $result[$task['dn']]['result'] = "Error archiving user: " . $e->getMessage();
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
         }
-      }
     }
 
     return $result;
@@ -101,8 +103,37 @@ class Archive implements EndpointInterface
    */
   private function getUserSupannAccountStatus(string $userDn): ?string
   {
-    // Logic to retrieve the supannAccountStatus attribute of the user
-    $user = $this->gateway->getLdapEntry($userDn, ['supannAccountStatus']);
-    return $user['supannAccountStatus'][0] ?? NULL;
+      $supannState = $this->gateway->getLdapTasks(
+          '(objectClass=supannPerson)',
+          ['supannRessourceEtatDate'],
+          '',
+          $userDn
+      );
+  
+      if ($this->hasToBeArchived($supannState)) {
+          return 'toBeArchived';
+      }
+  
+      return null;
+  }
+
+  private function hasToBeArchived(array $supannState): bool
+  {
+      if (!isset($supannState[0]['supannressourceetatdate']) || !is_array($supannState[0]['supannressourceetatdate'])) {
+          return false;
+      }
+
+      foreach ($supannState[0]['supannressourceetatdate'] as $key => $value) {
+          // Skip non-numeric keys (e.g., 'count')
+          if (!is_numeric($key)) {
+              continue;
+          }
+
+          if (strpos($value, '{COMPTE}I:toBeArchived') !== false) {
+              return true;
+          }
+      }
+
+      return false;
   }
 }
