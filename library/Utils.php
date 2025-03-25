@@ -13,20 +13,12 @@ class Utils
    */
   public static function recursiveArrayFilter (array $array): array
   {
-    // First filter the array for non-empty elements
-    $filtered = array_filter($array, function ($item) {
-      if (is_array($item)) {
-        // Recursively filter the sub-array
-        $item = self::recursiveArrayFilter($item);
-        // Only retain non-empty arrays
+    return array_filter($array, function ($item) {
+        if (is_array($item)) {
+            $item = self::recursiveArrayFilter($item);
+        }
         return !empty($item);
-      } else {
-        // Retain non-empty scalar values
-        return !empty($item);
-      }
     });
-
-    return $filtered;
   }
 
   /**
@@ -40,12 +32,10 @@ class Utils
   {
     $matching = [];
 
-    if (!empty($elements)) {
-      foreach ($elements as $element) {
-        foreach ($keys as $key) {
-          if (!empty($element) && array_key_exists($key, $element)) {
-            $matching[] = $key;
-          }
+    foreach ($elements as $element) {
+      foreach ($keys as $key) {
+        if (!empty($element) && array_key_exists($key, $element)) {
+          $matching[] = $key;
         }
       }
     }
