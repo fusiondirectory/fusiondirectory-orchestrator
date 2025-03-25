@@ -14,10 +14,10 @@ class Utils
   public static function recursiveArrayFilter (array $array): array
   {
     return array_filter($array, function ($item) {
-        if (is_array($item)) {
-            $item = self::recursiveArrayFilter($item);
-        }
-        return !empty($item);
+      if (is_array($item)) {
+          $item = self::recursiveArrayFilter($item);
+      }
+      return !empty($item);
     });
   }
 
