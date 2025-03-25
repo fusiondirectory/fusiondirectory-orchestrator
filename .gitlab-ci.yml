@@ -93,10 +93,3 @@ trigger-ci-ubuntu-focal:
     project: ubuntu/focal-fusiondirectory-orchestrator-dev
     branch: "main"
 
-trigger-ci-centos-7:
-  stage: trigger
-  only:
-    - dev
-  trigger:
-    project: centos/centos7-fusiondirectory-orchestrator-dev
-    branch: "main"
