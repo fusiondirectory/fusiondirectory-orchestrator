@@ -55,17 +55,15 @@ class Archive implements EndpointInterface
 
             // Set the archive endpoint and method using the same WebServiceCall object
             $archiveUrl = $_ENV['FUSION_DIRECTORY_API_URL'] . '/archive/user/' . rawurlencode($task['fdtasksgranulardn'][0]);
-            $webServiceCall->setCurlSettings($archiveUrl, [], 'POST'); // Update settings for the archive request
+            $webServiceCall->setCurlSettings($archiveUrl, NULL, 'POST'); // Update settings for the archive request
             $response = $webServiceCall->execute();
 
-            print_r([$response]);
-              exit;
-
-            if (isset($response['success']) && $response['success'] === true) {
+            // Check if the HTTP status code is 204
+            if ($webServiceCall->getHttpStatusCode() === 204) {
                 $result[$task['dn']]['result'] = "User successfully archived.";
                 $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
             } else {
-                throw new Exception("Invalid API response format");
+                throw new Exception("Unexpected HTTP status code: " . $webServiceCall->getHttpStatusCode());
             }
         } catch (Exception $e) {
             $result[$task['dn']]['result'] = "Error archiving user: " . $e->getMessage();
