@@ -196,13 +196,13 @@ class ReminderTokenUtils
     return $result;
   }
 
-    /**
-     * @param string $text
-     * @return string
-     * Note : This come from jwtToken, as it is completely private - it is cloned here for now.
-     */
-    private function base64urlEncode (string $text): string
-    {
-        return str_replace(["+", "/", "="], ["A", "B", ""], base64_encode($text));
-    }
+  /**
+   * @param string $text
+   * @return string
+   * Note : This come from jwtToken, as it is completely private - it is cloned here for now.
+   */
+  private function base64urlEncode (string $text): string
+  {
+    return str_replace(["+", "/", "="], ["A", "B", ""], base64_encode($text));
+  }
 }

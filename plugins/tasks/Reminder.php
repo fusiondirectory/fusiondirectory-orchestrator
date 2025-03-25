@@ -5,7 +5,7 @@ class Reminder implements EndpointInterface
 
   private TaskGateway $gateway;
   private ReminderTokenUtils $reminderTokenUtils;
-  
+
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
