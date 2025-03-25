@@ -4,10 +4,12 @@ class Audit implements EndpointInterface
 {
 
   private TaskGateway $gateway;
+  private Utils $utils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
+    $this->utils = new Utils();
   }
 
   /**
@@ -47,7 +49,7 @@ class Audit implements EndpointInterface
     $result = $this->processAuditDeletion($this->gateway->getObjectTypeTask('Audit'));
 
     // Recursive function to filter out empty arrays at any depth
-    $nonEmptyResults = Utils::recursiveArrayFilter($result);
+    $nonEmptyResults = $this->utils->recursiveArrayFilter($result);
 
     if (!empty($nonEmptyResults)) {
       return $nonEmptyResults;

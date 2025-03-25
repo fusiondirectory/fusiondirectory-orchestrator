@@ -4,10 +4,12 @@ class Reminder implements EndpointInterface
 {
 
   private TaskGateway $gateway;
-
+  private ReminderTokenUtils $reminderTokenUtils;
+  
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
+    $this->reminderTokenUtils = new ReminderTokenUtils();
   }
 
   /**
@@ -109,13 +111,13 @@ class Reminder implements EndpointInterface
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
 
             // Create timeStamp expiration for token
-            $tokenExpire = TokenUtils::getTokenExpiration($task['fdtasksgranularhelper'][0],
+            $tokenExpire = $this->reminderTokenUtils->getTokenExpiration($task['fdtasksgranularhelper'][0],
               $remindersMainTask[0]['fdtasksreminderfirstcall'][0],
               $remindersMainTask[0]['fdtasksremindersecondcall'][0]);
             // Create token for SubTask
-            $token = TokenUtils::generateToken($task['fdtasksgranulardn'][0], $tokenExpire, $this->gateway);
+            $token = $this->reminderTokenUtils->generateToken($task['fdtasksgranulardn'][0], $tokenExpire, $this->gateway);
             // Edit the mailForm with the url link containing the token
-            $tokenMailTemplateForm = TokenUtils::generateTokenUrl($token, $mailTemplateForm, $remindersMainTaskName);
+            $tokenMailTemplateForm = $this->reminderTokenUtils->generateTokenUrl($token, $mailTemplateForm, $remindersMainTaskName);
             // Recipient email form
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $tokenMailTemplateForm;
 
@@ -136,13 +138,13 @@ class Reminder implements EndpointInterface
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
 
             // Create timeStamp expiration for token
-            $tokenExpire = TokenUtils::getTokenExpiration($task['fdtasksgranularhelper'][0],
+            $tokenExpire = $this->reminderTokenUtils->getTokenExpiration($task['fdtasksgranularhelper'][0],
               $remindersMainTask[0]['fdtasksreminderfirstcall'][0],
               $remindersMainTask[0]['fdtasksremindersecondcall'][0]);
             // Create token for SubTask
-            $token = TokenUtils::generateToken($task['fdtasksgranulardn'][0], $tokenExpire, $this->gateway);
+            $token = $this->reminderTokenUtils->generateToken($task['fdtasksgranulardn'][0], $tokenExpire, $this->gateway);
             // Edit the mailForm with the url link containing the token
-            $tokenMailTemplateForm = TokenUtils::generateTokenUrl($token, $mailTemplateForm, $remindersMainTaskName);
+            $tokenMailTemplateForm = $this->reminderTokenUtils->generateTokenUrl($token, $mailTemplateForm, $remindersMainTaskName);
             // Recipient email form
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $tokenMailTemplateForm;
 

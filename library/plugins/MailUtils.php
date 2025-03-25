@@ -2,11 +2,11 @@
 
 class MailUtils
 {
-  private function __construct ()
+  public function __construct ()
   {
   }
 
-  public static function sendMail ($setFrom, $setBCC, $recipients, $body, $signature, $subject, $receipt, $attachments)
+  public function sendMail ($setFrom, $setBCC, $recipients, $body, $signature, $subject, $receipt, $attachments)
   {
     $mail_controller = new \FusionDirectory\Mail\MailLib($setFrom,
       $setBCC,
@@ -24,7 +24,7 @@ class MailUtils
    * @return array
    * Note : A simple retrieval methods of the mail backend configuration set in FusionDirectory
    */
-  public static function getMailObjectConfiguration (TaskGateway $gateway): array
+  public function getMailObjectConfiguration (TaskGateway $gateway): array
   {
     return $gateway->getLdapTasks(
       "(objectClass=fdTasksConf)",

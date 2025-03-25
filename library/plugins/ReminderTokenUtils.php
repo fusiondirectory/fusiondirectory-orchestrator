@@ -1,8 +1,8 @@
 <?php
 
-class TokenUtils
+class ReminderTokenUtils
 {
-  private function __construct ()
+  public function __construct ()
   {
   }
 
@@ -12,7 +12,7 @@ class TokenUtils
    * @return string
    * @throws Exception
    */
-  public static function generateToken (string $userDN, int $timeStamp, TaskGateway $gateway): string
+  public function generateToken (string $userDN, int $timeStamp, TaskGateway $gateway): string
   {
     $token = NULL;
     // Salt has been generated with APG.
@@ -25,10 +25,10 @@ class TokenUtils
     $token_hmac = hash_hmac("sha256", $time . $payload, $_ENV["SECRET_KEY"], TRUE);
 
     // We need to have a token allowed to be used within an URL.
-    $token = Utils::base64urlEncode($token_hmac);
+    $token = $this->base64urlEncode($token_hmac);
 
     // Save token within LDAP
-    self::saveTokenInLdap($userDN, $token, $timeStamp, $gateway);
+    $this->saveTokenInLdap($userDN, $token, $timeStamp, $gateway);
 
     return $token;
   }
@@ -41,7 +41,7 @@ class TokenUtils
    * @return bool
    * @throws Exception
    */
-  public static function saveTokenInLdap (string $userDN, string $token, int $days, TaskGateway $gateway): bool
+  private function saveTokenInLdap (string $userDN, string $token, int $days, TaskGateway $gateway): bool
   {
     $result = FALSE;
 
@@ -64,17 +64,17 @@ class TokenUtils
 
 
     // Verify if token ou branch exists
-    if (!self::tokenBranchExist('ou=tokens' . ',' . $_ENV["LDAP_BASE"], $gateway)) {
+    if (!$this->tokenBranchExist('ou=tokens' . ',' . $_ENV["LDAP_BASE"], $gateway)) {
       // Create the branch
-      self::createBranchToken($gateway);
+      $this->createBranchToken($gateway);
     }
 
     // The user token DN creation
     $userTokenDN = 'cn=' . $uid . ',ou=tokens' . ',' . $_ENV["LDAP_BASE"];
     // Verify if a token already exists for specified user and remove it to create new one correctly.
-    if (self::tokenBranchExist($userTokenDN, $gateway)) {
+    if ($this->tokenBranchExist($userTokenDN, $gateway)) {
       // Remove the user token
-      self::removeUserToken($userTokenDN, $gateway);
+      $this->removeUserToken($userTokenDN, $gateway);
     }
 
     // Add token to LDAP for specific UID
@@ -95,7 +95,7 @@ class TokenUtils
    * @return int
    * Note : Simply return the difference between first and second call. (First call can be null).
    */
-  public static function getTokenExpiration (int $subTaskCall, int $firstCall, int $secondCall): int
+  public function getTokenExpiration (int $subTaskCall, int $firstCall, int $secondCall): int
   {
     // if firstCall is empty, secondCall is the timestamp expiry for the token.
     $result = $secondCall;
@@ -115,7 +115,7 @@ class TokenUtils
    * @return void
    * Note : Simply remove the token for specific user DN
    */
-  public static function removeUserToken ($userTokenDN, TaskGateway $gateway): void
+  private function removeUserToken ($userTokenDN, TaskGateway $gateway): void
   {
     // Add token to LDAP for specific UID
     try {
@@ -130,7 +130,7 @@ class TokenUtils
    * Create ou=pluginManager LDAP branch
    * @throws Exception
    */
-  public static function createBranchToken (TaskGateway $gateway): void
+  private function createBranchToken (TaskGateway $gateway): void
   {
     try {
       ldap_add(
@@ -153,7 +153,7 @@ class TokenUtils
    * @param string $taskDN
    * @return array
    */
-  public static function generateTokenUrl (string $token, array $mailTemplateForm, string $taskDN): array
+  public function generateTokenUrl (string $token, array $mailTemplateForm, string $taskDN): array
   {
     //Only take the cn of the main task name :
     preg_match('/cn=([^,]+),ou=/', $taskDN, $matches);
@@ -173,7 +173,7 @@ class TokenUtils
    * @return bool
    * Note : Simply inspect if the branch for token is existing.
    */
-  public static function tokenBranchExist (string $dn, TaskGateway $gateway): bool
+  private function tokenBranchExist (string $dn, TaskGateway $gateway): bool
   {
     $result = FALSE;
 
@@ -195,4 +195,14 @@ class TokenUtils
 
     return $result;
   }
+
+    /**
+     * @param string $text
+     * @return string
+     * Note : This come from jwtToken, as it is completely private - it is cloned here for now.
+     */
+    private function base64urlEncode (string $text): string
+    {
+        return str_replace(["+", "/", "="], ["A", "B", ""], base64_encode($text));
+    }
 }
