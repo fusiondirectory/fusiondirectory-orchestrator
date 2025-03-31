@@ -101,9 +101,9 @@ class Archive implements EndpointInterface
     /**
      * Retrieve the supannAccountStatus of a user
      * @param string $userDn
-     * @return array|null
+     * @return array
      */
-  private function getUserSupannAccountStatus (string $userDn): ?array
+  private function getUserSupannAccountStatus (string $userDn): array
   {
       return $this->gateway->getLdapTasks(
           '(objectClass=supannPerson)',
