@@ -4,10 +4,12 @@ class Reminder implements EndpointInterface
 {
 
   private TaskGateway $gateway;
+  private ReminderTokenUtils $reminderTokenUtils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
+    $this->reminderTokenUtils = new ReminderTokenUtils();
   }
 
   /**
@@ -109,13 +111,13 @@ class Reminder implements EndpointInterface
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
 
             // Create timeStamp expiration for token
-            $tokenExpire = $this->getTokenExpiration($task['fdtasksgranularhelper'][0],
+            $tokenExpire = $this->reminderTokenUtils->getTokenExpiration($task['fdtasksgranularhelper'][0],
               $remindersMainTask[0]['fdtasksreminderfirstcall'][0],
               $remindersMainTask[0]['fdtasksremindersecondcall'][0]);
             // Create token for SubTask
-            $token = $this->generateToken($task['fdtasksgranulardn'][0], $tokenExpire);
+            $token = $this->reminderTokenUtils->generateToken($task['fdtasksgranulardn'][0], $tokenExpire, $this->gateway);
             // Edit the mailForm with the url link containing the token
-            $tokenMailTemplateForm = $this->generateTokenUrl($token, $mailTemplateForm, $remindersMainTaskName);
+            $tokenMailTemplateForm = $this->reminderTokenUtils->generateTokenUrl($token, $mailTemplateForm, $remindersMainTaskName);
             // Recipient email form
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $tokenMailTemplateForm;
 
@@ -136,13 +138,13 @@ class Reminder implements EndpointInterface
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
 
             // Create timeStamp expiration for token
-            $tokenExpire = $this->getTokenExpiration($task['fdtasksgranularhelper'][0],
+            $tokenExpire = $this->reminderTokenUtils->getTokenExpiration($task['fdtasksgranularhelper'][0],
               $remindersMainTask[0]['fdtasksreminderfirstcall'][0],
               $remindersMainTask[0]['fdtasksremindersecondcall'][0]);
             // Create token for SubTask
-            $token = $this->generateToken($task['fdtasksgranulardn'][0], $tokenExpire);
+            $token = $this->reminderTokenUtils->generateToken($task['fdtasksgranulardn'][0], $tokenExpire, $this->gateway);
             // Edit the mailForm with the url link containing the token
-            $tokenMailTemplateForm = $this->generateTokenUrl($token, $mailTemplateForm, $remindersMainTaskName);
+            $tokenMailTemplateForm = $this->reminderTokenUtils->generateTokenUrl($token, $mailTemplateForm, $remindersMainTaskName);
             // Recipient email form
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $tokenMailTemplateForm;
 
@@ -215,207 +217,6 @@ class Reminder implements EndpointInterface
     }
 
     return $result;
-  }
-
-  /**
-   * @param string $token
-   * @param array $mailTemplateForm
-   * @param string $taskDN
-   * @return array
-   */
-  private function generateTokenUrl (string $token, array $mailTemplateForm, string $taskDN): array
-  {
-    //Only take the cn of the main task name :
-    preg_match('/cn=([^,]+),ou=/', $taskDN, $matches);
-    $taskName = $matches[1];
-
-    // Remove the API URI
-    $cleanedUrl = preg_replace('#/rest\.php/v1$#', '', $_ENV['FUSION_DIRECTORY_API_URL']);
-    $url        = $cleanedUrl . '/accountProlongation.php?token=' . $token . '&task=' . $taskName;
-
-    $mailTemplateForm['body'] .= $url;
-
-    return $mailTemplateForm;
-  }
-
-  /**
-   * @param int $subTaskCall
-   * @param int $firstCall
-   * @param int $secondCall
-   * @return int
-   * Note : Simply return the difference between first and second call. (First call can be null).
-   */
-  private function getTokenExpiration (int $subTaskCall, int $firstCall, int $secondCall): int
-  {
-    // if firstCall is empty, secondCall is the timestamp expiry for the token.
-    $result = $secondCall;
-
-    if (!empty($firstCall)) {
-      // Verification if the subTask is the second reminder or the first reminder.
-      if ($subTaskCall === $firstCall) {
-        $result = $firstCall - $secondCall;
-      }
-    }
-
-    return $result;
-  }
-
-  /**
-   * @param string $userDN
-   * @param int $timeStamp
-   * @return string
-   * @throws Exception
-   */
-  private function generateToken (string $userDN, int $timeStamp): string
-  {
-    $token = NULL;
-    // Salt has been generated with APG.
-    $salt    = '8onOlEsItKond';
-    $payload = json_encode($userDN . $salt);
-    // This allows the token to be different every time.
-    $time = time();
-
-    // Create hmac with sha256 alg and the key provided for JWT token signature in ENV.
-    $token_hmac = hash_hmac("sha256", $time . $payload, $_ENV["SECRET_KEY"], TRUE);
-
-    // We need to have a token allowed to be used within an URL.
-    $token = $this->base64urlEncode($token_hmac);
-
-    // Save token within LDAP
-    $this->saveTokenInLdap($userDN, $token, $timeStamp);
-
-    return $token;
-  }
-
-  /**
-   * @param string $userDN
-   * @param string $token
-   * NOTE : UID is the full DN of the user. (uid=...).
-   * @param int $days
-   * @return bool
-   * @throws Exception
-   */
-  private function saveTokenInLdap (string $userDN, string $token, int $days): bool
-  {
-    $result = FALSE;
-
-    $currentTimestamp = time();
-    // Calculate the future timestamp by adding days to the current timestamp (We actually adds number of seconds).
-    $futureTimestamp = $currentTimestamp + ($days * 24 * 60 * 60);
-
-    preg_match('/uid=([^,]+),ou=/', $userDN, $matches);
-    $uid = $matches[1];
-    $dn  = 'cn=' . $uid . ',' . 'ou=tokens' . ',' . $_ENV["LDAP_BASE"];
-
-    $ldap_entry["objectClass"]      = ['top', 'fdTokenEntry'];
-    $ldap_entry["fdTokenUserDN"]    = $userDN;
-    $ldap_entry["fdTokenType"]      = 'reminder';
-    $ldap_entry["fdToken"]          = $token;
-    $ldap_entry["fdTokenTimestamp"] = $futureTimestamp;
-    $ldap_entry["cn"]               = $uid;
-
-    // set the dn for the token, only take what's between "uid=" and ",ou="
-
-
-    // Verify if token ou branch exists
-    if (!$this->tokenBranchExist('ou=tokens' . ',' . $_ENV["LDAP_BASE"])) {
-      // Create the branch
-      $this->createBranchToken();
-    }
-
-    // The user token DN creation
-    $userTokenDN = 'cn=' . $uid . ',ou=tokens' . ',' . $_ENV["LDAP_BASE"];
-    // Verify if a token already exists for specified user and remove it to create new one correctly.
-    if ($this->tokenBranchExist($userTokenDN)) {
-      // Remove the user token
-      $this->removeUserToken($userTokenDN);
-    }
-
-    // Add token to LDAP for specific UID
-    try {
-      $result = ldap_add($this->gateway->ds, $dn, $ldap_entry); // bool returned
-    } catch (Exception $e) {
-      echo json_encode(["Ldap Error - Token could not be saved!" => "$e"]); // string returned
-      exit;
-    }
-
-    return $result;
-  }
-
-  /**
-   * @param $userTokenDN
-   * @return void
-   * Note : Simply remove the token for specific user DN
-   */
-  private function removeUserToken ($userTokenDN): void
-  {
-    // Add token to LDAP for specific UID
-    try {
-      $result = ldap_delete($this->gateway->ds, $userTokenDN); // bool returned
-    } catch (Exception $e) {
-      echo json_encode(["Ldap Error - User token could not be removed!" => "$e"]); // string returned
-      exit;
-    }
-  }
-
-  /**
-   * Create ou=pluginManager LDAP branch
-   * @throws Exception
-   */
-  protected function createBranchToken (): void
-  {
-    try {
-      ldap_add(
-        $this->gateway->ds, 'ou=tokens' . ',' . $_ENV["LDAP_BASE"],
-        [
-          'ou'          => 'tokens',
-          'objectClass' => 'organizationalUnit',
-        ]
-      );
-    } catch (Exception $e) {
-
-      echo json_encode(["Ldap Error - Impossible to create the token branch" => "$e"]); // string returned
-      exit;
-    }
-  }
-
-
-  /**
-   * @param string $dn
-   * @return bool
-   * Note : Simply inspect if the branch for token is existing.
-   */
-  private function tokenBranchExist (string $dn): bool
-  {
-    $result = FALSE;
-
-    try {
-      $search = ldap_search($this->gateway->ds, $dn, "(objectClass=*)");
-      // Check if the search was successful
-      if ($search) {
-        // Get the number of entries found
-        $entries = ldap_get_entries($this->gateway->ds, $search);
-
-        // If entries are found, set result to true
-        if ($entries["count"] > 0) {
-          $result = TRUE;
-        }
-      }
-    } catch (Exception $e) {
-      $result = FALSE;
-    }
-
-    return $result;
-  }
-
-  /**
-   * @param string $text
-   * @return string
-   * Note : This come from jwtToken, as it is completely private - it is cloned here for now.
-   */
-  private function base64urlEncode (string $text): string
-  {
-    return str_replace(["+", "/", "="], ["A", "B", ""], base64_encode($text));
   }
 
   /**
@@ -590,26 +391,6 @@ class Reminder implements EndpointInterface
     }
 
     return DateTime::createFromFormat('Ymd', $dateString);
-  }
-
-  /**
-   * @param $array
-   * @return array
-   * Note : simply return all values of a multi-dimensional array.
-   */
-  public function getArrayValuesRecursive ($array)
-  {
-    $values = [];
-    foreach ($array as $value) {
-      if (is_array($value)) {
-        // If value is an array, merge its values recursively
-        $values = array_merge($values, $this->getArrayValuesRecursive($value));
-      } else {
-        // If value is not an array, add it to the result
-        $values[] = $value;
-      }
-    }
-    return $values;
   }
 
   /**

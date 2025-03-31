@@ -4,10 +4,12 @@ class Notifications implements EndpointInterface
 {
 
   private TaskGateway $gateway;
+  private Utils $utils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
+    $this->utils = new Utils();
   }
 
   /**
@@ -82,7 +84,7 @@ class Notifications implements EndpointInterface
         $this->gateway->unsetCountKeys($monitoredSupannResource);
 
         // Find matching attributes between audited and monitored attributes
-        $matchingAttrs = $this->findMatchingAttributes($auditAttributes, $monitoredAttrs);
+        $matchingAttrs = $this->utils->findMatchingKeys($auditAttributes, $monitoredAttrs);
 
         // Verify Supann resource state if applicable
         if ($this->shouldVerifySupannResource($monitoredSupannResource, $auditAttributes)) {
@@ -166,30 +168,6 @@ class Notifications implements EndpointInterface
   }
 
   /**
-   * Find matching attributes between audit and monitored attributes.
-   *
-   * @param array|null $auditAttributes
-   * @param array $monitoredAttrs
-   * @return array
-   */
-  private function findMatchingAttributes (?array $auditAttributes, array $monitoredAttrs): array
-  {
-    $matchingAttrs = [];
-
-    if (!empty($auditAttributes)) {
-      foreach ($auditAttributes as $attributeName) {
-        foreach ($monitoredAttrs as $monitoredAttr) {
-          if (!empty($attributeName) && array_key_exists($monitoredAttr, $attributeName)) {
-            $matchingAttrs[] = $monitoredAttr;
-          }
-        }
-      }
-    }
-
-    return $matchingAttrs;
-  }
-
-  /**
    * @param array $supannResource
    * @param array $auditedAttrs
    * @return bool
@@ -207,7 +185,7 @@ class Notifications implements EndpointInterface
     }
 
     // Get all the values only of a multidimensional array.
-    $auditedValues = $this->getArrayValuesRecursive($auditedAttrs);
+    $auditedValues = $this->utils->getArrayValuesRecursive($auditedAttrs);
 
     if (in_array($monitoredSupannState, $auditedValues)) {
       $result = TRUE;
@@ -216,26 +194,6 @@ class Notifications implements EndpointInterface
     }
 
     return $result;
-  }
-
-  /**
-   * @param $array
-   * @return array
-   * Note : simply return all values of a multi-dimensional array.
-   */
-  public function getArrayValuesRecursive ($array)
-  {
-    $values = [];
-    foreach ($array as $value) {
-      if (is_array($value)) {
-        // If value is an array, merge its values recursively
-        $values = array_merge($values, $this->getArrayValuesRecursive($value));
-      } else {
-        // If value is not an array, add it to the result
-        $values[] = $value;
-      }
-    }
-    return $values;
   }
 
   /**
