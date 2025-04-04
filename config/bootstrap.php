@@ -10,7 +10,7 @@ function autoload ($class)
   // Integrator is required
   require_once '/usr/share/php/FusionDirectory/autoloader.php';
   // avoid error handler requirements error, as it should be one of the first to load ?
-  require_once dirname(__DIR__).'/library/ErrorHandler.php';
+  require_once dirname(__DIR__).'/handlers/ErrorHandler.php';
 
   if (strpos($class, 'PHPMailer') !== FALSE) {
     require_once("/usr/share/php/libphp-phpmailer/src/Exception.php");
