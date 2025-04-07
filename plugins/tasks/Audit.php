@@ -61,7 +61,7 @@ class Audit implements EndpointInterface
       return $nonEmptyResults;
     } else {
       if ($auditType === 'syslog') {
-        return ['No syslog audit entries requiring removal'];
+        return ['No audit entries requiring transformation'];
       } else {
         return ['No standard audit entries requiring removal'];
       }
@@ -104,12 +104,153 @@ class Audit implements EndpointInterface
   {
     $result = [];
 
-    print_r($syslogAuditSubTasks);
-    exit;
-    
     foreach ($syslogAuditSubTasks as $task) {
-      // Similar to processAuditDeletion but for syslog
-      // ...
+      try {
+        // If the task must be treated - status and scheduled - process the sub-tasks
+        if ($this->gateway->statusAndScheduleCheck($task)) {
+          // Retrieve data from the main task
+          $auditMainTask = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
+          
+          // Get all audit entries with all attributes
+          $auditEntries = $this->gateway->getLdapTasks('(objectClass=fdAuditEvent)', ['*'], '', '');
+          $this->gateway->unsetCountKeys($auditEntries);
+          
+          if (empty($auditEntries)) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            $result[] = ["dn" => $task['dn'], "message" => "No audit entries found to transform"];
+            continue;
+          }
+          
+          // Create syslog file
+          $path = '/var/log/fusiondirectory/';
+          $this->ensureDirectoryExists($path);
+          
+          $date = date('Y-m-d');
+          $filename = $path . 'fd-audit-' . $date . '.log';
+          
+          // Track which audit IDs are already in the file to prevent duplicates
+          $existingAuditIds = [];
+          
+          // Read existing file if it exists to extract audit IDs
+          if (file_exists($filename)) {
+            $existingContent = file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($existingContent as $line) {
+              // Extract audit ID from the line using regex
+              if (preg_match('/id="([^"]+)"/', $line, $matches)) {
+                $existingAuditIds[] = $matches[1];
+              }
+            }
+          }
+          
+          // Open file for writing (append mode)
+          $handle = fopen($filename, 'a');
+          if ($handle === false) {
+            throw new Exception("Could not open file: $filename");
+          }
+          
+          $count = 0;
+          $skipped = 0;
+          
+          foreach ($auditEntries as $entry) {
+            // Skip entry if its ID is already in the file
+            $auditId = $entry['fdauditid'][0] ?? 'unknown';
+            if (in_array($auditId, $existingAuditIds)) {
+              $skipped++;
+              continue;
+            }
+            
+            // Parse LDAP timestamp format (YYYYMMDDHHmmss.SSSSSSZ)
+            $timestamp = '';
+            if (isset($entry['fdauditdatetime'][0])) {
+              // Extract date parts from LDAP format
+              $dateStr = $entry['fdauditdatetime'][0];
+              if (preg_match('/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/', $dateStr, $matches)) {
+                $year = $matches[1];
+                $month = $matches[2];
+                $day = $matches[3];
+                $hour = $matches[4];
+                $min = $matches[5];
+                $sec = $matches[6];
+                
+                // Create a datetime object and format for syslog
+                $dt = new DateTime("$year-$month-$day $hour:$min:$sec");
+                $timestamp = $dt->format('M d H:i:s');
+              } else {
+                $timestamp = date('M d H:i:s');
+              }
+            } else {
+              $timestamp = date('M d H:i:s');
+            }
+            
+            // Get hostname (use IP if available, otherwise use system hostname)
+            $hostname = isset($entry['fdauditauthorip'][0]) ? 
+                       $entry['fdauditauthorip'][0] : gethostname();
+            
+            // Get user information (use DN if available)
+            $user = isset($entry['fdauditauthordn'][0]) ? 
+                   $entry['fdauditauthordn'][0] : 'unknown';
+            
+            // Get action
+            $action = isset($entry['fdauditaction'][0]) ? 
+                     $entry['fdauditaction'][0] : 'unknown';
+            
+            // Get object type and object
+            $objectType = isset($entry['fdauditobjecttype'][0]) ? 
+                         $entry['fdauditobjecttype'][0] : '';
+            
+            $object = isset($entry['fdauditobject'][0]) ? 
+                     $entry['fdauditobject'][0] : '';
+            
+            // Get result
+            $auditResult = isset($entry['fdauditresult'][0]) ? 
+                         $entry['fdauditresult'][0] : '';
+            
+            // Format the syslog message
+            // <priority>timestamp hostname tag: message
+            $syslogMessage = "<local4.info>$timestamp $hostname FusionDirectory-Audit: ";
+            $syslogMessage .= "id=\"" . $auditId . "\" ";
+            $syslogMessage .= "user=\"$user\" ";
+            $syslogMessage .= "action=\"$action\" ";
+            
+            if (!empty($objectType)) {
+              $syslogMessage .= "objectType=\"$objectType\" ";
+            }
+            
+            if (!empty($object)) {
+              $syslogMessage .= "object=\"$object\" ";
+            }
+            
+            if (!empty($auditResult)) {
+              $syslogMessage .= "result=\"$auditResult\" ";
+            }
+            
+            // Add attributes if available (contains changes made)
+            if (isset($entry['fdauditattributes'][0])) {
+              $syslogMessage .= "changes=\"" . $entry['fdauditattributes'][0] . "\" ";
+            }
+            
+            // Write the message to the file
+            fwrite($handle, $syslogMessage . PHP_EOL);
+            $count++;
+          }
+          
+          fclose($handle);
+          
+          // Update task status
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          
+          // Include information about skipped entries in the result message
+          $resultMsg = "Successfully transformed $count audit entries to syslog format in $filename";
+          if ($skipped > 0) {
+            $resultMsg .= " (skipped $skipped duplicate entries)";
+          }
+          
+          $result[] = ["dn" => $task['dn'], "message" => $resultMsg];
+        }
+      } catch (Exception $e) {
+        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
+        $result[] = ["dn" => $task['dn'], "message" => "Error transforming audit entries: " . $e->getMessage()];
+      }
     }
     
     return $result;
@@ -141,7 +282,7 @@ class Audit implements EndpointInterface
   /**
    * @return array
    * NOTE : simply return the list of audit entries existing in LDAP
-   */
+    */
   public function returnLdapAuditEntries () : array
   {
     // Search in LDAP for audit entries (All entries ! This can be pretty heavy.
@@ -165,5 +306,21 @@ class Audit implements EndpointInterface
       }
       return !empty($item);
     });
+  }
+
+  /**
+   * @param string $path
+   * @return bool
+   * @throws Exception
+   * Note: Create directory if it doesn't exist.
+   */
+  private function ensureDirectoryExists (string $path): bool
+  {
+    if (!is_dir($path)) {
+      if (!mkdir($path, 0755, true)) {
+        throw new Exception("Failed to create directory: $path");
+      }
+    }
+    return true;
   }
 }
