@@ -2,14 +2,11 @@
 
 class Audit implements EndpointInterface
 {
-
   private TaskGateway $gateway;
-  private Utils $utils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
-    $this->utils = new Utils();
   }
 
   /**
@@ -46,15 +43,28 @@ class Audit implements EndpointInterface
    */
   public function processEndPointPatch (array $data = NULL): array
   {
-    $result = $this->processAuditDeletion($this->gateway->getObjectTypeTask('Audit'));
+    // Check if audit type is specified in data
+    $auditType = $data['type'] ?? 'standard'; // Default to standard audit
+    
+    if ($auditType === 'syslog') {
+      // Process syslog audit
+      $result = $this->processSyslogAuditTransformation($this->gateway->getObjectTypeTask('Audit-Syslog'));
+    } else {
+      // Process standard audit
+      $result = $this->processAuditDeletion($this->gateway->getObjectTypeTask('Audit'));
+    }
 
     // Recursive function to filter out empty arrays at any depth
-    $nonEmptyResults = $this->utils->recursiveArrayFilter($result);
+    $nonEmptyResults = $this->recursiveArrayFilter($result);
 
     if (!empty($nonEmptyResults)) {
       return $nonEmptyResults;
     } else {
-      return ['No audit requiring removal'];
+      if ($auditType === 'syslog') {
+        return ['No syslog audit entries requiring removal'];
+      } else {
+        return ['No standard audit entries requiring removal'];
+      }
     }
   }
 
@@ -82,6 +92,26 @@ class Audit implements EndpointInterface
       }
     }
 
+    return $result;
+  }
+
+  /**
+   * @param array $syslogAuditSubTasks
+   * @return array
+   * @throws Exception
+   */
+  public function processSyslogAuditTransformation (array $syslogAuditSubTasks): array
+  {
+    $result = [];
+
+    print_r($syslogAuditSubTasks);
+    exit;
+    
+    foreach ($syslogAuditSubTasks as $task) {
+      // Similar to processAuditDeletion but for syslog
+      // ...
+    }
+    
     return $result;
   }
 
@@ -120,5 +150,20 @@ class Audit implements EndpointInterface
     $this->gateway->unsetCountKeys($audit);
 
     return $audit;
+  }
+
+   /**
+   * @param array $array
+   * @return array
+   * Note : Recursively filters out empty values and arrays at any depth.
+   */
+  public function recursiveArrayFilter (array $array): array
+  {
+    return array_filter($array, function ($item) {
+      if (is_array($item)) {
+          $item = $this->recursiveArrayFilter($item);
+      }
+      return !empty($item);
+    });
   }
 }
