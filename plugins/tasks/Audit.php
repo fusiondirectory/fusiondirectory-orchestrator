@@ -103,6 +103,9 @@ class Audit implements EndpointInterface
   public function processSyslogAuditTransformation (array $syslogAuditSubTasks): array
   {
     $result = [];
+    // Define path at the beginning of the method
+    $path = '/var/log/fusiondirectory/';
+    $this->ensureDirectoryExists($path);
 
     foreach ($syslogAuditSubTasks as $task) {
       try {
@@ -111,8 +114,26 @@ class Audit implements EndpointInterface
           // Retrieve data from the main task
           $auditMainTask = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
           
-          // Get all audit entries with all attributes
-          $auditEntries = $this->gateway->getLdapTasks('(objectClass=fdAuditEvent)', ['*'], '', '');
+          // Get the most recent audit timestamp that was already processed
+          $lastProcessedTime = null;
+
+          // Check if we have a state file recording last processed time
+          $stateFile = $path . 'fd-audit-last-processed.txt';
+          if (file_exists($stateFile)) {
+              $fileContent = trim(file_get_contents($stateFile));
+              if (!empty($fileContent)) {
+                  $lastProcessedTime = $fileContent;
+              }
+          }
+
+          // Only process entries newer than last processed
+          $filter = '(objectClass=fdAuditEvent)';
+          if ($lastProcessedTime !== null) {
+              $filter = "(&(objectClass=fdAuditEvent)(fdauditdatetime>=$lastProcessedTime))";
+          }
+
+          // Get only new audit entries
+          $auditEntries = $this->gateway->getLdapTasks($filter, ['*'], '', '');
           $this->gateway->unsetCountKeys($auditEntries);
           
           if (empty($auditEntries)) {
@@ -121,10 +142,7 @@ class Audit implements EndpointInterface
             continue;
           }
           
-          // Create syslog file
-          $path = '/var/log/fusiondirectory/';
-          $this->ensureDirectoryExists($path);
-          
+          // Create syslog file (path already defined at the beginning)
           $date = date('Y-m-d');
           $filename = $path . 'fd-audit-' . $date . '.log';
           
@@ -235,6 +253,24 @@ class Audit implements EndpointInterface
           }
           
           fclose($handle);
+          
+          // After processing all entries, save the latest timestamp
+          if (!empty($auditEntries)) {
+              // Find the most recent timestamp
+              $latestTime = null;
+              foreach ($auditEntries as $entry) {
+                  if (isset($entry['fdauditdatetime'][0])) {
+                      if ($latestTime === null || $entry['fdauditdatetime'][0] > $latestTime) {
+                          $latestTime = $entry['fdauditdatetime'][0];
+                      }
+                  }
+              }
+              
+              // Save it to the state file
+              if ($latestTime !== null) {
+                  file_put_contents($stateFile, $latestTime);
+              }
+          }
           
           // Update task status
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
