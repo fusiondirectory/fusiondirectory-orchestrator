@@ -136,7 +136,8 @@ class Audit implements EndpointInterface
           $auditEntries = $this->gateway->getLdapTasks($filter, ['*'], '', '');
           $this->gateway->unsetCountKeys($auditEntries);
 
-          if (empty($auditEntries)) {
+          // Check if there are no audit entries
+          if (count($auditEntries) === 0) {
             $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
             $result[] = ["dn" => $task['dn'], "message" => "No audit entries found to transform"];
             continue;
