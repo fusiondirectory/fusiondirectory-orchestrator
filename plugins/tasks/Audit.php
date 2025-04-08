@@ -45,7 +45,7 @@ class Audit implements EndpointInterface
   {
     // Check if audit type is specified in data
     $auditType = $data['type'] ?? 'standard'; // Default to standard audit
-    
+
     if ($auditType === 'syslog') {
       // Process syslog audit
       $result = $this->processSyslogAuditTransformation($this->gateway->getObjectTypeTask('Audit-Syslog'));
@@ -113,42 +113,42 @@ class Audit implements EndpointInterface
         if ($this->gateway->statusAndScheduleCheck($task)) {
           // Retrieve data from the main task
           $auditMainTask = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
-          
+
           // Get the most recent audit timestamp that was already processed
-          $lastProcessedTime = null;
+          $lastProcessedTime = NULL;
 
           // Check if we have a state file recording last processed time
           $stateFile = $path . 'fd-audit-last-processed.txt';
           if (file_exists($stateFile)) {
               $fileContent = trim(file_get_contents($stateFile));
-              if (!empty($fileContent)) {
-                  $lastProcessedTime = $fileContent;
-              }
+            if (!empty($fileContent)) {
+                $lastProcessedTime = $fileContent;
+            }
           }
 
           // Only process entries newer than last processed
           $filter = '(objectClass=fdAuditEvent)';
-          if ($lastProcessedTime !== null) {
+          if ($lastProcessedTime !== NULL) {
               $filter = "(&(objectClass=fdAuditEvent)(fdauditdatetime>=$lastProcessedTime))";
           }
 
           // Get only new audit entries
           $auditEntries = $this->gateway->getLdapTasks($filter, ['*'], '', '');
           $this->gateway->unsetCountKeys($auditEntries);
-          
+
           if (empty($auditEntries)) {
             $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
             $result[] = ["dn" => $task['dn'], "message" => "No audit entries found to transform"];
             continue;
           }
-          
+
           // Create syslog file (path already defined at the beginning)
           $date = date('Y-m-d');
           $filename = $path . 'fd-audit-' . $date . '.log';
-          
+
           // Track which audit IDs are already in the file to prevent duplicates
           $existingAuditIds = [];
-          
+
           // Read existing file if it exists to extract audit IDs
           if (file_exists($filename)) {
             $existingContent = file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -159,16 +159,16 @@ class Audit implements EndpointInterface
               }
             }
           }
-          
+
           // Open file for writing (append mode)
           $handle = fopen($filename, 'a');
-          if ($handle === false) {
+          if ($handle === FALSE) {
             throw new Exception("Could not open file: $filename");
           }
-          
-          $count = 0;
+
+          $count   = 0;
           $skipped = 0;
-          
+
           foreach ($auditEntries as $entry) {
             // Skip entry if its ID is already in the file
             $auditId = $entry['fdauditid'][0] ?? 'unknown';
@@ -176,20 +176,20 @@ class Audit implements EndpointInterface
               $skipped++;
               continue;
             }
-            
+
             // Parse LDAP timestamp format (YYYYMMDDHHmmss.SSSSSSZ)
             $timestamp = '';
             if (isset($entry['fdauditdatetime'][0])) {
               // Extract date parts from LDAP format
               $dateStr = $entry['fdauditdatetime'][0];
               if (preg_match('/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/', $dateStr, $matches)) {
-                $year = $matches[1];
-                $month = $matches[2];
-                $day = $matches[3];
-                $hour = $matches[4];
-                $min = $matches[5];
-                $sec = $matches[6];
-                
+                $year   = $matches[1];
+                $month  = $matches[2];
+                $day    = $matches[3];
+                $hour   = $matches[4];
+                $min    = $matches[5];
+                $sec    = $matches[6];
+
                 // Create a datetime object and format for syslog
                 $dt = new DateTime("$year-$month-$day $hour:$min:$sec");
                 $timestamp = $dt->format('M d H:i:s');
@@ -199,88 +199,88 @@ class Audit implements EndpointInterface
             } else {
               $timestamp = date('M d H:i:s');
             }
-            
+
             // Get hostname (use IP if available, otherwise use system hostname)
-            $hostname = isset($entry['fdauditauthorip'][0]) ? 
+            $hostname = isset($entry['fdauditauthorip'][0]) ?
                        $entry['fdauditauthorip'][0] : gethostname();
-            
+
             // Get user information (use DN if available)
-            $user = isset($entry['fdauditauthordn'][0]) ? 
+            $user = isset($entry['fdauditauthordn'][0]) ?
                    $entry['fdauditauthordn'][0] : 'unknown';
-            
+
             // Get action
-            $action = isset($entry['fdauditaction'][0]) ? 
+            $action = isset($entry['fdauditaction'][0]) ?
                      $entry['fdauditaction'][0] : 'unknown';
-            
+
             // Get object type and object
-            $objectType = isset($entry['fdauditobjecttype'][0]) ? 
+            $objectType = isset($entry['fdauditobjecttype'][0]) ?
                          $entry['fdauditobjecttype'][0] : '';
-            
-            $object = isset($entry['fdauditobject'][0]) ? 
+
+            $object = isset($entry['fdauditobject'][0]) ?
                      $entry['fdauditobject'][0] : '';
-            
+
             // Get result
-            $auditResult = isset($entry['fdauditresult'][0]) ? 
+            $auditResult = isset($entry['fdauditresult'][0]) ?
                          $entry['fdauditresult'][0] : '';
-            
+
             // Format the syslog message
             // <priority>timestamp hostname tag: message
             $syslogMessage = "<local4.info>$timestamp $hostname FusionDirectory-Audit: ";
             $syslogMessage .= "id=\"" . $auditId . "\" ";
             $syslogMessage .= "user=\"$user\" ";
             $syslogMessage .= "action=\"$action\" ";
-            
+
             if (!empty($objectType)) {
               $syslogMessage .= "objectType=\"$objectType\" ";
             }
-            
+
             if (!empty($object)) {
               $syslogMessage .= "object=\"$object\" ";
             }
-            
+
             if (!empty($auditResult)) {
               $syslogMessage .= "result=\"$auditResult\" ";
             }
-            
+
             // Add attributes if available (contains changes made)
             if (isset($entry['fdauditattributes'][0])) {
               $syslogMessage .= "changes=\"" . $entry['fdauditattributes'][0] . "\" ";
             }
-            
+
             // Write the message to the file
             fwrite($handle, $syslogMessage . PHP_EOL);
             $count++;
           }
-          
+
           fclose($handle);
-          
+
           // After processing all entries, save the latest timestamp
           if (!empty($auditEntries)) {
-              // Find the most recent timestamp
-              $latestTime = null;
-              foreach ($auditEntries as $entry) {
-                  if (isset($entry['fdauditdatetime'][0])) {
-                      if ($latestTime === null || $entry['fdauditdatetime'][0] > $latestTime) {
-                          $latestTime = $entry['fdauditdatetime'][0];
-                      }
-                  }
+            // Find the most recent timestamp
+            $latestTime = NULL;
+            foreach ($auditEntries as $entry) {
+              if (isset($entry['fdauditdatetime'][0])) {
+                if ($latestTime === NULL || $entry['fdauditdatetime'][0] > $latestTime) {
+                  $latestTime = $entry['fdauditdatetime'][0];
+                }
               }
-              
-              // Save it to the state file
-              if ($latestTime !== null) {
-                  file_put_contents($stateFile, $latestTime);
-              }
+            }
+
+            // Save it to the state file
+            if ($latestTime !== NULL) {
+              file_put_contents($stateFile, $latestTime);
+            }
           }
-          
+
           // Update task status
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-          
+
           // Include information about skipped entries in the result message
           $resultMsg = "Successfully transformed $count audit entries to syslog format in $filename";
           if ($skipped > 0) {
             $resultMsg .= " (skipped $skipped duplicate entries)";
           }
-          
+
           $result[] = ["dn" => $task['dn'], "message" => $resultMsg];
         }
       } catch (Exception $e) {
@@ -288,7 +288,7 @@ class Audit implements EndpointInterface
         $result[] = ["dn" => $task['dn'], "message" => "Error transforming audit entries: " . $e->getMessage()];
       }
     }
-    
+
     return $result;
   }
 
@@ -353,10 +353,10 @@ class Audit implements EndpointInterface
   private function ensureDirectoryExists (string $path): bool
   {
     if (!is_dir($path)) {
-      if (!mkdir($path, 0755, true)) {
+      if (!mkdir($path, 0755, TRUE)) {
         throw new Exception("Failed to create directory: $path");
       }
     }
-    return true;
+    return TRUE;
   }
 }
