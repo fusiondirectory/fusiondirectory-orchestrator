@@ -4,7 +4,7 @@ class AutomaticGroups implements EndpointInterface
 {
   private TaskGateway $gateway;
 
-  public function __construct(TaskGateway $gateway)
+  public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
   }
@@ -13,7 +13,7 @@ class AutomaticGroups implements EndpointInterface
    * @return array
    * Part of the interface of orchestrator plugin to treat GET method
    */
-  public function processEndPointGet(): array
+  public function processEndPointGet (): array
   {
     return $this->gateway->getObjectTypeTask('Automatic Groups');
   }
@@ -22,7 +22,7 @@ class AutomaticGroups implements EndpointInterface
    * @param array|null $data
    * @return array
    */
-  public function processEndPointPost(array $data = NULL): array
+  public function processEndPointPost (array $data = NULL): array
   {
     return [];
   }
@@ -32,7 +32,7 @@ class AutomaticGroups implements EndpointInterface
    * @return array
    * @throws Exception
    */
-  public function processEndPointPatch(array $data = NULL): array
+  public function processEndPointPatch (array $data = NULL): array
   {
     return $this->processAutomaticGroups($this->gateway->getObjectTypeTask('Automatic Groups'));
   }
@@ -41,22 +41,22 @@ class AutomaticGroups implements EndpointInterface
    * @param array|null $data
    * @return array
    */
-  public function processEndPointDelete(array $data = NULL): array
+  public function processEndPointDelete (array $data = NULL): array
   {
     return [];
   }
 
   /**
    * Process automatic group assignment tasks
-   * 
+   *
    * @param array $automaticGroupsTasks
    * @return array
    * @throws Exception
    */
-  public function processAutomaticGroups(array $automaticGroupsTasks): array
+  public function processAutomaticGroups (array $automaticGroupsTasks): array
   {
     $result = [];
-    
+
     if (empty($automaticGroupsTasks)) {
       return ['No automatic groups tasks require processing.'];
     }
@@ -69,26 +69,26 @@ class AutomaticGroups implements EndpointInterface
         }
 
         // Get the DN of the user/group to process
-        $userDn = $task['fdtasksgranulardn'][0] ?? null;
+        $userDn = $task['fdtasksgranulardn'][0] ?? NULL;
         if (empty($userDn)) {
           throw new Exception("Missing user DN in task");
         }
 
         // Get main task configuration
         $mainTaskConfig = $this->getAutomaticGroupsMainTask($task['fdtasksgranularmaster'][0]);
-        
+
         // Get target group and resource/state criteria
-        $targetGroup = $mainTaskConfig[0]['fdtasksautomaticgroupsofname'][0] ?? null;
-        $resource = $mainTaskConfig[0]['fdtasksautomaticgroupsresource'][0] ?? null;
-        $state = $mainTaskConfig[0]['fdtasksautomaticgroupsstate'][0] ?? null;
-        $subState = $mainTaskConfig[0]['fdtasksautomaticgroupssubstate'][0] ?? null;
+        $targetGroup  = $mainTaskConfig[0]['fdtasksautomaticgroupsofname'][0] ?? NULL;
+        $resource     = $mainTaskConfig[0]['fdtasksautomaticgroupsresource'][0] ?? NULL;
+        $state        = $mainTaskConfig[0]['fdtasksautomaticgroupsstate'][0] ?? NULL;
+        $subState     = $mainTaskConfig[0]['fdtasksautomaticgroupssubstate'][0] ?? NULL;
 
         if (empty($targetGroup)) {
           throw new Exception("Missing target group in task configuration");
         }
 
         // Check if user meets the criteria (if resource/state specified)
-        $shouldAddToGroup = true;
+        $shouldAddToGroup = TRUE;
         if ($resource !== 'NONE' && !empty($resource) && !empty($state)) {
           $userSupannState = $this->getUserSupannState($userDn);
           $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resource, $state, $subState);
@@ -116,11 +116,11 @@ class AutomaticGroups implements EndpointInterface
 
   /**
    * Get main task configuration
-   * 
+   *
    * @param string $mainTaskDn
    * @return array
    */
-  private function getAutomaticGroupsMainTask(string $mainTaskDn): array
+  private function getAutomaticGroupsMainTask (string $mainTaskDn): array
   {
     return $this->gateway->getLdapTasks(
       '(objectClass=fdTasksAutomaticGroups)',
@@ -137,11 +137,11 @@ class AutomaticGroups implements EndpointInterface
 
   /**
    * Get user's Supann state
-   * 
+   *
    * @param string $userDn
    * @return array
    */
-  private function getUserSupannState(string $userDn): array
+  private function getUserSupannState (string $userDn): array
   {
     $result = $this->gateway->getLdapTasks(
       '(objectClass=*)',
@@ -156,17 +156,17 @@ class AutomaticGroups implements EndpointInterface
 
   /**
    * Check if user matches the required Supann state
-   * 
+   *
    * @param array $userSupannState
    * @param string $resource
    * @param string $state
    * @param string|null $subState
    * @return bool
    */
-  private function checkUserSupannState(array $userSupannState, string $resource, string $state, ?string $subState): bool
+  private function checkUserSupannState (array $userSupannState, string $resource, string $state, ?string $subState): bool
   {
     if (empty($userSupannState[0]['supannressourceetat'])) {
-      return false;
+      return FALSE;
     }
 
     foreach ($userSupannState[0]['supannressourceetat'] as $value) {
@@ -177,24 +177,24 @@ class AutomaticGroups implements EndpointInterface
       } else {
         $expectedState = '{' . $resource . '}' . $state;
       }
-      
+
       if ($value === $expectedState) {
-        return true;
+        return TRUE;
       }
     }
-    
-    return false;
+
+    return FALSE;
   }
 
   /**
    * Add user to LDAP group
-   * 
+   *
    * @param string $userDn
    * @param string $groupDn
    * @return bool
    * @throws Exception
    */
-  private function addUserToGroup(string $userDn, string $groupDn): bool
+  private function addUserToGroup (string $userDn, string $groupDn): bool
   {
     // Get current group members
     $groupInfo = $this->gateway->getLdapTasks(
@@ -206,23 +206,23 @@ class AutomaticGroups implements EndpointInterface
 
     $this->gateway->unsetCountKeys($groupInfo);
     $members = $groupInfo[0]['member'] ?? [];
-    
+
     // If member is already in the group, nothing to do
     if (in_array($userDn, $members)) {
-      return true;
+      return TRUE;
     }
-    
+
     // Add member to the group
     $members[] = $userDn;
     $entry = ['member' => $members];
-    
+
     // Update the group in LDAP
     try {
       $result = ldap_modify($this->gateway->ds, $groupDn, $entry);
       if (!$result) {
         throw new Exception("Failed to add $userDn to group $groupDn: " . ldap_error($this->gateway->ds));
       }
-      return true;
+      return TRUE;
     } catch (Exception $e) {
       throw new Exception("Error adding member to group: " . $e->getMessage());
     }
@@ -230,13 +230,13 @@ class AutomaticGroups implements EndpointInterface
 
   /**
    * Remove user from LDAP group
-   * 
+   *
    * @param string $userDn
    * @param string $groupDn
    * @return bool
    * @throws Exception
    */
-  private function removeUserFromGroup(string $userDn, string $groupDn): bool
+  private function removeUserFromGroup (string $userDn, string $groupDn): bool
   {
     // Get current group members
     $groupInfo = $this->gateway->getLdapTasks(
@@ -248,29 +248,29 @@ class AutomaticGroups implements EndpointInterface
 
     $this->gateway->unsetCountKeys($groupInfo);
     $members = $groupInfo[0]['member'] ?? [];
-    
+
     // If member is not in the group, nothing to do
     if (!in_array($userDn, $members)) {
-      return true;
+      return TRUE;
     }
-    
+
     // Remove member from the group
     $members = array_diff($members, [$userDn]);
-    
+
     // Groups must have at least one member, so check if this would empty the group
     if (empty($members)) {
-      return true; // Do nothing if it would empty the group
+      return TRUE; // Do nothing if it would empty the group
     }
-    
+
     $entry = ['member' => $members];
-    
+
     // Update the group in LDAP
     try {
       $result = ldap_modify($this->gateway->ds, $groupDn, $entry);
       if (!$result) {
         throw new Exception("Failed to remove $userDn from group $groupDn: " . ldap_error($this->gateway->ds));
       }
-      return true;
+      return TRUE;
     } catch (Exception $e) {
       throw new Exception("Error removing member from group: " . $e->getMessage());
     }
