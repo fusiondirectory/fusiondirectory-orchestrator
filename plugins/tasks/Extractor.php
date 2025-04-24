@@ -231,8 +231,12 @@ class Extractor implements EndpointInterface
   {
     return $this->gateway->getLdapTasks(
       '(objectClass=fdExtractorTasks)',
-      // Add fdExtractorTaskListOfDN here
-      ['fdExtractorTaskFormat', 'cn', 'fdExtractorTaskListOfDN'],
+      [
+        'fdExtractorTaskFormat',
+        'cn',
+        'fdExtractorTaskListOfDN',
+        'fdExtractorTaskAttributes' // <-- Ensure this is included!
+      ],
       '',
       $mainTaskDn
     );
@@ -246,10 +250,32 @@ class Extractor implements EndpointInterface
    */
   private function getUserAttributes (string $userDn, array $mainTaskConfig): array
   {
-    // Get all user data from LDAP
+    // Default to all attributes
+    $attributesToFetch = ['*'];
+
+    // Try to get fdExtractorTaskAttributes from main task config
+    if (!empty($mainTaskConfig[0]['fdextractortaskattributes'])) {
+      $attrList = $mainTaskConfig[0]['fdextractortaskattributes'];
+      // Remove all 'count' keys using TaskGateway utility
+      $this->gateway->unsetCountKeys($attrList);
+
+      // If not "ALL", use only the listed attributes
+      if (is_array($attrList) && !(count($attrList) === 1 && strtoupper($attrList[0]) === 'ALL')) {
+        $attributesToFetch = [];
+        foreach ($attrList as $attr) {
+          if (is_string($attr)) {
+            $attributesToFetch[] = $attr;
+          }
+        }
+      } elseif (is_string($attrList) && strtoupper($attrList) !== 'ALL') {
+        $attributesToFetch = [$attrList];
+      }
+    }
+
+    // Get user data from LDAP for the selected attributes
     $userData = $this->gateway->getLdapTasks(
       '(objectClass=*)',
-      ['*'],
+      $attributesToFetch,
       '',
       $userDn
     );
