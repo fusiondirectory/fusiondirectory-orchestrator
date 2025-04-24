@@ -138,21 +138,73 @@ class Extractor implements EndpointInterface
         $success = $this->extractToFileBatch($allUserAttributes, $filename, 'csv');
 
         if ($success) {
-            $finalMessage = "Batch extraction successful to $filename.";
-            if (!empty($errors)) {
-                $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
+            // --- EMAIL LOGIC START ---
+            // Retrieve sender and recipients from main task
+            $mainTaskDetails = $this->gateway->getLdapTasks(
+                '(objectClass=fdExtractorTasks)',
+                [
+                  'fdExtractorEmailSender',
+                  'fdExtractorListOfRecipientsMails'
+                ],
+                '',
+                $mainTaskDn
+            );
+            $sender = $mainTaskDetails[0]['fdextractoremailsender'][0] ?? '';
+            $recipients = $mainTaskDetails[0]['fdextractorlistofrecipientsmails'] ?? [];
+            $this->gateway->unsetCountKeys($recipients);
+
+            // Compose mail subject/body
+            $subject = "FusionDirectory Extractor - Export file";
+            $body = "Your requested extract is attached.\n\nFile: $filename";
+            $signature = null;
+            $receipt = null;
+
+            // Prepare attachment
+            $attachments = [[
+                'cn' => basename($filename),
+                'content' => file_get_contents($filename)
+            ]];
+
+            if (empty($sender) || empty($recipients)) {
+                $finalMessage = "Batch extraction successful to $filename. Email not sent: sender or recipient missing.";
+                if (!empty($errors)) {
+                    $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
+                }
                 $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+                $result[$task['dn']]['result'] = $finalMessage;
             } else {
-                $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+                // Send mail using MailLib
+                $mail_controller = new \FusionDirectory\Mail\MailLib(
+                    $sender,
+                    null,
+                    $recipients,
+                    $body,
+                    $signature,
+                    $subject,
+                    $receipt,
+                    $attachments
+                );
+                $mailSentResult = $mail_controller->sendMail();
+
+                if ($mailSentResult[0] == "SUCCESS") {
+                    $finalMessage = "Batch extraction successful to $filename. Email sent to recipients.";
+                    if (!empty($errors)) {
+                        $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
+                    }
+                    $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+                    $result[$task['dn']]['result'] = $finalMessage;
+                } else {
+                    $errorMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
+                    $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $errorMessage);
+                    $result[$task['dn']]['result'] = $errorMessage;
+                }
             }
-            $result[$task['dn']]['result'] = $finalMessage;
+            // --- EMAIL LOGIC END ---
         } else {
             $errorMessage = "Failed to write batch data to $filename.";
             // Update the status to error ('1')
             $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $errorMessage);
-            // Add to result but DON'T throw an exception, which would cause the catch block to overwrite our status
             $result[$task['dn']]['result'] = $errorMessage;
-            // Continue to next task
             continue;
         }
 
