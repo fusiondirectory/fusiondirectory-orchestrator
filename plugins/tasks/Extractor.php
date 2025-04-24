@@ -262,23 +262,35 @@ class Extractor implements EndpointInterface
     $allColumns = [];
     $allUserData = [];
 
-    // First pass: Collect all data and determine all possible columns
+    // First pass: Collect all unique attributes across all users
     foreach ($allUserAttributes as $user) {
-        $userData = [];
         foreach ($user as $attribute => $values) {
-            // Ensure we handle non-array attributes gracefully if they somehow appear
-            if (is_array($values)) {
-                // Take the first value for simplicity in CSV
-                $userData[$attribute] = $values[0] ?? '';
-                $allColumns[$attribute] = TRUE; // Mark column as present
-            } elseif (is_scalar($values)) { // Handle potential scalar values directly
-                 $userData[$attribute] = $values;
-                 $allColumns[$attribute] = TRUE;
+            // Skip numeric keys and 'count' entries that come from LDAP results
+            if (is_string($attribute) && $attribute !== 'count') {
+                $allColumns[$attribute] = TRUE;
             }
         }
-        if (!empty($userData)) {
-            $allUserData[] = $userData;
+    }
+    
+    // Second pass: Build data rows with consistent column structure
+    foreach ($allUserAttributes as $user) {
+        $userData = [];
+        foreach (array_keys($allColumns) as $column) {
+            if (isset($user[$column])) {
+                if (is_array($user[$column])) {
+                    // For array values (typical LDAP return format), take first value
+                    // Skip the 'count' element if present
+                    $userData[$column] = isset($user[$column][0]) ? $user[$column][0] : '';
+                } else {
+                    // For scalar values
+                    $userData[$column] = $user[$column];
+                }
+            } else {
+                // Column doesn't exist for this user, use empty string
+                $userData[$column] = '';
+            }
         }
+        $allUserData[] = $userData;
     }
 
     if (empty($allUserData)) {
@@ -299,12 +311,7 @@ class Extractor implements EndpointInterface
 
       // Write data rows
       foreach ($allUserData as $row) {
-        $outputRow = [];
-        foreach ($finalColumns as $column) {
-          // Use empty string if attribute not present for this specific user
-          $outputRow[] = $row[$column] ?? '';
-        }
-        fputcsv($handle, $outputRow);
+        fputcsv($handle, $row);
       }
 
       return TRUE;
