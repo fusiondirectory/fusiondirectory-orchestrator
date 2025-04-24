@@ -278,15 +278,12 @@ class Extractor implements EndpointInterface
         foreach (array_keys($allColumns) as $column) {
             if (isset($user[$column])) {
                 if (is_array($user[$column])) {
-                    // For array values (typical LDAP return format), take first value
-                    // Skip the 'count' element if present
-                    $userData[$column] = isset($user[$column][0]) ? $user[$column][0] : '';
+                    // All values, since 'count' is already removed
+                    $userData[$column] = implode(';', $user[$column]);
                 } else {
-                    // For scalar values
                     $userData[$column] = $user[$column];
                 }
             } else {
-                // Column doesn't exist for this user, use empty string
                 $userData[$column] = '';
             }
         }
