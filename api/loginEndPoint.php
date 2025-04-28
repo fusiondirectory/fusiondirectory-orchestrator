@@ -26,11 +26,7 @@ if (!$user_gateway->authenticateDSA($data["username"], $data["password"])) {
   exit;
 }
 
-// Construct user info directly for RefreshTokenGateway
-$user = [
-  "cn" => $data["username"] . "-jwt",
-  "dn" => "cn=" . str_replace('-jwt', '', $data["username"]) . "," . $_ENV["LDAP_OU_DSA"]
-];
+$user = $user_gateway->getDSAInfo($data["username"]);
 
 $codec = new JWTCodec($_ENV["SECRET_KEY"]);
 

@@ -26,4 +26,35 @@ class UserGateway
     // It will return TRUE if the bind was successful, FALSE otherwise.
     return $bind;
   }
+
+  public function getDSAInfo(string $dsaLogin): array
+  {
+    $jwtCN = $dsaLogin . "-jwt";
+    $baseDN = $_ENV["LDAP_OU_DSA"]; 
+    $filter = "(cn=$jwtCN)";
+    $attrs = ["cn", "dn"];
+
+    $sr = @ldap_search($this->ds, $baseDN, $filter, $attrs);
+    if ($sr === false) {
+        // Search failed, construct DN for creation
+        return [
+            "cn" => $jwtCN,
+            "dn" => "cn=$jwtCN," . $baseDN
+        ];
+    }
+
+    $info = ldap_get_entries($this->ds, $sr);
+
+    if ($info["count"] > 0) {
+        return [
+            "cn" => $info[0]["cn"][0],
+            "dn" => $info[0]["dn"]
+        ];
+    } else {
+        return [
+            "cn" => $jwtCN,
+            "dn" => "cn=$jwtCN," . $baseDN
+        ];
+    }
+  }
 }
