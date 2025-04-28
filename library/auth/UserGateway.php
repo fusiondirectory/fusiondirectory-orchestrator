@@ -10,7 +10,7 @@ class UserGateway
     $this->ds = $ldap_connect->getConnection();
   }
 
-  public function authenticateDSA(string $dsaLogin, string $password): bool
+  public function authenticateDSA (string $dsaLogin, string $password): bool
   {
     // Remove '-jwt' if present
     $dsaLogin = str_replace('-jwt', '', $dsaLogin);
@@ -27,15 +27,15 @@ class UserGateway
     return $bind;
   }
 
-  public function getDSAInfo(string $dsaLogin): array
+  public function getDSAInfo (string $dsaLogin): array
   {
-    $jwtCN = $dsaLogin . "-jwt";
+    $jwtCN  = $dsaLogin . "-jwt";
     $baseDN = $_ENV["LDAP_OU_DSA"]; 
     $filter = "(cn=$jwtCN)";
-    $attrs = ["cn", "dn"];
+    $attrs  = ["cn", "dn"];
 
     $sr = @ldap_search($this->ds, $baseDN, $filter, $attrs);
-    if ($sr === false) {
+    if ($sr === FALSE) {
         // Search failed, construct DN for creation
         return [
             "cn" => $jwtCN,
