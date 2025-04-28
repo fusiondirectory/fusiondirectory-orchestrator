@@ -83,7 +83,7 @@ class Extractor implements EndpointInterface
             $userDnList = $userDnListRaw;
             unset($userDnList['count']);
         } elseif (is_string($userDnListRaw) && !empty($userDnListRaw)) {
-            $userDnList = [$userDnListRaw]; 
+            $userDnList = [$userDnListRaw];
         }
 
         if (empty($userDnList)) {
@@ -98,10 +98,10 @@ class Extractor implements EndpointInterface
         // Get main task CN for filename
         $mainTaskCn = $this->getMainTaskCn($mainTaskDn);
         $date = date('Y-m-d_H');
-        
-        // Add a unique identifier based on microtime 
-        $uniqueId = substr(md5(microtime(true)), 0, 8);
-        
+
+        // Add a unique identifier based on microtime
+        $uniqueId = substr(md5((string)microtime(TRUE)), 0, 8);
+
         $filename = isset($data['filename']) ?
                    $path . $data['filename'] . '_' . $date . '_' . $uniqueId . '.csv' :
                    $path . $mainTaskCn . '_' . $date . '_' . $uniqueId . '.csv';
@@ -111,25 +111,25 @@ class Extractor implements EndpointInterface
         $errors = [];
 
         foreach ($userDnList as $userDn) {
-            if (empty($userDn)) {
-                continue;
+          if (empty($userDn)) {
+              continue;
+          }
+
+          try {
+              $userAttributes = $this->getUserAttributes($userDn, $mainTaskConfig);
+            if (!empty($userAttributes)) {
+                $allUserAttributes[] = $userAttributes[0];
             }
-            
-            try {
-                $userAttributes = $this->getUserAttributes($userDn, $mainTaskConfig);
-                if (!empty($userAttributes)) {
-                    $allUserAttributes[] = $userAttributes[0];
-                }
-            } catch (Exception $e) {
-                $errors[] = "Error fetching attributes for DN '$userDn': " . $e->getMessage();
-            }
+          } catch (Exception $e) {
+              $errors[] = "Error fetching attributes for DN '$userDn': " . $e->getMessage();
+          }
         }
 
         if (empty($allUserAttributes)) {
             $finalMessage = "No user attributes could be extracted.";
-            if (!empty($errors)) {
-                $finalMessage .= " Errors: " . implode("; ", $errors);
-            }
+          if (!empty($errors)) {
+              $finalMessage .= " Errors: " . implode("; ", $errors);
+          }
             $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
             $result[$task['dn']]['result'] = $finalMessage;
             continue;
@@ -154,10 +154,10 @@ class Extractor implements EndpointInterface
             $this->gateway->unsetCountKeys($recipients);
 
             // Compose mail subject/body
-            $subject = "FusionDirectory Extractor - Export file";
-            $body = "Your requested extract is attached.\n\nFile: $filename";
-            $signature = null;
-            $receipt = null;
+            $subject    = "FusionDirectory Extractor - Export file";
+            $body       = "Your requested extract is attached.\n\nFile: $filename";
+            $signature  = NULL;
+            $receipt    = NULL;
 
             // Prepare attachment
             $attachments = [[
@@ -167,16 +167,16 @@ class Extractor implements EndpointInterface
 
             if (empty($sender) || empty($recipients)) {
                 $finalMessage = "Batch extraction successful to $filename. Email not sent: sender or recipient missing.";
-                if (!empty($errors)) {
-                    $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
-                }
+              if (!empty($errors)) {
+                  $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
+              }
                 $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
                 $result[$task['dn']]['result'] = $finalMessage;
             } else {
                 // Send mail using MailLib
                 $mail_controller = new \FusionDirectory\Mail\MailLib(
                     $sender,
-                    null,
+                    NULL,
                     $recipients,
                     $body,
                     $signature,
@@ -186,18 +186,18 @@ class Extractor implements EndpointInterface
                 );
                 $mailSentResult = $mail_controller->sendMail();
 
-                if ($mailSentResult[0] == "SUCCESS") {
-                    $finalMessage = "Batch extraction successful to $filename. Email sent to recipients.";
-                    if (!empty($errors)) {
-                        $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
-                    }
-                    $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-                    $result[$task['dn']]['result'] = $finalMessage;
-                } else {
-                    $errorMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
-                    $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $errorMessage);
-                    $result[$task['dn']]['result'] = $errorMessage;
+              if ($mailSentResult[0] == "SUCCESS") {
+                  $finalMessage = "Batch extraction successful to $filename. Email sent to recipients.";
+                if (!empty($errors)) {
+                    $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
                 }
+                  $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+                  $result[$task['dn']]['result'] = $finalMessage;
+              } else {
+                  $errorMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
+                  $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $errorMessage);
+                  $result[$task['dn']]['result'] = $errorMessage;
+              }
             }
             // --- EMAIL LOGIC END ---
         } else {
@@ -313,7 +313,7 @@ class Extractor implements EndpointInterface
   {
     if (empty($allUserAttributes)) {
         // Nothing to write, consider it a success.
-        return true;
+        return TRUE;
     }
 
     // Only CSV is supported
@@ -333,8 +333,8 @@ class Extractor implements EndpointInterface
    */
   private function exportToCsvBatch (array $allUserAttributes, string $filename): bool
   {
-    if (empty($allUserAttributes)) {
-      return TRUE; // No attributes to write
+    if (empty($allUserData)) {
+        return TRUE; // No valid user data extracted
     }
 
     $allColumns = [];
@@ -342,29 +342,29 @@ class Extractor implements EndpointInterface
 
     // First pass: Collect all unique attributes across all users
     foreach ($allUserAttributes as $user) {
-        foreach ($user as $attribute => $values) {
-            // Skip numeric keys and 'count' entries that come from LDAP results
-            if (is_string($attribute) && $attribute !== 'count') {
-                $allColumns[$attribute] = TRUE;
-            }
+      foreach ($user as $attribute => $values) {
+          // Skip numeric keys and 'count' entries that come from LDAP results
+        if (is_string($attribute) && $attribute !== 'count') {
+            $allColumns[$attribute] = TRUE;
         }
+      }
     }
-    
+
     // Second pass: Build data rows with consistent column structure
     foreach ($allUserAttributes as $user) {
         $userData = [];
-        foreach (array_keys($allColumns) as $column) {
-            if (isset($user[$column])) {
-                if (is_array($user[$column])) {
-                    // All values, since 'count' is already removed
-                    $userData[$column] = implode(';', $user[$column]);
-                } else {
-                    $userData[$column] = $user[$column];
-                }
-            } else {
-                $userData[$column] = '';
-            }
+      foreach (array_keys($allColumns) as $column) {
+        if (isset($user[$column])) {
+          if (is_array($user[$column])) {
+            // All values, since 'count' is already removed
+            $userData[$column] = implode(';', $user[$column]);
+          } else {
+              $userData[$column] = $user[$column];
+          }
+        } else {
+            $userData[$column] = '';
         }
+      }
         $allUserData[] = $userData;
     }
 
