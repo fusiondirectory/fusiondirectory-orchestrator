@@ -49,56 +49,174 @@ class Extractor implements EndpointInterface
   {
     $result = [];
     $extractTasks = $this->gateway->getObjectTypeTask('extract');
+    $processedAnyTask = FALSE; // Track if any task was actually processed
 
     // Path is now expected in the JSON body ($data)
     $path = $data['path'] ?? '/srv/orchestrator/';
 
     foreach ($extractTasks as $task) {
       try {
+        // Use TaskGateway's status and schedule check correctly
+        // This will check if status is 1 (ready) AND scheduled time is reached
         if (!$this->gateway->statusAndScheduleCheck($task)) {
-          // Skip this task if it does not meet the status and schedule criteria
+          // Skip this task without adding to result
           continue;
         }
 
-        // Get the main task configuration
-        $mainTaskConfig = $this->getExtractMainTaskConfig($task['fdtasksgranularmaster'][0]);
+        // Check if it's the bulk task identifier we expect
+        if (!isset($task['fdtasksgranulardn'][0]) || $task['fdtasksgranulardn'][0] !== 'bulkExtractorTask') {
+          // Skip tasks without adding to result
+          continue;
+        }
 
-        // Get user DN from the task
-        $userDn = $task['fdtasksgranulardn'][0];
+        $processedAnyTask = TRUE; // We found a task to process
 
-        // Get user attributes
-        $userAttributes = $this->getUserAttributes($userDn, $mainTaskConfig);
+        // Get the main task configuration, including the list of DNs
+        $mainTaskDn = $task['fdtasksgranularmaster'][0];
+        $mainTaskConfig = $this->getExtractMainTaskConfig($mainTaskDn);
 
-        // Format comes from the main task configuration
-        $format = isset($mainTaskConfig[0]['fdextractortaskformat']) ?
-                 strtolower($mainTaskConfig[0]['fdextractortaskformat'][0]) : 'csv';
+        // Process fdExtractorTaskListOfDN attribute
+        $userDnListRaw = $mainTaskConfig[0]['fdextractortasklistofdn'] ?? [];
+        $userDnList = [];
+
+        if (is_array($userDnListRaw)) {
+            $userDnList = $userDnListRaw;
+            unset($userDnList['count']);
+        } elseif (is_string($userDnListRaw) && !empty($userDnListRaw)) {
+            $userDnList = [$userDnListRaw];
+        }
+
+        if (empty($userDnList)) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            $result[$task['dn']]['result'] = "No user DNs to process.";
+            continue;
+        }
 
         // Create directory if it doesn't exist
         $this->ensureDirectoryExists($path);
 
         // Get main task CN for filename
-        $mainTaskCn = $this->getMainTaskCn($task['fdtasksgranularmaster'][0]);
+        $mainTaskCn = $this->getMainTaskCn($mainTaskDn);
+        $date = date('Y-m-d_H');
 
-        // Determine filename with main task name and date with hour (no minutes or seconds)
-        $date = date('Y-m-d_H');  // Using only year-month-day_hour format
+        // Add a unique identifier based on microtime
+        $uniqueId = substr(md5((string)microtime(TRUE)), 0, 8);
+
         $filename = isset($data['filename']) ?
-                   $path . $data['filename'] . '_' . $date . '.' . $format :
-                   $path . $mainTaskCn . '_' . $date . '.' . $format;
+                   $path . $data['filename'] . '_' . $date . '_' . $uniqueId . '.csv' :
+                   $path . $mainTaskCn . '_' . $date . '_' . $uniqueId . '.csv';
 
-        // Extract and write to file
-        $success = $this->extractToFile($userAttributes, $filename, $format);
+        // Batch Processing
+        $allUserAttributes = [];
+        $errors = [];
+
+        foreach ($userDnList as $userDn) {
+          if (empty($userDn)) {
+              continue;
+          }
+
+          try {
+              $userAttributes = $this->getUserAttributes($userDn, $mainTaskConfig);
+            if (!empty($userAttributes)) {
+                $allUserAttributes[] = $userAttributes[0];
+            }
+          } catch (Exception $e) {
+              $errors[] = "Error fetching attributes for DN '$userDn': " . $e->getMessage();
+          }
+        }
+
+        if (empty($allUserAttributes)) {
+            $finalMessage = "No user attributes could be extracted.";
+          if (!empty($errors)) {
+              $finalMessage .= " Errors: " . implode("; ", $errors);
+          }
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+            $result[$task['dn']]['result'] = $finalMessage;
+            continue;
+        }
+
+        $success = $this->extractToFileBatch($allUserAttributes, $filename, 'csv');
 
         if ($success) {
-          $result[$task['dn']]['result'] = "User attributes successfully extracted to $filename";
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            // --- EMAIL LOGIC START ---
+            // Retrieve sender and recipients from main task
+            $mainTaskDetails = $this->gateway->getLdapTasks(
+                '(objectClass=fdExtractorTasks)',
+                [
+                  'fdExtractorEmailSender',
+                  'fdExtractorListOfRecipientsMails'
+                ],
+                '',
+                $mainTaskDn
+            );
+            $sender = $mainTaskDetails[0]['fdextractoremailsender'][0] ?? '';
+            $recipients = $mainTaskDetails[0]['fdextractorlistofrecipientsmails'] ?? [];
+            $this->gateway->unsetCountKeys($recipients);
+
+            // Compose mail subject/body
+            $subject    = "FusionDirectory Extractor - Export file";
+            $body       = "Your requested extract is attached.\n\nFile: $filename";
+            $signature  = NULL;
+            $receipt    = NULL;
+
+            // Prepare attachment
+            $attachments = [[
+                'cn' => basename($filename),
+                'content' => file_get_contents($filename)
+            ]];
+
+            if (empty($sender) || empty($recipients)) {
+                $finalMessage = "Batch extraction successful to $filename. Email not sent: sender or recipient missing.";
+              if (!empty($errors)) {
+                  $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
+              }
+                $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+                $result[$task['dn']]['result'] = $finalMessage;
+            } else {
+                // Send mail using MailLib
+                $mail_controller = new \FusionDirectory\Mail\MailLib(
+                    $sender,
+                    NULL,
+                    $recipients,
+                    $body,
+                    $signature,
+                    $subject,
+                    $receipt,
+                    $attachments
+                );
+                $mailSentResult = $mail_controller->sendMail();
+
+              if ($mailSentResult[0] == "SUCCESS") {
+                  $finalMessage = "Batch extraction successful to $filename. Email sent to recipients.";
+                if (!empty($errors)) {
+                    $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
+                }
+                  $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+                  $result[$task['dn']]['result'] = $finalMessage;
+              } else {
+                  $errorMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
+                  $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $errorMessage);
+                  $result[$task['dn']]['result'] = $errorMessage;
+              }
+            }
+            // --- EMAIL LOGIC END ---
         } else {
-          throw new Exception("Failed to write data to $filename");
+            $errorMessage = "Failed to write batch data to $filename.";
+            // Update the status to error ('1')
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $errorMessage);
+            $result[$task['dn']]['result'] = $errorMessage;
+            continue;
         }
 
       } catch (Exception $e) {
-        $result[$task['dn']]['result'] = "Error extracting user attributes: " . $e->getMessage();
+        $result[$task['dn']]['result'] = "Error processing extractor task: " . $e->getMessage();
         $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
       }
+    }
+
+    // After processing all tasks, if none were processed, return a simple message
+    if (!$processedAnyTask && empty($result)) {
+      $result['status'] = "No tasks to process for extractor.";
     }
 
     return $result;
@@ -113,7 +231,12 @@ class Extractor implements EndpointInterface
   {
     return $this->gateway->getLdapTasks(
       '(objectClass=fdExtractorTasks)',
-      ['fdExtractorTaskFormat', 'cn'],
+      [
+        'fdExtractorTaskFormat',
+        'cn',
+        'fdExtractorTaskListOfDN',
+        'fdExtractorTaskAttributes' // <-- Ensure this is included!
+      ],
       '',
       $mainTaskDn
     );
@@ -127,10 +250,32 @@ class Extractor implements EndpointInterface
    */
   private function getUserAttributes (string $userDn, array $mainTaskConfig): array
   {
-    // Get all user data from LDAP
+    // Default to all attributes
+    $attributesToFetch = ['*'];
+
+    // Try to get fdExtractorTaskAttributes from main task config
+    if (!empty($mainTaskConfig[0]['fdextractortaskattributes'])) {
+      $attrList = $mainTaskConfig[0]['fdextractortaskattributes'];
+      // Remove all 'count' keys using TaskGateway utility
+      $this->gateway->unsetCountKeys($attrList);
+
+      // If not "ALL", use only the listed attributes
+      if (is_array($attrList) && !(count($attrList) === 1 && strtoupper($attrList[0]) === 'ALL')) {
+        $attributesToFetch = [];
+        foreach ($attrList as $attr) {
+          if (is_string($attr)) {
+            $attributesToFetch[] = $attr;
+          }
+        }
+      } elseif (is_string($attrList) && strtoupper($attrList) !== 'ALL') {
+        $attributesToFetch = [$attrList];
+      }
+    }
+
+    // Get user data from LDAP for the selected attributes
     $userData = $this->gateway->getLdapTasks(
       '(objectClass=*)',
-      ['*'],
+      $attributesToFetch,
       '',
       $userDn
     );
@@ -157,226 +302,93 @@ class Extractor implements EndpointInterface
   }
 
   /**
-   * @param array $userAttributes
+   * @param array $allUserAttributes Array of user attribute arrays
    * @param string $filename
-   * @param string $format
+   * @param string $format Should always be 'csv' currently
    * @return bool
    * @throws Exception
-   * Note: Extract user attributes to a file.
+   * Note: Extract a batch of user attributes to a file (CSV only).
    */
-  private function extractToFile (array $userAttributes, string $filename, string $format): bool
+  private function extractToFileBatch (array $allUserAttributes, string $filename, string $format): bool
   {
-    switch (strtolower($format)) {
-      case 'csv':
-        return $this->exportToCsv($userAttributes, $filename);
-      case 'json':
-        return $this->exportToJson($userAttributes, $filename);
-      case 'xml':
-        return $this->exportToXml($userAttributes, $filename);
-      default:
-        return $this->exportToCsv($userAttributes, $filename);
+    if (empty($allUserAttributes)) {
+        // Nothing to write, consider it a success.
+        return TRUE;
     }
+
+    // Only CSV is supported
+    if (strtolower($format) !== 'csv') {
+        throw new InvalidArgumentException("Unsupported format '$format' requested. Only CSV is supported.");
+    }
+
+    return $this->exportToCsvBatch($allUserAttributes, $filename);
   }
 
   /**
-   * @param array $userAttributes
+   * @param array $allUserAttributes Array of user attribute arrays
    * @param string $filename
    * @return bool
    * @throws Exception
-   * Note: Export user attributes to CSV, preventing duplicate UIDs and handling new attributes.
+   * Note: Export a batch of user attributes to CSV. Overwrites the file.
    */
-  private function exportToCsv (array $userAttributes, string $filename): bool
+  private function exportToCsvBatch (array $allUserAttributes, string $filename): bool
   {
-    if (empty($userAttributes)) {
-      return TRUE; // No attributes to write
-    }
-
-    $user = $userAttributes[0];
-    $userData = [];
     $allColumns = [];
-    $existingData = [];
-    $uidKey = 'uid'; // The attribute to check for duplicates
-    $newUserUid = '';
+    $allUserData = [];
 
-    // Extract UID and prepare user data
-    foreach ($user as $attribute => $values) {
-      if (is_array($values)) {
-        foreach ($values as $key => $value) {
-          if (is_numeric($key)) {
-            $userData[$attribute]   = $value;
-            $allColumns[$attribute] = TRUE; // Use as associative array to avoid duplicates
-
-            if (strtolower($attribute) === $uidKey) {
-              $newUserUid = $value;
-            }
-
-            break; // Only take the first value for simplicity
-          }
+    // First pass: Collect all unique attributes across all users
+    foreach ($allUserAttributes as $user) {
+      foreach ($user as $attribute => $values) {
+          // Skip numeric keys and 'count' entries that come from LDAP results
+        if (is_string($attribute) && $attribute !== 'count') {
+            $allColumns[$attribute] = TRUE;
         }
       }
     }
 
-    // If no UID found, generate a random one
-    if (empty($newUserUid)) {
-      $newUserUid = 'user_' . uniqid();
-      $userData[$uidKey] = $newUserUid;
-      $allColumns[$uidKey] = TRUE;
-    }
-
-    // Read existing file if it exists
-    if (file_exists($filename)) {
-      $handle = fopen($filename, 'r');
-      if ($handle !== FALSE) {
-        // Read headers
-        $headers = fgetcsv($handle);
-        if ($headers !== FALSE) {
-          // Add existing headers to all columns
-          foreach ($headers as $header) {
-            $allColumns[$header] = TRUE;
+    // Second pass: Build data rows with consistent column structure
+    foreach ($allUserAttributes as $user) {
+        $userData = [];
+      foreach (array_keys($allColumns) as $column) {
+        if (isset($user[$column])) {
+          if (is_array($user[$column])) {
+            // All values, since 'count' is already removed
+            $userData[$column] = implode(';', $user[$column]);
+          } else {
+              $userData[$column] = $user[$column];
           }
-
-          // Read existing data
-          while (($row = fgetcsv($handle)) !== FALSE) {
-            $rowData = [];
-            foreach ($headers as $index => $header) {
-              $rowData[$header] = $row[$index] ?? '';
-            }
-            // Only add to existing data if it's not the same UID as new user
-            if (isset($rowData[$uidKey]) && $rowData[$uidKey] !== $newUserUid) {
-              $existingData[] = $rowData;
-            }
-          }
+        } else {
+            $userData[$column] = '';
         }
-        fclose($handle);
       }
+        $allUserData[] = $userData;
     }
 
-    // Convert all columns associative array to indexed array
+    if (empty($allUserData)) {
+        return TRUE; // No valid user data extracted
+    }
+
     $finalColumns = array_keys($allColumns);
 
-    // Add new user data to existing data
-    $existingData[] = $userData;
-
-    // Write to file
-    $handle = fopen($filename, 'w'); // 'w' to overwrite with complete data
+    // Write to file (overwrite mode 'w')
+    $handle = fopen($filename, 'w');
     if ($handle === FALSE) {
-      throw new Exception("Could not open file: $filename");
+        throw new Exception("Could not open file for writing: $filename");
     }
 
     try {
-      // Write headers
-      fputcsv($handle, $finalColumns);
+        // Write headers
+        fputcsv($handle, $finalColumns);
 
-      // Write data rows
-      foreach ($existingData as $row) {
-        $outputRow = [];
-        foreach ($finalColumns as $column) {
-          $outputRow[] = $row[$column] ?? ''; // Use empty string if attribute not found
-        }
-        fputcsv($handle, $outputRow);
+        // Write data rows
+      foreach ($allUserData as $row) {
+          fputcsv($handle, $row);
       }
 
-      return TRUE;
+        return TRUE;
     } finally {
-      fclose($handle);
+        fclose($handle);
     }
-  }
-
-  /**
-   * @param array $userAttributes
-   * @param string $filename
-   * @return bool
-   * Note: Export user attributes to JSON with duplicate UID handling.
-   */
-  private function exportToJson (array $userAttributes, string $filename): bool
-  {
-    $existingData = [];
-    $uidKey = 'uid';
-    $newUserUid = '';
-
-    // Get UID of new user
-    if (!empty($userAttributes[0][$uidKey][0])) {
-      $newUserUid = $userAttributes[0][$uidKey][0];
-    }
-
-    // Read existing data if file exists
-    if (file_exists($filename)) {
-      $existingJson = file_get_contents($filename);
-      if (!empty($existingJson)) {
-        $jsonData = json_decode($existingJson, TRUE) ?? [];
-
-        // Filter out any entries with the same UID
-        foreach ($jsonData as $entry) {
-          if (!isset($entry[$uidKey][0]) || $entry[$uidKey][0] !== $newUserUid) {
-            $existingData[] = $entry;
-          }
-        }
-      }
-    }
-
-    // Add new data
-    $existingData[] = $userAttributes[0];
-
-    // Write back to file
-    return file_put_contents($filename, json_encode($existingData, JSON_PRETTY_PRINT)) !== FALSE;
-  }
-
-  /**
-   * @param array $userAttributes
-   * @param string $filename
-   * @return bool
-   * Note: Export user attributes to XML with duplicate UID handling.
-   */
-  private function exportToXml (array $userAttributes, string $filename): bool
-  {
-    $dom = new DOMDocument('1.0', 'UTF-8');
-    $dom->formatOutput = TRUE;
-    $uidKey = 'uid';
-    $newUserUid = '';
-
-    // Get UID of new user
-    if (!empty($userAttributes[0][$uidKey][0])) {
-      $newUserUid = $userAttributes[0][$uidKey][0];
-    }
-
-    // Create or load XML document
-    if (file_exists($filename)) {
-      $dom->load($filename);
-      $root = $dom->documentElement;
-
-      // Remove any existing user with the same UID
-      if (!empty($newUserUid)) {
-        $xpath = new DOMXPath($dom);
-        $users = $xpath->query("/users/user[{$uidKey}='{$newUserUid}']");
-        if ($users->length > 0) {
-          foreach ($users as $user) {
-            $root->removeChild($user);
-          }
-        }
-      }
-    } else {
-      $root = $dom->createElement('users');
-      $dom->appendChild($root);
-    }
-
-    // Add new user element
-    $user = $dom->createElement('user');
-
-    foreach ($userAttributes[0] as $attribute => $values) {
-      if (is_array($values)) {
-        foreach ($values as $key => $value) {
-          if (is_numeric($key)) {
-            $attr = $dom->createElement($attribute, htmlspecialchars($value));
-            $user->appendChild($attr);
-          }
-        }
-      }
-    }
-
-    $root->appendChild($user);
-
-    // Write to file
-    return $dom->save($filename) !== FALSE;
   }
 
   /**
