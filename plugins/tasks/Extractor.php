@@ -333,38 +333,34 @@ class Extractor implements EndpointInterface
    */
   private function exportToCsvBatch (array $allUserAttributes, string $filename): bool
   {
-    if (empty($allUserData)) {
-        return TRUE; // No valid user data extracted
-    }
-
     $allColumns = [];
     $allUserData = [];
 
     // First pass: Collect all unique attributes across all users
     foreach ($allUserAttributes as $user) {
-      foreach ($user as $attribute => $values) {
-          // Skip numeric keys and 'count' entries that come from LDAP results
-        if (is_string($attribute) && $attribute !== 'count') {
-            $allColumns[$attribute] = TRUE;
+        foreach ($user as $attribute => $values) {
+            // Skip numeric keys and 'count' entries that come from LDAP results
+            if (is_string($attribute) && $attribute !== 'count') {
+                $allColumns[$attribute] = TRUE;
+            }
         }
-      }
     }
 
     // Second pass: Build data rows with consistent column structure
     foreach ($allUserAttributes as $user) {
         $userData = [];
-      foreach (array_keys($allColumns) as $column) {
-        if (isset($user[$column])) {
-          if (is_array($user[$column])) {
-            // All values, since 'count' is already removed
-            $userData[$column] = implode(';', $user[$column]);
-          } else {
-              $userData[$column] = $user[$column];
-          }
-        } else {
-            $userData[$column] = '';
+        foreach (array_keys($allColumns) as $column) {
+            if (isset($user[$column])) {
+                if (is_array($user[$column])) {
+                    // All values, since 'count' is already removed
+                    $userData[$column] = implode(';', $user[$column]);
+                } else {
+                    $userData[$column] = $user[$column];
+                }
+            } else {
+                $userData[$column] = '';
+            }
         }
-      }
         $allUserData[] = $userData;
     }
 
@@ -377,21 +373,21 @@ class Extractor implements EndpointInterface
     // Write to file (overwrite mode 'w')
     $handle = fopen($filename, 'w');
     if ($handle === FALSE) {
-      throw new Exception("Could not open file for writing: $filename");
+        throw new Exception("Could not open file for writing: $filename");
     }
 
     try {
-      // Write headers
-      fputcsv($handle, $finalColumns);
+        // Write headers
+        fputcsv($handle, $finalColumns);
 
-      // Write data rows
-      foreach ($allUserData as $row) {
-        fputcsv($handle, $row);
-      }
+        // Write data rows
+        foreach ($allUserData as $row) {
+            fputcsv($handle, $row);
+        }
 
-      return TRUE;
+        return TRUE;
     } finally {
-      fclose($handle);
+        fclose($handle);
     }
   }
 
