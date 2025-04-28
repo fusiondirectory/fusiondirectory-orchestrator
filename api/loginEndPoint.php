@@ -20,20 +20,17 @@ if (!array_key_exists("username", $data) || !array_key_exists("password", $data)
 $ldap_connect = new Ldap($_ENV["FD_LDAP_MASTER_URL"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
 $user_gateway = new UserGateway($ldap_connect);
 
-$user = $user_gateway->getDSAInfo($data["username"]);
-if ($user == NULL) {
-
+if (!$user_gateway->authenticateDSA($data["username"], $data["password"])) {
   http_response_code(401);
   echo json_encode(["message" => "invalid authentication"]);
   exit;
 }
 
-if (!$user_gateway->validateDSAPassword($data["password"], $user["password_hash"])) {
-
-  http_response_code(401);
-  echo json_encode(["message" => "invalid authentication"]);
-  exit;
-}
+// Construct user info directly for RefreshTokenGateway
+$user = [
+  "cn" => $data["username"] . "-jwt",
+  "dn" => "cn=" . str_replace('-jwt', '', $data["username"]) . "," . $_ENV["LDAP_OU_DSA"]
+];
 
 $codec = new JWTCodec($_ENV["SECRET_KEY"]);
 
