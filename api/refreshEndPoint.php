@@ -32,23 +32,18 @@ $dsaCN = $payload["sub"];
 
 $ldap_connect = new Ldap($_ENV["FD_LDAP_MASTER_URL"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
 
-$user_gateway = new UserGateway($ldap_connect);
+// Construct user info directly.
+$user = [
+  "cn" => $dsaCN . "-jwt",
+  "dn" => "cn=" . str_replace('-jwt', '', $dsaCN) . "," . $_ENV["LDAP_OU_DSA"]
+];
 
-$user = $user_gateway->getDSAInfo($dsaCN);
-
-if (!$user) {
-
-  http_response_code(401);
-  echo json_encode(["message" => "invalid authentication"]);
-  exit;
-}
-
+// Pass user info to the RefreshTokenGateway, only the cn and dn are used.
 $refresh_token_gateway = new RefreshTokenGateway($ldap_connect, $_ENV["SECRET_KEY"], $user);
 
 $refresh_token = $refresh_token_gateway->getByToken($data["token"]);
 
 if (!$refresh_token) {
-
     http_response_code(400);
     echo json_encode(["message" => "invalid token (not on whitelist)"]);
     exit;
