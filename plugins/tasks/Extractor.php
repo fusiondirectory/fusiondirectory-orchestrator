@@ -338,29 +338,29 @@ class Extractor implements EndpointInterface
 
     // First pass: Collect all unique attributes across all users
     foreach ($allUserAttributes as $user) {
-        foreach ($user as $attribute => $values) {
-            // Skip numeric keys and 'count' entries that come from LDAP results
-            if (is_string($attribute) && $attribute !== 'count') {
-                $allColumns[$attribute] = TRUE;
-            }
+      foreach ($user as $attribute => $values) {
+          // Skip numeric keys and 'count' entries that come from LDAP results
+        if (is_string($attribute) && $attribute !== 'count') {
+            $allColumns[$attribute] = TRUE;
         }
+      }
     }
 
     // Second pass: Build data rows with consistent column structure
     foreach ($allUserAttributes as $user) {
         $userData = [];
-        foreach (array_keys($allColumns) as $column) {
-            if (isset($user[$column])) {
-                if (is_array($user[$column])) {
-                    // All values, since 'count' is already removed
-                    $userData[$column] = implode(';', $user[$column]);
-                } else {
-                    $userData[$column] = $user[$column];
-                }
-            } else {
-                $userData[$column] = '';
-            }
+      foreach (array_keys($allColumns) as $column) {
+        if (isset($user[$column])) {
+          if (is_array($user[$column])) {
+            // All values, since 'count' is already removed
+            $userData[$column] = implode(';', $user[$column]);
+          } else {
+              $userData[$column] = $user[$column];
+          }
+        } else {
+            $userData[$column] = '';
         }
+      }
         $allUserData[] = $userData;
     }
 
@@ -381,9 +381,9 @@ class Extractor implements EndpointInterface
         fputcsv($handle, $finalColumns);
 
         // Write data rows
-        foreach ($allUserData as $row) {
-            fputcsv($handle, $row);
-        }
+      foreach ($allUserData as $row) {
+          fputcsv($handle, $row);
+      }
 
         return TRUE;
     } finally {
