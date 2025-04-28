@@ -30,7 +30,7 @@ class UserGateway
   public function getDSAInfo (string $dsaLogin): array
   {
     $jwtCN  = $dsaLogin . "-jwt";
-    $baseDN = $_ENV["LDAP_OU_DSA"]; 
+    $baseDN = $_ENV["LDAP_OU_DSA"];
     $filter = "(cn=$jwtCN)";
     $attrs  = ["cn", "dn"];
 
