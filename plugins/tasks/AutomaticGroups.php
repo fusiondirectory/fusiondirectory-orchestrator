@@ -34,7 +34,12 @@ class AutomaticGroups implements EndpointInterface
    */
   public function processEndPointPatch (array $data = NULL): array
   {
-    return $this->processAutomaticGroups($this->gateway->getObjectTypeTask('Automatic Groups'));
+    // Check what type of task we need to process
+    if (isset($data['type']) && $data['type'] === 'dynamic-group') {
+      return $this->processDynamicGroupCreation($this->gateway->getObjectTypeTask('Dynamic-Group'));
+    } else {
+      return $this->processAutomaticGroups($this->gateway->getObjectTypeTask('Automatic Groups'));
+    }
   }
 
   /**
@@ -115,6 +120,78 @@ class AutomaticGroups implements EndpointInterface
   }
 
   /**
+   * Process dynamic group creation tasks
+   *
+   * @param array $dynamicGroupTasks
+   * @return array
+   * @throws Exception
+   */
+  public function processDynamicGroupCreation (array $dynamicGroupTasks): array
+  {
+    $result = [];
+
+    if (empty($dynamicGroupTasks)) {
+      return ['No dynamic group tasks require processing.'];
+    }
+
+    foreach ($dynamicGroupTasks as $task) {
+      try {
+        // Check if task should be processed (status and schedule)
+        if (!$this->gateway->statusAndScheduleCheck($task)) {
+          continue;
+        }
+
+        // Get main task configuration
+        $mainTaskConfig = $this->getAutomaticGroupsMainTask($task['fdtasksgranularmaster'][0]);
+
+        // Get pre-computed values for dynamic group
+        $dynamicURL = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicurl'][0] ?? NULL;
+        $dynamicName = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicname'][0] ?? NULL;
+
+        if (empty($dynamicURL) || empty($dynamicName)) {
+          // If pre-computed values are not available, fall back to generating them
+          $resource = $mainTaskConfig[0]['fdtasksautomaticgroupsresource'][0] ?? NULL;
+          $state    = $mainTaskConfig[0]['fdtasksautomaticgroupsstate'][0] ?? NULL;
+          $subState = $mainTaskConfig[0]['fdtasksautomaticgroupssubstate'][0] ?? NULL;
+
+          if (empty($resource) || empty($state)) {
+            throw new Exception("Missing required parameters for dynamic group creation");
+          }
+
+          // Generate name and URL if not provided
+          $dynamicName = 'dynamic-' . $resource . '-' . $state;
+          if (!empty($subState)) {
+            $dynamicName .= '-' . $subState;
+            $filter = "(supannRessourceEtat={" . $resource . "}" . $state . ":" . $subState . ")";
+          } else {
+            $filter = "(supannRessourceEtat={" . $resource . "}" . $state . ")";
+          }
+
+          // Get base DN from system config
+          global $config;
+          $baseDN = $config->current['BASE'] ?? 'dc=example,dc=com';
+          $peopleDN = 'ou=people,' . $baseDN;
+
+          $dynamicURL = "ldap:///" . $peopleDN . "??one?$filter";
+        }
+        
+        // Create the dynamic group using pre-computed or generated values
+        $this->createDynamicGroup($dynamicName, $dynamicURL);
+        
+        // Update task status
+        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+        
+        $result[$task['dn']]['result'] = "Successfully created dynamic group '$dynamicName' with URL: $dynamicURL";
+      } catch (Exception $e) {
+        $result[$task['dn']]['result'] = "Error processing task: " . $e->getMessage();
+        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
+      }
+    }
+
+    return $result;
+  }
+
+  /**
    * Get main task configuration
    *
    * @param string $mainTaskDn
@@ -128,7 +205,10 @@ class AutomaticGroups implements EndpointInterface
         'fdTasksAutomaticGroupsOfName',
         'fdTasksAutomaticGroupsResource',
         'fdTasksAutomaticGroupsState',
-        'fdTasksAutomaticGroupsSubState'
+        'fdTasksAutomaticGroupsSubState',
+        'fdTasksAutomaticGroupsDynamicGroup',
+        'fdTasksAutomaticGroupsDynamicURL',
+        'fdTasksAutomaticGroupsDynamicName'
       ],
       '',
       $mainTaskDn
