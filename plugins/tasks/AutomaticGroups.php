@@ -147,33 +147,6 @@ class AutomaticGroups implements EndpointInterface
         // Get pre-computed values for dynamic group
         $dynamicURL = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicurl'][0] ?? NULL;
         $dynamicName = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicname'][0] ?? NULL;
-
-        if (empty($dynamicURL) || empty($dynamicName)) {
-          // If pre-computed values are not available, fall back to generating them
-          $resource = $mainTaskConfig[0]['fdtasksautomaticgroupsresource'][0] ?? NULL;
-          $state    = $mainTaskConfig[0]['fdtasksautomaticgroupsstate'][0] ?? NULL;
-          $subState = $mainTaskConfig[0]['fdtasksautomaticgroupssubstate'][0] ?? NULL;
-
-          if (empty($resource) || empty($state)) {
-            throw new Exception("Missing required parameters for dynamic group creation");
-          }
-
-          // Generate name and URL if not provided
-          $dynamicName = 'dynamic-' . $resource . '-' . $state;
-          if (!empty($subState)) {
-            $dynamicName .= '-' . $subState;
-            $filter = "(supannRessourceEtat={" . $resource . "}" . $state . ":" . $subState . ")";
-          } else {
-            $filter = "(supannRessourceEtat={" . $resource . "}" . $state . ")";
-          }
-
-          // Get base DN from system config
-          global $config;
-          $baseDN = $config->current['BASE'] ?? 'dc=example,dc=com';
-          $peopleDN = 'ou=people,' . $baseDN;
-
-          $dynamicURL = "ldap:///" . $peopleDN . "??one?$filter";
-        }
         
         // Create the dynamic group using pre-computed or generated values
         $this->createDynamicGroup($dynamicName, $dynamicURL);
@@ -353,6 +326,59 @@ class AutomaticGroups implements EndpointInterface
       return TRUE;
     } catch (Exception $e) {
       throw new Exception("Error removing member from group: " . $e->getMessage());
+    }
+  }
+
+  /**
+   * Create a dynamic group in LDAP
+   * 
+   * @param string $groupName The name of the dynamic group
+   * @param string $ldapUrl The LDAP URL for the dynamic group filter
+   * @return bool True on success
+   * @throws Exception On failure
+   */
+  private function createDynamicGroup(string $groupName, string $ldapUrl): bool
+  {
+    if (empty($groupName) || empty($ldapUrl)) {
+        throw new Exception("Missing required parameters for dynamic group creation");
+    }
+    
+    // Get base DN from environment variables
+    $baseDN = $_ENV["LDAP_BASE"];
+    $groupDN = "cn=$groupName,ou=groups,$baseDN";
+    
+    // Check if the group already exists
+    $existingGroup = $this->gateway->getLdapTasks(
+        "(cn=$groupName)",
+        ['cn', 'objectClass', 'memberURL'],
+        NULL,
+        "ou=groups,$baseDN"
+    );
+    
+    // If group exists, mark as success but don't modify it
+    if (!empty($existingGroup) && isset($existingGroup[0]['cn'])) {
+        return true; // Group already exists, return success without modifying
+    }
+    
+    // Group doesn't exist, create it
+    $description = "Dynamic group for " . str_replace('dynamic-', '', $groupName);
+    
+    $entry = [
+        'objectClass' => ['groupOfURLs', 'extensibleObject'],
+        'cn' => $groupName,
+        'memberURL' => $ldapUrl,
+        'description' => $description
+    ];
+    
+    try {
+        // Create the dynamic group
+        $result = ldap_add($this->gateway->ds, $groupDN, $entry);
+        if (!$result) {
+            throw new Exception("Failed to create dynamic group: " . ldap_error($this->gateway->ds));
+        }
+        return true;
+    } catch (Exception $e) {
+        throw new Exception("Error creating dynamic group: " . $e->getMessage());
     }
   }
 }
