@@ -145,15 +145,15 @@ class AutomaticGroups implements EndpointInterface
         $mainTaskConfig = $this->getAutomaticGroupsMainTask($task['fdtasksgranularmaster'][0]);
 
         // Get pre-computed values for dynamic group
-        $dynamicURL = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicurl'][0] ?? NULL;
+        $dynamicURL  = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicurl'][0] ?? NULL;
         $dynamicName = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicname'][0] ?? NULL;
-        
+
         // Create the dynamic group using pre-computed or generated values
         $this->createDynamicGroup($dynamicName, $dynamicURL);
-        
+
         // Update task status
         $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-        
+
         $result[$task['dn']]['result'] = "Successfully created dynamic group '$dynamicName' with URL: $dynamicURL";
       } catch (Exception $e) {
         $result[$task['dn']]['result'] = "Error processing task: " . $e->getMessage();
@@ -331,22 +331,22 @@ class AutomaticGroups implements EndpointInterface
 
   /**
    * Create a dynamic group in LDAP
-   * 
+   *
    * @param string $groupName The name of the dynamic group
    * @param string $ldapUrl The LDAP URL for the dynamic group filter
    * @return bool True on success
    * @throws Exception On failure
    */
-  private function createDynamicGroup(string $groupName, string $ldapUrl): bool
+  private function createDynamicGroup (string $groupName, string $ldapUrl): bool
   {
     if (empty($groupName) || empty($ldapUrl)) {
         throw new Exception("Missing required parameters for dynamic group creation");
     }
-    
+
     // Get base DN from environment variables
-    $baseDN = $_ENV["LDAP_BASE"];
-    $groupDN = "cn=$groupName,ou=groups,$baseDN";
-    
+    $baseDN   = $_ENV["LDAP_BASE"];
+    $groupDN  = "cn=$groupName,ou=groups,$baseDN";
+
     // Check if the group already exists
     $existingGroup = $this->gateway->getLdapTasks(
         "(cn=$groupName)",
@@ -354,29 +354,29 @@ class AutomaticGroups implements EndpointInterface
         NULL,
         "ou=groups,$baseDN"
     );
-    
+
     // If group exists, mark as success but don't modify it
     if (!empty($existingGroup) && isset($existingGroup[0]['cn'])) {
-        return true; // Group already exists, return success without modifying
+        return TRUE; // Group already exists, return success without modifying
     }
-    
+
     // Group doesn't exist, create it
     $description = "Dynamic group for " . str_replace('dynamic-', '', $groupName);
-    
+
     $entry = [
         'objectClass' => ['groupOfURLs', 'extensibleObject'],
         'cn' => $groupName,
         'memberURL' => $ldapUrl,
         'description' => $description
     ];
-    
+
     try {
         // Create the dynamic group
         $result = ldap_add($this->gateway->ds, $groupDN, $entry);
-        if (!$result) {
-            throw new Exception("Failed to create dynamic group: " . ldap_error($this->gateway->ds));
-        }
-        return true;
+      if (!$result) {
+          throw new Exception("Failed to create dynamic group: " . ldap_error($this->gateway->ds));
+      }
+        return TRUE;
     } catch (Exception $e) {
         throw new Exception("Error creating dynamic group: " . $e->getMessage());
     }
