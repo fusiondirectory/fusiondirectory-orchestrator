@@ -136,33 +136,67 @@ class LifeCycle implements EndpointInterface
       return FALSE;
     }
 
-    // Extracting values of desired pre-state behavior
-    $preStateSupann['Resource'] = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0];
-    $preStateSupann['State']    = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0];
-    $preStateSupann['SubState'] = $lifeCycleBehavior[0]['fdtaskslifecyclepresubstate'][0] ?? ''; //SubState is optional
+    // Check if regex filtering is enabled
+    $regexActivated = isset($lifeCycleBehavior[0]['fdtaskslifecycleregexactivation']) && 
+                      $lifeCycleBehavior[0]['fdtaskslifecycleregexactivation'][0] === 'TRUE';
 
-    // Iteration of all potential existing supann states of the user in order to find a match
-    foreach ($currentUserLifeCycle[0]['supannressourceetatdate'] as $resource) {
-      // Perform the regular expression match
-      preg_match($pattern, $resource, $matches);
+    if ($regexActivated && isset($lifeCycleBehavior[0]['fdtaskslifecycleregexpattern'][0])) {
+      // Use regex pattern to match resources
+      $regexPattern = $lifeCycleBehavior[0]['fdtaskslifecycleregexpattern'][0];
+      
+      // Iterate through user's resources to find matches
+      foreach ($currentUserLifeCycle[0]['supannressourceetatdate'] as $resource) {
+        // Perform pattern matching on the resource string
+        if (@preg_match('/' . $regexPattern . '/', $resource)) {
+          // Extract fields to check end date
+          preg_match($pattern, $resource, $matches);
+          
+          // Get end date from the matches
+          $userSupannEndDate = $matches[5] ?? '';
+          
+          // Check if the end date is expired - only process expired resources
+          if (!empty($userSupannEndDate) && strtotime($userSupannEndDate) <= time()) {
+            $result = TRUE;
+            break;
+          }
+        }
+      }
+    } else {
+      // Use traditional pre-state matching
+      
+      // Extracting values of desired pre-state behavior
+      $preStateSupann['Resource'] = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0] ?? '';
+      $preStateSupann['State']    = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0] ?? '';
+      $preStateSupann['SubState'] = $lifeCycleBehavior[0]['fdtaskslifecyclepresubstate'][0] ?? ''; //SubState is optional
 
-      // Extracting values of current user
-      $userSupann['Resource'] = $matches[1] ?? '';
-      $userSupann['State']    = $matches[2] ?? '';
-      $userSupann['SubState'] = $matches[3] ?? '';
-      // Array index 4 is skipped, we only use end date to apply our life cycle logic. Start date has no use here.
-      $userSupann['EndDate'] = $matches[5] ?? '';
+      // Skip if pre-state attributes are missing
+      if (empty($preStateSupann['Resource']) || empty($preStateSupann['State'])) {
+        return FALSE;
+      }
 
-      //  Verifying if the user end date for selected resource is overdue
-      if (!empty($userSupann['EndDate']) && strtotime($userSupann['EndDate']) <= time()) {
-        // Comparing value in a nesting conditions
-        if ($userSupann['Resource'] == $preStateSupann['Resource']) {
-          if ($userSupann['State'] == $preStateSupann['State']) {
-            // as SubState is optional, if both resource and state match at this point, modification is allowed.
-            if (empty($preStateSupann['SubState'])) {
-              $result = TRUE;
-            } else if ($preStateSupann['SubState'] == $userSupann['SubState']) {
-              $result = TRUE;
+      // Iteration of all potential existing supann states of the user in order to find a match
+      foreach ($currentUserLifeCycle[0]['supannressourceetatdate'] as $resource) {
+        // Perform the regular expression match
+        preg_match($pattern, $resource, $matches);
+
+        // Extracting values of current user
+        $userSupann['Resource'] = $matches[1] ?? '';
+        $userSupann['State']    = $matches[2] ?? '';
+        $userSupann['SubState'] = $matches[3] ?? '';
+        // Array index 4 is skipped, we only use end date to apply our life cycle logic. Start date has no use here.
+        $userSupann['EndDate'] = $matches[5] ?? '';
+
+        //  Verifying if the user end date for selected resource is overdue
+        if (!empty($userSupann['EndDate']) && strtotime($userSupann['EndDate']) <= time()) {
+          // Comparing value in a nesting conditions
+          if ($userSupann['Resource'] == $preStateSupann['Resource']) {
+            if ($userSupann['State'] == $preStateSupann['State']) {
+              // as SubState is optional, if both resource and state match at this point, modification is allowed.
+              if (empty($preStateSupann['SubState'])) {
+                $result = TRUE;
+              } else if ($preStateSupann['SubState'] == $userSupann['SubState']) {
+                $result = TRUE;
+              }
             }
           }
         }
@@ -295,7 +329,8 @@ class LifeCycle implements EndpointInterface
   {
     return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
       'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
-      'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate'],
+      'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate',
+      'fdTasksLifeCycleRegexActivation', 'fdTasksLifeCycleRegexPattern'],
                                         '', $taskDN);
   }
 
