@@ -4,12 +4,12 @@ class Notifications implements EndpointInterface
 {
 
   private TaskGateway $gateway;
-  private Utils $utils;
+  private CoreUtils $coreUtils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
-    $this->utils = new Utils();
+    $this->coreUtils = new CoreUtils();
   }
 
   /**
@@ -84,7 +84,7 @@ class Notifications implements EndpointInterface
         $this->gateway->unsetCountKeys($monitoredSupannResource);
 
         // Find matching attributes between audited and monitored attributes
-        $matchingAttrs = $this->utils->findMatchingKeys($auditAttributes, $monitoredAttrs);
+        $matchingAttrs = $this->coreUtils->findMatchingKeys($auditAttributes, $monitoredAttrs);
 
         // Verify Supann resource state if applicable
         if ($this->shouldVerifySupannResource($monitoredSupannResource, $auditAttributes)) {
@@ -185,7 +185,7 @@ class Notifications implements EndpointInterface
     }
 
     // Get all the values only of a multidimensional array.
-    $auditedValues = $this->utils->getArrayValuesRecursive($auditedAttrs);
+    $auditedValues = $this->coreUtils->getArrayValuesRecursive($auditedAttrs);
 
     if (in_array($monitoredSupannState, $auditedValues)) {
       $result = TRUE;

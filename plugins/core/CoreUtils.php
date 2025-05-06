@@ -1,6 +1,6 @@
 <?php
 
-class Utils
+class CoreUtils
 {
   public function __construct ()
   {
