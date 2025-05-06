@@ -137,23 +137,23 @@ class LifeCycle implements EndpointInterface
     }
 
     // Check if regex filtering is enabled
-    $regexActivated = isset($lifeCycleBehavior[0]['fdtaskslifecycleregexactivation']) && 
+    $regexActivated = isset($lifeCycleBehavior[0]['fdtaskslifecycleregexactivation']) &&
                       $lifeCycleBehavior[0]['fdtaskslifecycleregexactivation'][0] === 'TRUE';
 
     if ($regexActivated && isset($lifeCycleBehavior[0]['fdtaskslifecycleregexpattern'][0])) {
       // Use regex pattern to match resources
       $regexPattern = $lifeCycleBehavior[0]['fdtaskslifecycleregexpattern'][0];
-      
+
       // Iterate through user's resources to find matches
       foreach ($currentUserLifeCycle[0]['supannressourceetatdate'] as $resource) {
         // Perform pattern matching on the resource string
         if (@preg_match('/' . $regexPattern . '/', $resource)) {
           // Extract fields to check end date
           preg_match($pattern, $resource, $matches);
-          
+
           // Get end date from the matches
           $userSupannEndDate = $matches[5] ?? '';
-          
+
           // Check if the end date is expired - only process expired resources
           if (!empty($userSupannEndDate) && strtotime($userSupannEndDate) <= time()) {
             $result = TRUE;
@@ -163,7 +163,7 @@ class LifeCycle implements EndpointInterface
       }
     } else {
       // Use traditional pre-state matching
-      
+
       // Extracting values of desired pre-state behavior
       $preStateSupann['Resource'] = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0] ?? '';
       $preStateSupann['State']    = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0] ?? '';
@@ -237,7 +237,7 @@ class LifeCycle implements EndpointInterface
     if ($matchedResource) {
       // Fetch the end date of the matched resource
       $currentEndDate = $this->extractCurrentEndDate($matchedResource);
-      
+
       // Check if end date exists and is valid
       if (empty($currentEndDate) || !preg_match('/^\d{8}$/', $currentEndDate)) {
         return "Error: Target resource {" . $newEntry['Resource'] . "} doesn't have a valid end date format. Cannot process update.";
@@ -245,10 +245,10 @@ class LifeCycle implements EndpointInterface
 
       // Create a DateTime object from the string
       $currentEndDateObject = DateTime::createFromFormat("Ymd", $currentEndDate);
-      if ($currentEndDateObject === false) {
+      if ($currentEndDateObject === FALSE) {
         return "Error: Invalid end date format for target resource {" . $newEntry['Resource'] . "}. Cannot process update.";
       }
-      
+
       $currentEndDateObject->modify("+" . $newEntry['EndDate'] . " days");
       $finalRessourceEtatDate = $newResource . ':' . $currentEndDate . ':' . $currentEndDateObject->format('Ymd');
 
