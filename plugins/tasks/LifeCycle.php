@@ -235,11 +235,20 @@ class LifeCycle implements EndpointInterface
     // Find a matching resource in the user state history
     $matchedResource = $this->findMatchedResource($userStateHistory, $newResourceName);
     if ($matchedResource) {
-
-      // Fetch the end date of the matched resource.
+      // Fetch the end date of the matched resource
       $currentEndDate = $this->extractCurrentEndDate($matchedResource);
+      
+      // Check if end date exists and is valid
+      if (empty($currentEndDate) || !preg_match('/^\d{8}$/', $currentEndDate)) {
+        return "Error: Target resource {" . $newEntry['Resource'] . "} doesn't have a valid end date format. Cannot process update.";
+      }
+
       // Create a DateTime object from the string
       $currentEndDateObject = DateTime::createFromFormat("Ymd", $currentEndDate);
+      if ($currentEndDateObject === false) {
+        return "Error: Invalid end date format for target resource {" . $newEntry['Resource'] . "}. Cannot process update.";
+      }
+      
       $currentEndDateObject->modify("+" . $newEntry['EndDate'] . " days");
       $finalRessourceEtatDate = $newResource . ':' . $currentEndDate . ':' . $currentEndDateObject->format('Ymd');
 
@@ -262,6 +271,9 @@ class LifeCycle implements EndpointInterface
       } catch (Exception $e) {
         $result = json_encode(["Ldap Error" => "$e"]);
       }
+    } else {
+      // Post-resource doesn't exist in user's history
+      return "Error: Target resource {" . $newEntry['Resource'] . "} not found in user's history. Cannot process update.";
     }
     return $result;
   }
