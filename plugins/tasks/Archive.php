@@ -33,7 +33,7 @@ class Archive implements EndpointInterface
       $archiveTasks = $this->gateway->getObjectTypeTask('archive');
 
       // Initialize the WebServiceCall object for login
-      $webServiceCall = new WebServiceCall($_ENV['FUSION_DIRECTORY_API_URL'] . '/login', 'POST');
+      $webServiceCall = new WebServiceCall($_ENV['FUSIONDIRECTORY_WEBSERVICE_URL'] . '/login', 'POST');
       $webServiceCall->setCurlSettings(); // Perform login and set the token
 
     foreach ($archiveTasks as $task) {
@@ -58,7 +58,7 @@ class Archive implements EndpointInterface
         }
 
         // Set the archive endpoint and method using the same WebServiceCall object
-        $archiveUrl = $_ENV['FUSION_DIRECTORY_API_URL'] . '/archive/user/' . rawurlencode($task['fdtasksgranulardn'][0]);
+        $archiveUrl = $_ENV['FUSIONDIRECTORY_WEBSERVICE_URL'] . '/archive/user/' . rawurlencode($task['fdtasksgranulardn'][0]);
         $webServiceCall->setCurlSettings($archiveUrl, NULL, 'POST'); // Update settings for the archive request
         $response = $webServiceCall->execute();
 
