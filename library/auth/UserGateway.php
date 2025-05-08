@@ -16,9 +16,9 @@ class UserGateway
     $dsaLogin = str_replace('-jwt', '', $dsaLogin);
 
     // Construct DN directly (adjust as needed for your LDAP structure)
-    $dn = "cn=$dsaLogin," . $_ENV["LDAP_OU_DSA"];
+    $dn = "cn=$dsaLogin," . $_ENV["ORCHESTRATOR_ACCOUNT_BRANCH"];
 
-    $userDs = ldap_connect($_ENV["FD_LDAP_MASTER_URL"]);
+    $userDs = ldap_connect($_ENV["LDAP_URI"]);
     ldap_set_option($userDs, LDAP_OPT_PROTOCOL_VERSION, 3);
     $bind = @ldap_bind($userDs, $dn, $password);
     ldap_unbind($userDs);
@@ -30,7 +30,7 @@ class UserGateway
   public function getDSAInfo (string $dsaLogin): array
   {
     $jwtCN  = $dsaLogin . "-jwt";
-    $baseDN = $_ENV["LDAP_OU_DSA"];
+    $baseDN = $_ENV["ORCHESTRATOR_TOKEN_BRANCH"];
     $filter = "(cn=$jwtCN)";
     $attrs  = ["cn", "dn"];
 

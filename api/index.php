@@ -41,7 +41,7 @@ switch ($resource) {
 }
 
 // Retrieve an authenticated ldap connection
-$ldap_connect = new Ldap($_ENV["FD_LDAP_MASTER_URL"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
+$ldap_connect = new Ldap($_ENV["LDAP_URI"], $_ENV["LDAP_BIND_DN"], $_ENV["LDAP_PASSWORD"]);
 
 // Set timezone according to what's referenced in FusionDirectory configuration
 $timezone = $ldap_connect->searchInLdap($ldap_connect->getConnection(),

@@ -17,7 +17,7 @@ if (!array_key_exists("username", $data) || !array_key_exists("password", $data)
   echo json_encode(["message" => "missing login credentials"]);
   exit;
 }
-$ldap_connect = new Ldap($_ENV["FD_LDAP_MASTER_URL"], $_ENV["LDAP_ADMIN"], $_ENV["LDAP_PWD"]);
+$ldap_connect = new Ldap($_ENV["LDAP_URI"], $_ENV["LDAP_BIND_DN"], $_ENV["LDAP_PASSWORD"]);
 $user_gateway = new UserGateway($ldap_connect);
 
 if (!$user_gateway->authenticateDSA($data["username"], $data["password"])) {

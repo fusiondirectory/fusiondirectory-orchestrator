@@ -160,7 +160,7 @@ class ReminderTokenUtils
     $taskName = $matches[1];
 
     // Remove the API URI
-    $cleanedUrl = preg_replace('#/rest\.php/v1$#', '', $_ENV['FUSION_DIRECTORY_API_URL']);
+    $cleanedUrl = preg_replace('#/rest\.php/v1$#', '', $_ENV['FUSIONDIRECTORY_WEBSERVICE_URL']);
     $url    = $cleanedUrl . '/accountProlongation.php?token=' . $token . '&task=' . $taskName;
 
     $mailTemplateForm['body'] .= $url;
