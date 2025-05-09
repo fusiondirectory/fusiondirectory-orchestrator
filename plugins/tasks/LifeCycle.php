@@ -127,83 +127,61 @@ class LifeCycle implements EndpointInterface
    */
   protected function isLifeCycleRequiringModification (array $lifeCycleBehavior, array $currentUserLifeCycle): bool
   {
-    $result = FALSE;
-    // Regular expression in order to extract the supann format within an array
+    // Regular expression to extract parts of the supannRessourceEtatDate string
     $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
 
-    // In case the tasks is launched without supann being activated on the user account, return error
     if (empty($currentUserLifeCycle[0]['supannressourceetatdate'][0])) {
-      return FALSE;
+      return FALSE; // No supann states for the user
     }
 
-    // Check if regex filtering is enabled
-    $regexActivated = isset($lifeCycleBehavior[0]['fdtaskslifecycleregexactivation']) &&
-                      $lifeCycleBehavior[0]['fdtaskslifecycleregexactivation'][0] === 'TRUE';
+    $taskPreResource = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0] ?? '';
+    $taskPreState    = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0] ?? '';
+    $taskPreSubState = $lifeCycleBehavior[0]['fdtaskslifecyclepresubstate'][0] ?? ''; // Optional
+    $regexPattern    = $lifeCycleBehavior[0]['fdtaskslifecycleregexpattern'][0] ?? NULL;
 
-    if ($regexActivated && isset($lifeCycleBehavior[0]['fdtaskslifecycleregexpattern'][0])) {
-      // Use regex pattern to match resources
-      $regexPattern = $lifeCycleBehavior[0]['fdtaskslifecycleregexpattern'][0];
-
-      // Iterate through user's resources to find matches
-      foreach ($currentUserLifeCycle[0]['supannressourceetatdate'] as $resource) {
-        // Perform pattern matching on the resource string
-        if (@preg_match('/' . $regexPattern . '/', $resource)) {
-          // Extract fields to check end date
-          preg_match($pattern, $resource, $matches);
-
-          // Get end date from the matches
-          $userSupannEndDate = $matches[5] ?? '';
-
-          // Check if the end date is expired - only process expired resources
-          if (!empty($userSupannEndDate) && strtotime($userSupannEndDate) <= time()) {
-            $result = TRUE;
-            break;
-          }
-        }
-      }
-    } else {
-      // Use traditional pre-state matching
-
-      // Extracting values of desired pre-state behavior
-      $preStateSupann['Resource'] = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0] ?? '';
-      $preStateSupann['State']    = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0] ?? '';
-      $preStateSupann['SubState'] = $lifeCycleBehavior[0]['fdtaskslifecyclepresubstate'][0] ?? ''; //SubState is optional
-
-      // Skip if pre-state attributes are missing
-      if (empty($preStateSupann['Resource']) || empty($preStateSupann['State'])) {
+    if (empty($taskPreResource) || empty($taskPreState)) {
+        // Task is not configured sufficiently for pre-conditions
         return FALSE;
+    }
+
+    $preResourceIsRegex = ($taskPreResource === 'REGEX');
+
+    foreach ($currentUserLifeCycle[0]['supannressourceetatdate'] as $resourceString) {
+      preg_match($pattern, $resourceString, $matches);
+
+      $userResourceName   = $matches[1] ?? '';
+      $userCurrentState   = $matches[2] ?? '';
+      $userCurrentSubState= $matches[3] ?? '';
+      // $userStartDate      = $matches[4] ?? '';
+      $userEndDateStr     = $matches[5] ?? '';
+
+      // Check if expired
+      if (empty($userEndDateStr) || strtotime($userEndDateStr) > time()) {
+        continue; // Not expired or no end date
       }
 
-      // Iteration of all potential existing supann states of the user in order to find a match
-      foreach ($currentUserLifeCycle[0]['supannressourceetatdate'] as $resource) {
-        // Perform the regular expression match
-        preg_match($pattern, $resource, $matches);
+      $nameMatch = FALSE;
+      if ($preResourceIsRegex) {
+        if ($regexPattern && !empty($userResourceName) && @preg_match('/' . $regexPattern . '/', $userResourceName)) {
+          $nameMatch = TRUE;
+        }
+      } else {
+        if ($userResourceName === $taskPreResource) {
+          $nameMatch = TRUE;
+        }
+      }
 
-        // Extracting values of current user
-        $userSupann['Resource'] = $matches[1] ?? '';
-        $userSupann['State']    = $matches[2] ?? '';
-        $userSupann['SubState'] = $matches[3] ?? '';
-        // Array index 4 is skipped, we only use end date to apply our life cycle logic. Start date has no use here.
-        $userSupann['EndDate'] = $matches[5] ?? '';
-
-        //  Verifying if the user end date for selected resource is overdue
-        if (!empty($userSupann['EndDate']) && strtotime($userSupann['EndDate']) <= time()) {
-          // Comparing value in a nesting conditions
-          if ($userSupann['Resource'] == $preStateSupann['Resource']) {
-            if ($userSupann['State'] == $preStateSupann['State']) {
-              // as SubState is optional, if both resource and state match at this point, modification is allowed.
-              if (empty($preStateSupann['SubState'])) {
-                $result = TRUE;
-              } else if ($preStateSupann['SubState'] == $userSupann['SubState']) {
-                $result = TRUE;
-              }
-            }
+      if ($nameMatch) {
+        if ($userCurrentState === $taskPreState) {
+          // If taskPreSubState is empty, it matches any userCurrentSubState (or lack thereof)
+          // If taskPreSubState is not empty, it must match userCurrentSubState
+          if (empty($taskPreSubState) || $userCurrentSubState === $taskPreSubState) {
+            return TRUE; // Found an expired resource matching all pre-conditions
           }
         }
       }
     }
-
-    return $result;
+    return FALSE; // No matching expired resource found
   }
 
   /**
@@ -215,67 +193,133 @@ class LifeCycle implements EndpointInterface
    */
   protected function updateLifeCycle (array $lifeCycleBehavior, string $userDN, array $currentUserLifeCycle)
   {
-    // Init return value
-    $result = '';
-    // Hosting the final entry of supann attributes to be pushed to LDAP
-    $ldapEntry = [];
-
-    // Only keep the supann state from the received array and removing the count key
-    $userStateHistory = $currentUserLifeCycle[0]['supannressourceetatdate'];
+    $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
+    $userStateHistory = $currentUserLifeCycle[0]['supannressourceetatdate'] ?? [];
     $this->gateway->unsetCountKeys($userStateHistory);
 
-    // Extracting values of desired post-state behavior
-    $newEntry = $this->prepareNewEntry($lifeCycleBehavior[0]);
+    $taskPreResourceRaw = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0] ?? '';
+    $taskPreState       = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0] ?? '';
+    $taskPreSubState    = $lifeCycleBehavior[0]['fdtaskslifecyclepresubstate'][0] ?? '';
 
-    // Create the new resource without start / end date
-    $newResource = "{" . $newEntry['Resource'] . "}" . $newEntry['State'] . ":" . $newEntry['SubState'];
-    // Get the resource name, it will be used to compare if the resource exists in history
-    $newResourceName = $this->returnSupannResourceBetweenBrackets($newResource);
+    $taskPostResourceRaw = $lifeCycleBehavior[0]['fdtaskslifecyclepostresource'][0] ?? '';
+    $taskPostState       = $lifeCycleBehavior[0]['fdtaskslifecyclepoststate'][0] ?? '';
+    $taskPostSubState    = $lifeCycleBehavior[0]['fdtaskslifecyclepostsubstate'][0] ?? '';
+    $taskPostExtraDays   = (int)($lifeCycleBehavior[0]['fdtaskslifecyclepostenddate'][0] ?? 0);
+    $regexPattern        = $lifeCycleBehavior[0]['fdtaskslifecycleregexpattern'][0] ?? NULL;
 
-    // Find a matching resource in the user state history
-    $matchedResource = $this->findMatchedResource($userStateHistory, $newResourceName);
-    if ($matchedResource) {
-      // Fetch the end date of the matched resource
-      $currentEndDate = $this->extractCurrentEndDate($matchedResource);
+    if (empty($taskPostResourceRaw) || empty($taskPostState)) {
+      return "Error: Post-resource or Post-state not defined in task configuration.";
+    }
 
-      // Check if end date exists and is valid
-      if (empty($currentEndDate) || !preg_match('/^\d{8}$/', $currentEndDate)) {
-        return "Error: Target resource {" . $newEntry['Resource'] . "} doesn't have a valid end date format. Cannot process update.";
-      }
+    $preResourceIsRegex  = ($taskPreResourceRaw === 'REGEX');
+    $postResourceIsRegex = ($taskPostResourceRaw === 'REGEX');
 
-      // Create a DateTime object from the string
-      $currentEndDateObject = DateTime::createFromFormat("Ymd", $currentEndDate);
-      if ($currentEndDateObject === FALSE) {
-        return "Error: Invalid end date format for target resource {" . $newEntry['Resource'] . "}. Cannot process update.";
-      }
+    $updatedStateHistory = $userStateHistory; // Work on a copy
+    $modificationsMadeCount = 0;
 
-      $currentEndDateObject->modify("+" . $newEntry['EndDate'] . " days");
-      $finalRessourceEtatDate = $newResource . ':' . $currentEndDate . ':' . $currentEndDateObject->format('Ymd');
+    for ($i = 0; $i < count($userStateHistory); $i++) {
+      $currentUserResourceString = $userStateHistory[$i];
+      preg_match($pattern, $currentUserResourceString, $matches);
 
-      // Iterate again through the supann state and get a match
-      foreach ($userStateHistory as $userState => $value) {
-        // Extract resource in curly braces (brackets) from the current supannRessourceEtatDate
-        $currentResource = $this->returnSupannResourceBetweenBrackets($value);
+      $userOriginalResourceName = $matches[1] ?? '';
+      $userOriginalRawState     = $matches[2] ?? '';
+      $userOriginalRawSubState  = $matches[3] ?? '';
+      // $userOriginalPeriodStartDate = $matches[4] ?? '';
+      $userOriginalPeriodEndDateStr = $matches[5] ?? '';
 
-        // Get the resource matched
-        if ($currentResource === $newResourceName) {
-          $userStateHistory[$userState] = $finalRessourceEtatDate;
-          break;
+      // Determine if the current user resource was a "pre-match"
+      $isPreMatchedAndExpired = FALSE;
+      if (!empty($userOriginalPeriodEndDateStr) && strtotime($userOriginalPeriodEndDateStr) <= time()) {
+        $namePreMatch = FALSE;
+        if ($preResourceIsRegex) {
+          if ($regexPattern && !empty($userOriginalResourceName) && @preg_match('/' . $regexPattern . '/', $userOriginalResourceName)) {
+            $namePreMatch = TRUE;
+          }
+        } else {
+          if ($userOriginalResourceName === $taskPreResourceRaw) {
+            $namePreMatch = TRUE;
+          }
+        }
+        if ($namePreMatch && $userOriginalRawState === $taskPreState && (empty($taskPreSubState) || $userOriginalRawSubState === $taskPreSubState)) {
+          $isPreMatchedAndExpired = TRUE;
         }
       }
 
-      // Creation of the ldap entry
-      $ldapEntry['supannRessourceEtatDate'] = $userStateHistory;
-      try {
-        $result = ldap_modify($this->gateway->ds, $userDN, $ldapEntry);
-      } catch (Exception $e) {
-        $result = json_encode(["Ldap Error" => "$e"]);
+      $targetThisResourceForUpdate = FALSE;
+
+      // Case 1: Pre-REGEX, Post-Static
+      if ($preResourceIsRegex && !$postResourceIsRegex) {
+        // Update the specific static post-resource, if this is it.
+        // The overall task runs if *any* pre-regex match was found (by isLifeCycleRequiringModification).
+        if ($userOriginalResourceName === $taskPostResourceRaw) {
+          $targetThisResourceForUpdate = TRUE;
+        }
       }
-    } else {
-      // Post-resource doesn't exist in user's history
-      return "Error: Target resource {" . $newEntry['Resource'] . "} not found in user's history. Cannot process update.";
+      // Case 2: Pre-REGEX, Post-REGEX
+      else if ($preResourceIsRegex && $postResourceIsRegex) {
+        // Update "that same resource" that was a pre-match.
+        if ($isPreMatchedAndExpired) { // This specific resource matched pre-conditions and is expired
+             // And its name must also match the post-regex (which is the same regexPattern)
+            if ($regexPattern && !empty($userOriginalResourceName) && @preg_match('/' . $regexPattern . '/', $userOriginalResourceName)) {
+                 $targetThisResourceForUpdate = TRUE;
+            }
+        }
+      }
+      // Case 3: Pre-Static, Post-REGEX
+      else if (!$preResourceIsRegex && $postResourceIsRegex) {
+        // Overall task runs if the static pre-resource was matched & expired.
+        // Update all user resources whose names match the post-regex.
+        if ($regexPattern && !empty($userOriginalResourceName) && @preg_match('/' . $regexPattern . '/', $userOriginalResourceName)) {
+          $targetThisResourceForUpdate = TRUE;
+        }
+      }
+      // Implied Case: Pre-Static, Post-Static
+      else if (!$preResourceIsRegex && !$postResourceIsRegex) {
+        // Overall task runs if the static pre-resource was matched & expired.
+        // Update the specific static post-resource, if this is it.
+        if ($userOriginalResourceName === $taskPostResourceRaw) {
+          $targetThisResourceForUpdate = TRUE;
+        }
+      }
+
+      if ($targetThisResourceForUpdate) {
+        if (empty($userOriginalPeriodEndDateStr) || !DateTime::createFromFormat("Ymd", $userOriginalPeriodEndDateStr)) {
+          // Cannot update this resource if it lacks a valid end date to serve as the new start date.
+          // Log or skip. For now, skipping this specific resource update.
+          // error_log("LifeCycle Task: Cannot update resource '{$userOriginalResourceName}' for user '{$userDN}' due to missing/invalid current end date.");
+          continue;
+        }
+
+        $newPeriodStartDateStr  = $userOriginalPeriodEndDateStr;
+        $newPeriodEndDateObject = DateTime::createFromFormat("Ymd", $newPeriodStartDateStr);
+        // $newPeriodEndDateObject will be valid due to the check above.
+        $newPeriodEndDateObject->modify("+" . $taskPostExtraDays . " days");
+        $newPeriodEndDateFormatted = $newPeriodEndDateObject->format('Ymd');
+
+        $newResourceStringCore = "{" . $userOriginalResourceName . "}" . $taskPostState;
+        if (!empty($taskPostSubState)) {
+          $newResourceStringCore .= ":" . $taskPostSubState;
+        } else {
+          $newResourceStringCore .= ":"; // Placeholder for empty substate
+        }
+        
+        $updatedStateHistory[$i] = $newResourceStringCore . ":" . $newPeriodStartDateStr . ":" . $newPeriodEndDateFormatted;
+        $modificationsMadeCount++;
+      }
     }
-    return $result;
+
+    if ($modificationsMadeCount === 0) {
+      return TRUE; // No effective changes to save, or no targets met update criteria.
+    }
+
+    $ldapEntry = ['supannRessourceEtatDate' => $updatedStateHistory];
+
+    try {
+      $op_result = ldap_modify($this->gateway->ds, $userDN, $ldapEntry);
+      return $op_result; // TRUE on success, FALSE on LDAP failure
+    } catch (Exception $e) {
+      return "Ldap Error: " . $e->getMessage();
+    }
   }
 
   /**
@@ -342,7 +386,7 @@ class LifeCycle implements EndpointInterface
     return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
       'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
       'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate',
-      'fdTasksLifeCycleRegexActivation', 'fdTasksLifeCycleRegexPattern'],
+      'fdTasksLifeCycleRegexPattern'],
                                         '', $taskDN);
   }
 
