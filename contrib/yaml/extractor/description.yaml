@@ -4,7 +4,7 @@ information:
   description: Extractor plugin for FusionDirectory Orchestrator
   license: GPLv2
   logoUrl: https://github.com/fusiondirectory/fusiondirectory-orchestrator/tree/dev/contrib/screenshots/FusionDirectory-Orchestrator.png
-  name: FusionDirectory Orchestrator Extractor
+  name: orchestrator-extractor
   origin: package
   status: dev
   tags:

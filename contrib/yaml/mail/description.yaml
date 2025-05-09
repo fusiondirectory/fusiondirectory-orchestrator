@@ -4,7 +4,7 @@ information:
   description: Mail plugin for FusionDirectory Orchestrator
   license: GPLv2
   logoUrl: https://github.com/fusiondirectory/fusiondirectory-orchestrator/tree/dev/contrib/screenshots/FusionDirectory-Orchestrator.png
-  name: FusionDirectory Orchestrator Mail
+  name: orchestrator-mail
   origin: package
   status: dev
   tags:
