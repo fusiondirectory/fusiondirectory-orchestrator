@@ -3,7 +3,7 @@ information:
   - FusionDirectory
   description: Notifications plugin for FusionDirectory Orchestrator
   license: GPLv2
-  logoUrl: https://github.com/fusiondirectory/fusiondirectory-orchestrator/tree/dev/contrib/screenshots/FusionDirectory-Orchestrator.png
+  logoUrl: https://raw.githubusercontent.com/fusiondirectory/fusiondirectory-orchestrator/dev/contrib/screenshots/FusionDirectory-Orchestrator.png
   name: orchestrator-notifications
   origin: package
   status: dev
