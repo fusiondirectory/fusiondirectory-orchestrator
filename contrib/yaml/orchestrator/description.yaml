@@ -8,7 +8,9 @@ information:
   origin: package
   status: dev
   tags:
-  - systems
+  - server
+  - automation
+  - api
   version: '1.2'
 requirement:
   fdVersion: 1.6
