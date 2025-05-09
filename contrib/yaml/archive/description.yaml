@@ -1,0 +1,22 @@
+information:
+  authors:
+  - FusionDirectory
+  description: Archive plugin for FusionDirectory Orchestrator
+  license: GPLv2
+  logoUrl: https://github.com/fusiondirectory/fusiondirectory-orchestrator/tree/dev/contrib/screenshots/FusionDirectory-Orchestrator.png
+  name: FusionDirectory Orchestrator Archive
+  origin: package
+  status: dev
+  tags:
+  - systems
+  version: '1.2'
+requirement:
+  fdVersion: 1.6
+  phpVersion: 7.4
+support:
+  contractUrl: https://www.fusiondirectory.org/abonnements-fusiondirectory/
+  documentationUrl: https://fusiondirectory-user-manual.readthedocs.io/en/dev/fusiondirectory-orchestrator/index.html
+  homeUrl: https://gitlab.fusiondirectory.org/fusiondirectory/fusiondirectory-orchestrator
+  provider: fusiondirectory
+  schemaUrl: https://schemas.fusiondirectory.org/
+  ticketUrl: https://gitlab.fusiondirectory.org/fusiondirectory/fusiondirectory-orchestrator/-/issues
