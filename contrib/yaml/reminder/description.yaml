@@ -4,7 +4,7 @@ information:
   description: Reminder plugin for FusionDirectory Orchestrator
   license: GPLv2
   logoUrl: https://github.com/fusiondirectory/fusiondirectory-orchestrator/tree/dev/contrib/screenshots/FusionDirectory-Orchestrator.png
-  name: FusionDirectory Orchestrator Remoinder
+  name: orchestrator-reminder
   origin: package
   status: dev
   tags:

@@ -4,7 +4,7 @@ information:
   description: Automatic Groups plugin for FusionDirectory Orchestrator
   license: GPLv2
   logoUrl: https://github.com/fusiondirectory/fusiondirectory-orchestrator/tree/dev/contrib/screenshots/FusionDirectory-Orchestrator.png
-  name: FusionDirectory Orchestrator automatic Groups
+  name: orchestrator-automatic-groups
   origin: package
   status: dev
   tags:

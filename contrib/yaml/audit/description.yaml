@@ -4,7 +4,7 @@ information:
   description: FusionDirectory Orchestrator plugin Audit
   license: GPLv2
   logoUrl: https://github.com/fusiondirectory/fusiondirectory-orchestrator/tree/dev/contrib/screenshots/FusionDirectory-Orchestrator.png
-  name: FusionDirectory Orchestrator audit
+  name: orchestrator-audit
   origin: package
   status: dev
   tags:
