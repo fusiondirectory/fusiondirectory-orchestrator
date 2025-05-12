@@ -143,10 +143,10 @@ class LifeCycle implements EndpointInterface
     foreach ($currentUserLifeCycle[0]['supannressourceetatdate'] as $resourceString) {
       preg_match($pattern, $resourceString, $matches);
 
-      $userResourceName   = $matches[1] ?? '';
-      $userCurrentState   = $matches[2] ?? '';
-      $userCurrentSubState= $matches[3] ?? '';
-      $userEndDateStr     = $matches[5] ?? '';
+      $userResourceName     = $matches[1] ?? '';
+      $userCurrentState     = $matches[2] ?? '';
+      $userCurrentSubState  = $matches[3] ?? '';
+      $userEndDateStr       = $matches[5] ?? '';
 
       // Check if expired
       if (empty($userEndDateStr)) {
@@ -157,7 +157,7 @@ class LifeCycle implements EndpointInterface
       if ($userEndDateTimestamp === FALSE) {
         continue;
       }
-      
+
       if ($userEndDateTimestamp > $nowTimestamp) {
         continue;
       }
@@ -214,16 +214,16 @@ class LifeCycle implements EndpointInterface
     $preResourceIsRegex  = ($taskPreResourceRaw === 'REGEX');
     $postResourceIsRegex = ($taskPostResourceRaw === 'REGEX');
 
-    $updatedStateHistory = $userStateHistory; // Work on a copy
+    $updatedStateHistory    = $userStateHistory; // Work on a copy
     $modificationsMadeCount = 0;
 
     for ($i = 0; $i < count($userStateHistory); $i++) {
       $currentUserResourceString = $userStateHistory[$i];
       preg_match($pattern, $currentUserResourceString, $matches);
 
-      $userOriginalResourceName = $matches[1] ?? '';
-      $userOriginalRawState     = $matches[2] ?? '';
-      $userOriginalRawSubState  = $matches[3] ?? '';
+      $userOriginalResourceName     = $matches[1] ?? '';
+      $userOriginalRawState         = $matches[2] ?? '';
+      $userOriginalRawSubState      = $matches[3] ?? '';
       $userOriginalPeriodEndDateStr = $matches[5] ?? '';
 
       // Determine if the current user resource was a "pre-match"
@@ -252,28 +252,22 @@ class LifeCycle implements EndpointInterface
         // The overall task runs if *any* pre-regex match was found (by isLifeCycleRequiringModification).
         if ($userOriginalResourceName === $taskPostResourceRaw) {
           $targetThisResourceForUpdate = TRUE;
-        }
-      }
-      // Case 2: Pre-REGEX, Post-REGEX
-      else if ($preResourceIsRegex && $postResourceIsRegex) {
+        } // Case 2: Pre-REGEX, Post-REGEX
+      } else if ($preResourceIsRegex && $postResourceIsRegex) {
         // Update "that same resource" that was a pre-match.
         if ($isPreMatchedAndExpired) { // This specific resource matched pre-conditions and is expired
              // And its name must also match the post-regex (which is the same regexPattern)
-            if ($regexPattern && !empty($userOriginalResourceName) && @preg_match('/' . $regexPattern . '/', $userOriginalResourceName)) {
-                 $targetThisResourceForUpdate = TRUE;
-            }
-        }
-      }
-      // Case 3: Pre-Static, Post-REGEX
-      else if (!$preResourceIsRegex && $postResourceIsRegex) {
+          if ($regexPattern && !empty($userOriginalResourceName) && @preg_match('/' . $regexPattern . '/', $userOriginalResourceName)) {
+               $targetThisResourceForUpdate = TRUE;
+          }
+        } // Case 3: Pre-Static, Post-REGEX
+      } else if (!$preResourceIsRegex && $postResourceIsRegex) {
         // Overall task runs if the static pre-resource was matched & expired.
         // Update all user resources whose names match the post-regex.
         if ($regexPattern && !empty($userOriginalResourceName) && @preg_match('/' . $regexPattern . '/', $userOriginalResourceName)) {
           $targetThisResourceForUpdate = TRUE;
-        }
-      }
-      // Implied Case: Pre-Static, Post-Static
-      else if (!$preResourceIsRegex && !$postResourceIsRegex) {
+        } // Implied Case: Pre-Static, Post-Static
+      } else if (!$preResourceIsRegex && !$postResourceIsRegex) {
         // Overall task runs if the static pre-resource was matched & expired.
         // Update the specific static post-resource, if this is it.
         if ($userOriginalResourceName === $taskPostResourceRaw) {
@@ -300,7 +294,7 @@ class LifeCycle implements EndpointInterface
         } else {
           $newResourceStringCore .= ":"; // Placeholder for empty substate
         }
-        
+
         $updatedStateHistory[$i] = $newResourceStringCore . ":" . $newPeriodStartDateStr . ":" . $newPeriodEndDateFormatted;
         $modificationsMadeCount++;
       }
