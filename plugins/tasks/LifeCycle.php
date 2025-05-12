@@ -246,37 +246,44 @@ class LifeCycle implements EndpointInterface
 
       $targetThisResourceForUpdate = FALSE;
 
-      // Case 1: Pre-REGEX, Post-Static
-      if ($preResourceIsRegex && !$postResourceIsRegex) {
-        // Update the specific static post-resource, if this is it.
-        // The overall task runs if *any* pre-regex match was found and expired (checked by isLifeCycleRequiringModification).
-        // Here, we target the specific static post-resource for update.
-        if ($userOriginalResourceName === $taskPostResourceRaw) {
-          $targetThisResourceForUpdate = TRUE;
-        }
-        // Case 2: Pre-REGEX, Post-REGEX
-      } else if ($preResourceIsRegex && $postResourceIsRegex) {
-        // Update "that same resource" if it was a pre-match AND it also matches the post-regex (which is the same regexPattern).
-        // $isPreMatchedAndExpired confirms this specific resource instance met the pre-conditions and is expired.
-        // The $regexPattern is used for both pre and post matching in this scenario.
-        if ($isPreMatchedAndExpired) {
-            // Since $isPreMatchedAndExpired is true for this $currentUserResourceString,
-            // it means $userOriginalResourceName already matched $regexPattern.
-            // So, this resource is targeted for update.
+      if ($preResourceIsRegex) {
+        // Pre-condition is REGEX
+        if (!$postResourceIsRegex) {
+          // Case 1: Pre-REGEX, Post-Static
+          // The overall task runs if *any* pre-regex match was found and expired (checked by isLifeCycleRequiringModification).
+          // Here, we target the specific static post-resource for update if its name matches.
+          if ($userOriginalResourceName === $taskPostResourceRaw) {
             $targetThisResourceForUpdate = TRUE;
+          }
+        } else {
+          // Case 2: Pre-REGEX, Post-REGEX (both $preResourceIsRegex and $postResourceIsRegex are true)
+          // Update "that same resource" if it was a pre-match.
+          // $isPreMatchedAndExpired confirms this specific resource instance ($currentUserResourceString)
+          // met the pre-conditions (name via regex, state, sub-state) and is expired.
+          // The $regexPattern is used for both pre and post matching in this scenario.
+          if ($isPreMatchedAndExpired) {
+            // Since $isPreMatchedAndExpired is true for this resource, and $preResourceIsRegex is true,
+            // it implies $userOriginalResourceName already matched $regexPattern.
+            // So, this specific resource is targeted for update.
+            $targetThisResourceForUpdate = TRUE;
+          }
         }
-        // Case 3: Pre-Static, Post-REGEX
-      } else if (!$preResourceIsRegex && $postResourceIsRegex) {
-        // Overall task runs if the static pre-resource was matched & expired.
-        // Update all user resources whose names match the post-regex.
-        if ($regexPattern && !empty($userOriginalResourceName) && @preg_match('/' . $regexPattern . '/', $userOriginalResourceName)) {
-          $targetThisResourceForUpdate = TRUE;
-        }  // Implied Case: Pre-Static, Post-Static
-      } else if (!$preResourceIsRegex && !$postResourceIsRegex) {
-        // Overall task runs if the static pre-resource was matched & expired.
-        // Update the specific static post-resource, if this is it.
-        if ($userOriginalResourceName === $taskPostResourceRaw) {
-          $targetThisResourceForUpdate = TRUE;
+      } else {
+        // Pre-condition is Static (NOT REGEX)
+        if ($postResourceIsRegex) {
+          // Case 3: Pre-Static, Post-REGEX
+          // The overall task runs if the static pre-resource was matched & expired.
+          // Here, we update all user resources whose names match the post-regex.
+          if ($regexPattern && !empty($userOriginalResourceName) && @preg_match('/' . $regexPattern . '/', $userOriginalResourceName)) {
+            $targetThisResourceForUpdate = TRUE;
+          }
+        } else {
+          // Case 4: Pre-Static, Post-Static (both !$preResourceIsRegex and !$postResourceIsRegex are true)
+          // The overall task runs if the static pre-resource was matched & expired.
+          // Here, we target the specific static post-resource for update if its name matches.
+          if ($userOriginalResourceName === $taskPostResourceRaw) {
+            $targetThisResourceForUpdate = TRUE;
+          }
         }
       }
 
@@ -319,18 +326,7 @@ class LifeCycle implements EndpointInterface
     }
   }
 
-  /**
-   * @param string $supannRessourceEtatDate
-   * @return string|null
-   * Note : Simple method to return the content between {} of a supannRessourceEtatDate.
-   */
-  private function returnSupannResourceBetweenBrackets (string $supannRessourceEtatDate): ?string
-  {
-    preg_match('/\{(.*?)\}/', $supannRessourceEtatDate, $matches);
-    return $matches[1] ?? NULL;
-  }
-
-  /**
+   /**
    * @param string $taskDN
    * @return array
    * Note : Simply return attributes from main task, here supann desired behavior
