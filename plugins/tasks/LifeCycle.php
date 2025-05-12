@@ -249,18 +249,23 @@ class LifeCycle implements EndpointInterface
       // Case 1: Pre-REGEX, Post-Static
       if ($preResourceIsRegex && !$postResourceIsRegex) {
         // Update the specific static post-resource, if this is it.
-        // The overall task runs if *any* pre-regex match was found (by isLifeCycleRequiringModification).
+        // The overall task runs if *any* pre-regex match was found and expired (checked by isLifeCycleRequiringModification).
+        // Here, we target the specific static post-resource for update.
         if ($userOriginalResourceName === $taskPostResourceRaw) {
           $targetThisResourceForUpdate = TRUE;
-        } // Case 2: Pre-REGEX, Post-REGEX
+        }
+        // Case 2: Pre-REGEX, Post-REGEX
       } else if ($preResourceIsRegex && $postResourceIsRegex) {
-        // Update "that same resource" that was a pre-match.
-        // If $isPreMatchedAndExpired is true, it implies the $userOriginalResourceName
-        // already matched the $regexPattern (since $preResourceIsRegex is true).
+        // Update "that same resource" if it was a pre-match AND it also matches the post-regex (which is the same regexPattern).
+        // $isPreMatchedAndExpired confirms this specific resource instance met the pre-conditions and is expired.
         // The $regexPattern is used for both pre and post matching in this scenario.
         if ($isPreMatchedAndExpired) {
-          $targetThisResourceForUpdate = TRUE;
-        } // Case 3: Pre-Static, Post-REGEX
+            // Since $isPreMatchedAndExpired is true for this $currentUserResourceString,
+            // it means $userOriginalResourceName already matched $regexPattern.
+            // So, this resource is targeted for update.
+            $targetThisResourceForUpdate = TRUE;
+        }
+        // Case 3: Pre-Static, Post-REGEX
       } else if (!$preResourceIsRegex && $postResourceIsRegex) {
         // Overall task runs if the static pre-resource was matched & expired.
         // Update all user resources whose names match the post-regex.
@@ -312,49 +317,6 @@ class LifeCycle implements EndpointInterface
     } catch (Exception $e) {
       return "Ldap Error: " . $e->getMessage();
     }
-  }
-
-  /**
-   * @param array $userStateHistory
-   * @param string $newResourceName
-   * @return string|null
-   * Note : Simple helper method to return the matched resource.
-   */
-  private function findMatchedResource (array $userStateHistory, string $newResourceName): ?string
-  {
-    foreach ($userStateHistory as $value) {
-      if ($this->returnSupannResourceBetweenBrackets($value) === $newResourceName) {
-        return $value;
-      }
-    }
-    return NULL;
-  }
-
-  /**
-   * @param array $lifeCycleBehavior
-   * @return array
-   * Simple helper method for readiness.
-   */
-  private function prepareNewEntry (array $lifeCycleBehavior): array
-  {
-    return [
-      'Resource' => $lifeCycleBehavior['fdtaskslifecyclepostresource'][0],
-      'State'    => $lifeCycleBehavior['fdtaskslifecyclepoststate'][0],
-      'SubState' => $lifeCycleBehavior['fdtaskslifecyclepostsubstate'][0] ?? '',
-      'EndDate'  => $lifeCycleBehavior['fdtaskslifecyclepostenddate'][0] ?? 0,
-    ];
-  }
-
-  /**
-   * @param string|null $matchedResource
-   * @return string
-   * Note : Simply return the end date of a supann ressource etat date
-   */
-  private function extractCurrentEndDate (?string $matchedResource): string
-  {
-    $parts = explode(":", $matchedResource);
-    // Get the last element, which is the date
-    return end($parts);
   }
 
   /**
