@@ -58,9 +58,7 @@ class LifeCycle implements EndpointInterface
    */
   public function processLifeCycleTasks (array $list_tasks): array
   {
-    // Array representing the status of the subtask.
     $result = [];
-    // Initiate the object webservice.
     $webservice = new FusionDirectory\Rest\WebServiceCall($_ENV['FUSIONDIRECTORY_WEBSERVICE_URL'] . '/login', 'POST');
     // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
     $webservice->setCurlSettings();
@@ -69,29 +67,26 @@ class LifeCycle implements EndpointInterface
       // If the tasks must be treated - status and scheduled - process the sub-tasks
       if ($this->gateway->statusAndScheduleCheck($task)) {
 
-        // Simply retrieve the lifeCycle behavior from the main related tasks, sending the dns and desired attributes
+        // Simply retrieve the lifeCycle behavior from the main related tasks
         $lifeCycleBehavior = $this->getLifeCycleBehaviorFromMainTask($task['fdtasksgranularmaster'][0]);
 
-        // Simply retrieve the current supannStatus of the user DN related to the task at hand.
+        // Simply retrieve the current supannStatus of the user DN related to the task at hand
         $currentUserLifeCycle = $this->getUserSupannHistory($task['fdtasksgranulardn'][0]);
 
-        // Compare both the required schedule and the current user status - returning TRUE if modification is required.
+        // Compare both the required schedule and the current user status - returning TRUE if modification is required
         if ($this->isLifeCycleRequiringModification($lifeCycleBehavior, $currentUserLifeCycle)) {
 
           // This will call a method to modify the ressourcesSupannEtatDate of the DN linked to the subTask
           $lifeCycleResult = $this->updateLifeCycle($lifeCycleBehavior, $task['fdtasksgranulardn'][0], $currentUserLifeCycle);
 
           if ($lifeCycleResult === TRUE) {
-
             $result[$task['dn']]['results'] = json_encode("Account states have been successfully modified for " . $task['fdtasksgranulardn'][0]);
             // Status of the task must be updated to success
             $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-
             // Here the user is refresh in order to activate methods based on supann Status changes.
             $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
-
-            // In case the modification failed
           } else {
+            // In case the modification failed
             $result[$task['dn']]['results'] = json_encode("Error updating " . $task['fdtasksgranulardn'][0] . "-" . $lifeCycleResult);
             // Update of the task status error message
             $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult);
@@ -102,8 +97,8 @@ class LifeCycle implements EndpointInterface
           } else {
             $result[$task['dn']]['statusUpdate'] = $updateResult;
           }
-          // Remove the subtask has it is not required to update it nor to process it.
         } else {
+          // Remove the subtask as it is not required to update it nor to process it.
           $result[$task['dn']]['results']      = 'Sub-task removed for : ' . $task['fdtasksgranulardn'][0] . ' with result : '
             . $this->gateway->removeSubTask($task['dn']);
           $result[$task['dn']]['statusUpdate'] = 'No updates required, sub-task will be removed.';
@@ -131,7 +126,7 @@ class LifeCycle implements EndpointInterface
     $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
 
     if (empty($currentUserLifeCycle[0]['supannressourceetatdate'][0])) {
-      return FALSE; // No supann states for the user
+      return FALSE;
     }
 
     $taskPreResource = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0] ?? '';
@@ -140,7 +135,6 @@ class LifeCycle implements EndpointInterface
     $regexPattern    = $lifeCycleBehavior[0]['fdtaskslifecycleregexpattern'][0] ?? NULL;
 
     if (empty($taskPreResource) || empty($taskPreState)) {
-        // Task is not configured sufficiently for pre-conditions
         return FALSE;
     }
 
@@ -152,12 +146,20 @@ class LifeCycle implements EndpointInterface
       $userResourceName   = $matches[1] ?? '';
       $userCurrentState   = $matches[2] ?? '';
       $userCurrentSubState= $matches[3] ?? '';
-      // $userStartDate      = $matches[4] ?? '';
       $userEndDateStr     = $matches[5] ?? '';
 
       // Check if expired
-      if (empty($userEndDateStr) || strtotime($userEndDateStr) > time()) {
-        continue; // Not expired or no end date
+      if (empty($userEndDateStr)) {
+        continue;
+      }
+      $userEndDateTimestamp = strtotime($userEndDateStr);
+      $nowTimestamp = time();
+      if ($userEndDateTimestamp === FALSE) {
+        continue;
+      }
+      
+      if ($userEndDateTimestamp > $nowTimestamp) {
+        continue;
       }
 
       $nameMatch = FALSE;
@@ -173,15 +175,13 @@ class LifeCycle implements EndpointInterface
 
       if ($nameMatch) {
         if ($userCurrentState === $taskPreState) {
-          // If taskPreSubState is empty, it matches any userCurrentSubState (or lack thereof)
-          // If taskPreSubState is not empty, it must match userCurrentSubState
           if (empty($taskPreSubState) || $userCurrentSubState === $taskPreSubState) {
-            return TRUE; // Found an expired resource matching all pre-conditions
+            return TRUE;
           }
         }
       }
     }
-    return FALSE; // No matching expired resource found
+    return FALSE;
   }
 
   /**
@@ -224,7 +224,6 @@ class LifeCycle implements EndpointInterface
       $userOriginalResourceName = $matches[1] ?? '';
       $userOriginalRawState     = $matches[2] ?? '';
       $userOriginalRawSubState  = $matches[3] ?? '';
-      // $userOriginalPeriodStartDate = $matches[4] ?? '';
       $userOriginalPeriodEndDateStr = $matches[5] ?? '';
 
       // Determine if the current user resource was a "pre-match"
@@ -283,10 +282,9 @@ class LifeCycle implements EndpointInterface
       }
 
       if ($targetThisResourceForUpdate) {
+        // Cannot update this resource if it lacks a valid end date to serve as the new start date.
         if (empty($userOriginalPeriodEndDateStr) || !DateTime::createFromFormat("Ymd", $userOriginalPeriodEndDateStr)) {
-          // Cannot update this resource if it lacks a valid end date to serve as the new start date.
           // Log or skip. For now, skipping this specific resource update.
-          // error_log("LifeCycle Task: Cannot update resource '{$userOriginalResourceName}' for user '{$userDN}' due to missing/invalid current end date.");
           continue;
         }
 
