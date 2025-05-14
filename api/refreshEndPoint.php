@@ -34,8 +34,8 @@ $ldap_connect = new Ldap($_ENV["LDAP_URI"], $_ENV["LDAP_BIND_DN"], $_ENV["LDAP_P
 
 // Construct user info directly.
 $user = [
-  "cn" => $dsaCN . "-jwt",
-  "dn" => "cn=" . str_replace('-jwt', '', $dsaCN) . "," . $_ENV["ORCHESTRATOR_ACCOUNT_BRANCH"]
+  "cn" => $dsaCN,
+  "dn" => "cn=" . $dsaCN . "," . $_ENV["ORCHESTRATOR_ACCOUNT_BRANCH"]
 ];
 
 // Pass user info to the RefreshTokenGateway, only the cn and dn are used.
