@@ -26,6 +26,7 @@ class UserGateway
 
   public function getDSAInfo (string $dsaLogin): array
   {
+    $jwtCN  = $dsaLogin;
     $baseDN = $_ENV["ORCHESTRATOR_TOKEN_BRANCH"];
     $filter = "(&(objectClass=fdJWT)(cn=$jwtCN))";
     $attrs  = ["cn", "dn"];
