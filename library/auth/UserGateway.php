@@ -27,7 +27,7 @@ class UserGateway
   public function getDSAInfo (string $dsaLogin): array
   {
     $baseDN = $_ENV["ORCHESTRATOR_TOKEN_BRANCH"];
-    $filter = "(cn=$jwtCN)";
+    $filter = "(&(objectClass=fdJWT)(cn=$jwtCN))";
     $attrs  = ["cn", "dn"];
 
     $sr = @ldap_search($this->ds, $baseDN, $filter, $attrs);
