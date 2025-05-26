@@ -191,8 +191,9 @@ class Audit implements EndpointInterface
                 $min    = $matches[5];
                 $sec    = $matches[6];
 
-                // Create a datetime object and format for syslog
-                $dt = new DateTime("$year-$month-$day $hour:$min:$sec");
+                // Create a datetime object in UTC first, then convert to local timezone
+                $dt = new DateTime("$year-$month-$day $hour:$min:$sec", new DateTimeZone('UTC'));
+                $dt->setTimezone(new DateTimeZone(date_default_timezone_get()));
                 $timestamp = $dt->format('M d H:i:s');
               } else {
                 $timestamp = date('M d H:i:s');
