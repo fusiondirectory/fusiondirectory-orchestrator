@@ -103,7 +103,7 @@ class Audit implements EndpointInterface
   public function processSyslogAuditTransformation (array $syslogAuditSubTasks): array
   {
     $result = [];
-    // Define path at the beginning of the method
+
     $path = '/var/log/fusiondirectory/';
     $this->ensureDirectoryExists($path);
 
@@ -112,13 +112,16 @@ class Audit implements EndpointInterface
         // If the task must be treated - status and scheduled - process the sub-tasks
         if ($this->gateway->statusAndScheduleCheck($task)) {
           // Retrieve data from the main task
+          
           $auditMainTask = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
+          // Get the prefix from the main task configuration (default to 'fd_audit' if not set)
+          $prefix = $auditMainTask[0]['fdauditsyslogprefix'][0] ?? 'fd_audit';
 
           // Get the most recent audit timestamp that was already processed
           $lastProcessedTime = NULL;
 
-          // Check if we have a state file recording last processed time
-          $stateFile = $path . 'fd-audit-last-processed.txt';
+          // Check if we have a state file recording last processed time (with prefix)
+          $stateFile = $path . $prefix . '-last-processed.txt';
           if (file_exists($stateFile)) {
               $fileContent = trim(file_get_contents($stateFile));
             if (!empty($fileContent)) {
@@ -143,9 +146,9 @@ class Audit implements EndpointInterface
             continue;
           }
 
-          // Create syslog file (path already defined at the beginning)
+          // Create syslog file with prefix (path already defined at the beginning)
           $date = date('Y-m-d');
-          $filename = $path . 'fd-audit-' . $date . '.log';
+          $filename = $path . $prefix . '-' . $date . '.log';
 
           // Track which audit IDs are already in the file to prevent duplicates
           $existingAuditIds = [];
@@ -302,7 +305,7 @@ class Audit implements EndpointInterface
   public function getAuditMainTask (string $mainTaskDn): array
   {
     // Retrieve data from the main task
-    return $this->gateway->getLdapTasks('(objectClass=fdAuditTasks)', ['fdAuditTasksRetention'], '', $mainTaskDn);
+    return $this->gateway->getLdapTasks('(objectClass=fdAuditTasks)', ['fdAuditTasksRetention', 'fdAuditSyslogPrefix'], '', $mainTaskDn);
   }
 
   /**
