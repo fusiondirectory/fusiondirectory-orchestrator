@@ -112,7 +112,7 @@ class Audit implements EndpointInterface
         // If the task must be treated - status and scheduled - process the sub-tasks
         if ($this->gateway->statusAndScheduleCheck($task)) {
           // Retrieve data from the main task
-          
+
           $auditMainTask = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
           // Get the prefix from the main task configuration (default to 'fd_audit' if not set)
           $prefix = $auditMainTask[0]['fdauditsyslogprefix'][0] ?? 'fd_audit';
