@@ -122,8 +122,8 @@ class AutomaticGroups implements EndpointInterface
                 } else {
                   $this->removeUserFromGroup($userDn, $targetGroup);
                   $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
-                  }
                 }
+              }
             }
           } else {
             $userSupannState = $this->getUserSupannState($userDn);
