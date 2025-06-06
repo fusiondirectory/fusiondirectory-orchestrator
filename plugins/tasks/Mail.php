@@ -88,6 +88,26 @@ class Mail implements EndpointInterface
           $subject    = $mailContent["fdmailtemplatesubject"][0];
           $receipt    = $mailContent["fdmailtemplatereadreceipt"][0];
 
+          // Process hardcoded macros %uid%, %sn% and %givenName%
+          // TODO: grab them from LDAP later
+          // Macro (without % before and after) => ldapAttribute
+          $hardcodedMacros = [
+            'givenName' => 'givenName',
+            'sn'        => 'sn',
+            'uid'       => 'uid'
+          ];
+
+          // Replace each $macro with the attribute in $body
+          foreach ($recipients as $recipient) {
+            foreach ($hardcodedMacros as $macro) {
+              $filter        = "(&(objectClass=inetOrgPerson)(|(mail=$recipient)(gosaMailAlternateAddress=$recipient)(gosaMailForwardingAddress=$recipient)(supannAutreMail=$recipient)(supannMailPerso=$recipient)(supannMailPrive=$recipient)))";
+              $ldapAttribute = $this->gateway->getLdapTasks("$filter", ["$macro"]);
+              if(isset($ldapAttribute[0][strtolower($macro)][0])) {
+                $body          = preg_replace('/%' . $macro . '%/', $ldapAttribute[0][strtolower($macro)][0], $body);
+              }
+            };
+          };
+
           foreach ($mailAttachments as $file) {
             $fileInfo['cn']      = $file['cn'][0];
             $fileInfo['content'] = $file['fdmailattachmentscontent'][0];
