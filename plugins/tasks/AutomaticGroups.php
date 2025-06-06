@@ -83,10 +83,12 @@ class AutomaticGroups implements EndpointInterface
         $mainTaskConfig = $this->getAutomaticGroupsMainTask($task['fdtasksgranularmaster'][0]);
 
         // Get target group and resource/state criteria
-        $targetGroup  = $mainTaskConfig[0]['fdtasksautomaticgroupsofname'][0] ?? NULL;
-        $resource     = $mainTaskConfig[0]['fdtasksautomaticgroupsresource'][0] ?? NULL;
-        $state        = $mainTaskConfig[0]['fdtasksautomaticgroupsstate'][0] ?? NULL;
-        $subState     = $mainTaskConfig[0]['fdtasksautomaticgroupssubstate'][0] ?? NULL;
+        $targetGroup   = $mainTaskConfig[0]['fdtasksautomaticgroupsofname'][0] ?? NULL;
+        $resource      = $mainTaskConfig[0]['fdtasksautomaticgroupspreresource'][0] ?? NULL;
+        $state         = $mainTaskConfig[0]['fdtasksautomaticgroupsprestate'][0] ?? NULL;
+        $subState      = $mainTaskConfig[0]['fdtasksautomaticgroupspresubstate'][0] ?? NULL;
+        $pattern       = $mainTaskConfig[0]['fdtasksautomaticgroupsregexpattern'][0] ?? NULL;
+        $resultMessage = [];
 
         if (empty($targetGroup)) {
           throw new Exception("Missing target group in task configuration");
@@ -94,21 +96,52 @@ class AutomaticGroups implements EndpointInterface
 
         // Check if user meets the criteria (if resource/state specified)
         $shouldAddToGroup = TRUE;
-        if ($resource !== 'NONE' && !empty($resource) && !empty($state)) {
-          $userSupannState = $this->getUserSupannState($userDn);
-          $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resource, $state, $subState);
-        }
 
-        // Add/remove user from group based on criteria
-        if ($shouldAddToGroup) {
-          $this->addUserToGroup($userDn, $targetGroup);
-          $result[$task['dn']]['result'] = "User $userDn successfully added to group $targetGroup";
-        } else {
-          $this->removeUserFromGroup($userDn, $targetGroup);
-          $result[$task['dn']]['result'] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
+        if ($resource !== 'NONE' && !empty($resource) && !empty($state)) {
+          if (isset($pattern)) {
+            // Get all ressources
+            $supannResources = $this->gateway->getLdapTasks('(objectClass=fdSupannRessource)', ['fdSupannRessourceName'], '', $_ENV["LDAP_BASE"]);
+
+            // Need to unset to work for the foreach
+            unset($supannResources['count']);
+            foreach ($supannResources as $supannRessource) {
+              if (@preg_match('/' . $pattern . '/', $supannRessource['fdsupannressourcename'][0])) {
+                // Uppercase this time for ressource
+                $resourceReplace = str_replace('REGEX', $supannRessource['fdsupannressourcename'][0], $resource);
+
+                $userSupannState = $this->getUserSupannState($userDn);
+                $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resourceReplace, $state, $subState);
+
+                // Add/remove user from group based on criteria
+                if ($shouldAddToGroup) {
+                  $this->addUserToGroup($userDn, $targetGroup);
+                  $resultMessage[] = "User $userDn successfully added to group $targetGroup";
+
+                  // If one match then quit
+                  break;
+                } else {
+                  $this->removeUserFromGroup($userDn, $targetGroup);
+                  $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
+                  }
+                }
+            }
+          } else {
+            $userSupannState = $this->getUserSupannState($userDn);
+            $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resource, $state, $subState);
+
+            // Add/remove user from group based on criteria
+            if ($shouldAddToGroup) {
+              $this->addUserToGroup($userDn, $targetGroup);
+              $resultMessage[] = "User $userDn successfully added to group $targetGroup";
+            } else {
+              $this->removeUserFromGroup($userDn, $targetGroup);
+              $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
+            }
+          }
         }
 
         // Update task status
+        $result[$task['dn']]['result'] = $resultMessage;
         $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
       } catch (Exception $e) {
         $result[$task['dn']]['result'] = "Error processing task: " . $e->getMessage();
@@ -145,16 +178,35 @@ class AutomaticGroups implements EndpointInterface
         $mainTaskConfig = $this->getAutomaticGroupsMainTask($task['fdtasksgranularmaster'][0]);
 
         // Get pre-computed values for dynamic group
-        $dynamicURL  = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicurl'][0] ?? NULL;
-        $dynamicName = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicname'][0] ?? NULL;
+        $dynamicURL    = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicurl'][0] ?? NULL;
+        $dynamicName   = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicname'][0] ?? NULL;
+        $pattern       = $mainTaskConfig[0]['fdtasksautomaticgroupsregexpattern'][0] ?? NULL;
+        $resultMessage = [];
 
         // Create the dynamic group using pre-computed or generated values
-        $this->createDynamicGroup($dynamicName, $dynamicURL);
+        if (isset($pattern)) {
+          // Get all ressources
+          $supannResources = $this->gateway->getLdapTasks('(objectClass=fdSupannRessource)', ['fdSupannRessourceName'], '', $_ENV["LDAP_BASE"]);
+
+          // Need to unset to work for the foreach
+          unset($supannResources['count']);
+          foreach ($supannResources as $supannRessource) {
+            if (@preg_match('/' . $pattern . '/', $supannRessource['fdsupannressourcename'][0])) {
+              // lowercase for ressource in the name but uppercase for the URL
+              $dynamicNameReplace = str_replace('regex', strToLower($supannRessource['fdsupannressourcename'][0]), $dynamicName);
+              $dynamicURLReplace  = str_replace('REGEX', $supannRessource['fdsupannressourcename'][0], $dynamicURL);
+              $this->createDynamicGroup($dynamicNameReplace, $dynamicURLReplace);
+              $resultMessage[] = "Successfully created dynamic group '$dynamicNameReplace' with URL: $dynamicURLReplace";
+            }
+          }
+        } else {
+          $this->createDynamicGroup($dynamicName, $dynamicURL);
+          $resultMessage[] = "Successfully created dynamic group '$dynamicName' with URL: $dynamicURL";
+        }
 
         // Update task status
+        $result[$task['dn']]['result'] = $resultMessage;
         $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-
-        $result[$task['dn']]['result'] = "Successfully created dynamic group '$dynamicName' with URL: $dynamicURL";
       } catch (Exception $e) {
         $result[$task['dn']]['result'] = "Error processing task: " . $e->getMessage();
         $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
@@ -176,12 +228,13 @@ class AutomaticGroups implements EndpointInterface
       '(objectClass=fdTasksAutomaticGroups)',
       [
         'fdTasksAutomaticGroupsOfName',
-        'fdTasksAutomaticGroupsResource',
-        'fdTasksAutomaticGroupsState',
-        'fdTasksAutomaticGroupsSubState',
+        'fdTasksAutomaticGroupsPreResource',
+        'fdTasksAutomaticGroupsPreState',
+        'fdTasksAutomaticGroupsPreSubState',
         'fdTasksAutomaticGroupsDynamicGroup',
         'fdTasksAutomaticGroupsDynamicURL',
-        'fdTasksAutomaticGroupsDynamicName'
+        'fdTasksAutomaticGroupsDynamicName',
+        'fdtasksautomaticgroupsregexpattern',
       ],
       '',
       $mainTaskDn
