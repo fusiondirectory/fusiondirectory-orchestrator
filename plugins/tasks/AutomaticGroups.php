@@ -141,7 +141,7 @@ class AutomaticGroups implements EndpointInterface
         }
 
         // Update task status
-        $result[$task['dn']]['result'] = $resultMessage;
+        $result[$task['dn']]['result'] = implode(PHP_EOL, $resultMessage);
         $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
       } catch (Exception $e) {
         $result[$task['dn']]['result'] = "Error processing task: " . $e->getMessage();
@@ -205,7 +205,7 @@ class AutomaticGroups implements EndpointInterface
         }
 
         // Update task status
-        $result[$task['dn']]['result'] = $resultMessage;
+        $result[$task['dn']]['result'] = implode(PHP_EOL, $resultMessage);
         $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
       } catch (Exception $e) {
         $result[$task['dn']]['result'] = "Error processing task: " . $e->getMessage();
