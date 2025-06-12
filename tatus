@@ -1,0 +1,1856 @@
+[33mcommit 34107a627d2104cd96d67260cac2162c91a30e78[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32m104-cloture-de-compte-en-cas-de-ressources-suspendues-ou-inactives[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;31morigin/106-ajout-de-macros-pour-le-template-de-mail[m[33m, [m[1;31morigin/104-cloture-de-compte-en-cas-de-ressources-suspendues-ou-inactives[m[33m)[m
+Merge: 4f260ec 0650b99
+Author: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+Date:   Fri Jun 6 15:37:34 2025 +0000
+
+    Merge branch '106-ajout-de-macros-pour-le-template-de-mail' into 'dev'
+    
+    Resolve "Ajout de macros pour le template de mail"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!107
+
+[33mcommit 0650b99d4c07e05619ca15535ccb796ffa817073[m
+Author: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+Date:   Fri Jun 6 17:36:28 2025 +0200
+
+    :ambulance: fix(mail): Fix phpcs errors
+    
+    Fix phpcs errors
+    
+    Signed-off-by: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+
+[33mcommit a2e1af10fb448cf43b5eff5940235fd6ed5c33fb[m
+Author: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+Date:   Fri Jun 6 17:35:13 2025 +0200
+
+    :sparkles: feat(mail): Add macro for replacing in the body
+    
+    Add macro for replacing in the body
+    
+    Signed-off-by: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+
+[33mcommit 4f260eca5d6f6767e648fc2e908bf1ebd415d6a4[m
+Merge: 73f79d6 aa87cbb
+Author: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+Date:   Fri Jun 6 08:55:25 2025 +0000
+
+    Merge branch '99-possibilite-de-choisir-le-prefixe-du-fichier-d-audit-dans-la-tache-d-audit-et-aussi-comment' into 'dev'
+    
+    Resolve "Possibilité de choisir le préfixe du fichier d'audit dans la tâche d'audit et aussi comment gerer les différentes localisation avec orchestrator"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!106
+
+[33mcommit aa87cbbe20e574961a6e76f77081e9e4cadb1697[m
+Author: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+Date:   Fri Jun 6 10:53:55 2025 +0200
+
+    :ambulance: fix(audit): Use the same default fd_syslog like in FusionDirectory
+    
+    Use the same default fd_syslog like in FusionDirectory
+    
+    Signed-off-by: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+
+[33mcommit 73f79d6ec867a1e06137a743552ae2cc6dbd3909[m
+Merge: b2101e3 4d95fb9
+Author: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+Date:   Fri Jun 6 08:14:44 2025 +0000
+
+    Merge branch '105-add-the-regex-system-from-lifecycle-to-the-automatic-groups-plugin' into 'dev'
+    
+    :ambulance: fix(automatic-groups): Convert resultMessage as a string for result
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!105
+
+[33mcommit 4d95fb9b2f5898c7adee996e43eee9f9833d5db5[m
+Author: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+Date:   Fri Jun 6 10:13:34 2025 +0200
+
+    :ambulance: fix(automatic-groups): Convert resultMessage as a string for result
+    
+    Convert resultMessage as a string for result
+    
+    Signed-off-by: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+
+[33mcommit b2101e3b2dcd02ee4e1ed98e390d5817cc2fbf8b[m
+Merge: 5314799 e847e56
+Author: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+Date:   Fri Jun 6 02:18:18 2025 +0000
+
+    Merge branch '105-add-the-regex-system-from-lifecycle-to-the-automatic-groups-plugin' into 'dev'
+    
+    Resolve "Add the regex system from lifecycle to the automatic groups plugin"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!104
+
+[33mcommit e847e56709b5faed149908ed9f8fadcc612473ac[m
+Author: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+Date:   Fri Jun 6 04:17:06 2025 +0200
+
+    :ambulance: fix(codesniffer): Fix bad indent
+    
+    Fix bad indent
+    
+    Signed-off-by: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+
+[33mcommit bebcaef50ffed5636421d64451e1d839c46a5ca7[m
+Author: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+Date:   Fri Jun 6 04:15:30 2025 +0200
+
+    :sparkles: feat(task): Add support for REGEX in automatic-groups
+    
+    Add support for REGEX in automatic-groups
+    
+    Signed-off-by: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+
+[33mcommit 531479925d4ba16c5fb872830605b287dcaa203f[m
+Merge: afc7471 c942293
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Thu May 29 10:50:42 2025 +0000
+
+    Merge branch '99-possibilite-de-choisir-le-prefixe-du-fichier-d-audit-dans-la-tache-d-audit-et-aussi-comment' into 'dev'
+    
+    Resolve "Possibilité de choisir le préfixe du fichier d'audit dans la tâche d'audit et aussi comment gerer les différentes localisation avec orchestrator"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!103
+
+[33mcommit c942293ee483e9b1f69708b7a8554ed61f6c85aa[m[33m ([m[1;31morigin/99-possibilite-de-choisir-le-prefixe-du-fichier-d-audit-dans-la-tache-d-audit-et-aussi-comment[m[33m, [m[1;32m99-possibilite-de-choisir-le-prefixe-du-fichier-d-audit-dans-la-tache-d-audit-et-aussi-comment[m[33m)[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu May 29 11:41:21 2025 +0100
+
+    :fix: Issues with phpcs
+
+[33mcommit bd8d8fc2684d93e720392d79e13298046dcd1994[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu May 29 11:37:04 2025 +0100
+
+    :sparkles: Feat(Audit) - orchestrator tasks audit updated to take prefix into consideration
+    
+    Multiple tasks can run multiple syslog  with different prefix to files.
+
+[33mcommit afc74718524932a979e22e5f3c7257ab47a266f9[m
+Merge: b8c8ec9 9e54ba9
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Mon May 26 11:06:59 2025 +0000
+
+    Merge branch '98-la-tache-audit-syslog-de-orchestrator-ne-semble-pas-respecter-le-timezone-utilise-dans' into 'dev'
+    
+    Resolve "La tâche --audit syslog de Orchestrator ne semble pas respecter le timezone utilisé dans FusionDirectory"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!102
+
+[33mcommit 9e54ba99a66e2880b677dc402e435224f23a92b9[m[33m ([m[1;31morigin/98-la-tache-audit-syslog-de-orchestrator-ne-semble-pas-respecter-le-timezone-utilise-dans[m[33m, [m[1;32m98-la-tache-audit-syslog-de-orchestrator-ne-semble-pas-respecter-le-timezone-utilise-dans[m[33m)[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon May 26 12:05:30 2025 +0100
+
+    :bug: fix(Audit) create datetime in UTC and convert to local timezone for syslog
+
+[33mcommit b8c8ec9ee76631d2ba5e8250dec7a0ff36d71e20[m
+Merge: 51a66f0 455d50b
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Wed May 14 20:25:47 2025 +0000
+
+    Merge branch '96-the-concept-of-authentification-to-orchestrator-server-and-token-retrieval-should-be-redone' into 'dev'
+    
+    Resolve "the concept of authentification to orchestrator server and token retrieval should be redone"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!101
+
+[33mcommit 455d50b521fe5d880b31c8b3c41cc551f33cdea2[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Wed May 14 22:24:31 2025 +0200
+
+    :ambulance: fix(jwtCN) adding back jwtCN variable
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 1a4d7d23c147ce1a85743774cc415ac2f5183383[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Wed May 14 22:18:03 2025 +0200
+
+    :handshake: fix(filter) make a better ldap filter for finding the token based on the objectclass
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit e200e5ced3188d82f2a71120cb404f1b9f0e4ec4[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Wed May 14 21:52:01 2025 +0200
+
+    :handshake: fix(jwt) remove the -jwt extension
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 51a66f070cf8f2fc2dddc9e4785f3c265cfe1180[m
+Merge: f9fbc58 7c016e2
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Mon May 12 11:45:48 2025 +0000
+
+    Merge branch '89-orchestrator-lifecycle-adaptation-to-regex-supann-selection' into 'dev'
+    
+    Resolve "[Orchestrator] [LifeCycle] - adaptation to regex supann selection"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!99
+
+[33mcommit 7c016e227d82e978e44181eb9682cf343a0bf23d[m[33m ([m[1;31morigin/89-orchestrator-lifecycle-adaptation-to-regex-supann-selection[m[33m, [m[1;32m89-orchestrator-lifecycle-adaptation-to-regex-supann-selection[m[33m)[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon May 12 12:42:10 2025 +0100
+
+    phpstan (step2)
+
+[33mcommit f4f46bb93dc7227ea89b8988c08da2d4fc0661cf[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon May 12 12:35:32 2025 +0100
+
+    phpcs phpstan
+
+[33mcommit 42571f6ef84f3f0a06945777c381fa5c42a7406e[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon May 12 12:26:15 2025 +0100
+
+    adjustement for phpstan
+
+[33mcommit 6be08385f490deda615e85014d2190d23c515ecb[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon May 12 12:24:55 2025 +0100
+
+    style(LifeCycle) - refactor conditional logic for better readability - removes un-called methods
+
+[33mcommit 86df80e66c99973b1037f9aadb18ef5cf5721b8a[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon May 12 12:17:04 2025 +0100
+
+    style(LifeCycle) - improve code formatting and readability
+
+[33mcommit 8613b63b6781e18b03684b9a1646441bbf23978d[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon May 12 12:13:22 2025 +0100
+
+    :ambulance: fix(LifeCycle) - clean up comments and improve code readability
+
+[33mcommit b763c00915782917b7448e7af765db3495612cad[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Fri May 9 16:21:00 2025 +0100
+
+    :sprakles: Feat(lifeCycle) - adds regex in current and future resources
+
+[33mcommit f9fbc587764f47da1e629aa3678d1312e8b03f52[m
+Merge: c69f06e 584e917
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri May 9 13:57:56 2025 +0000
+
+    Merge branch '94-add-yaml-files-for-fusiondirectory-orchestrator-and-the-plugins' into 'dev'
+    
+    Resolve "add yaml files for FusionDirectory Orchestrator and the plugins"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!100
+
+[33mcommit 584e9176fb1456f00a663366418f28ecec2e4e26[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri May 9 15:56:53 2025 +0200
+
+    :mabulance: fix(yaml) add yaml files for FusionDirectory Orchestrator and the plugins
+    
+    images can only accessed in raw format on github
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit c69f06eacd86ed52b7a18ca2b11ff455c36001d2[m[33m ([m[1;32mdev[m[33m)[m
+Merge: 80b9430 89edbb4
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri May 9 13:33:44 2025 +0000
+
+    Merge branch '94-add-yaml-files-for-fusiondirectory-orchestrator-and-the-plugins' into 'dev'
+    
+    Resolve "add yaml files for FusionDirectory Orchestrator and the plugins"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!98
+
+[33mcommit 89edbb4275c50f945353c33b46951457e55b8f85[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri May 9 15:32:54 2025 +0200
+
+    :ambulance: fix(yaml) add yaml files for FusionDirectory Orchestrator and the plugins
+    
+    name have to be lower case and no space
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 80b9430a3974722048f24f8044aa384a633e32cc[m
+Merge: 1f48a26 8c1a18c
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri May 9 13:15:41 2025 +0000
+
+    Merge branch '94-add-yaml-files-for-fusiondirectory-orchestrator-and-the-plugins' into 'dev'
+    
+    Resolve "add yaml files for FusionDirectory Orchestrator and the plugins"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!97
+
+[33mcommit 8c1a18c00dee1a4b1a98fb95c6097d1b002f3212[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri May 9 15:14:29 2025 +0200
+
+    :ambulance: fix(yaml) add yaml files for FusionDirectory Orchestrator and the plugins
+    
+    Tags where not correct
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 1f48a2666c249debc787183612c9f1dc1ee82995[m
+Merge: 04d041d 8e76446
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri May 9 11:37:28 2025 +0000
+
+    Merge branch '94-add-ymal-files-for-fusiondirectory-orchestrator-and-the-plugins' into 'dev'
+    
+    Resolve "add yaml files for FusionDirectory Orchestrator and the plugins"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!96
+
+[33mcommit 8e76446df0e9f01e18d7f35022ad2e1b2f70d28a[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri May 9 13:36:22 2025 +0200
+
+    :sparkles: feat(yaml) add ymal files for FusionDirectory Orchestrator and the plugins
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 04d041dce253b0393934b704f66656b1768fbbc7[m
+Merge: 0454ce2 04331e0
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Thu May 8 13:30:10 2025 +0000
+
+    Merge branch '92-improve-config-file-to-be-better-align-with-standard-and-remov-some-ambiguities' into 'dev'
+    
+    Resolve "improve config file to be better align with standard and remove some ambiguities"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!95
+
+[33mcommit 04331e0748e4e2dc2a1a15cbcbd6332f2f6cdbc9[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Thu May 8 12:42:08 2025 +0200
+
+    :handshake: fix(config) removed the part that are now in orchestrator-client.conf
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 0f3be205180ebd51ce5a03f3cf501035f0bfa88e[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Wed May 7 22:49:20 2025 +0200
+
+    :handshake: fix(orchestrator) improve config file to be better align with standard and remove some ambiguities
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 0454ce29359a33fe5b9d83100aa6afba8c3fe753[m
+Merge: 565f4b0 b8376e7
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Tue May 6 17:28:03 2025 +0000
+
+    Merge branch '84-reorganising-fusiondirectory-orchestrator-sources' into 'dev'
+    
+    Resolve "Reorganising FusionDirectory Orchestrator sources"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!94
+
+[33mcommit b8376e700822b09f8626d45e9c48162d84d2ffae[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Tue May 6 19:25:31 2025 +0200
+
+    :ambulance: fix(utils) put the uitls in a core directory on the same level as tasks, changed utils.php to CoreUtils.php to avoid loading issues
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 565f4b0559809ef6d932f5f74a9b98780c5b3c93[m
+Merge: 09c6f94 1dc17cb
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Tue May 6 14:59:36 2025 +0000
+
+    Merge branch '89-orchestrator-lifecycle-adaptation-to-regex-supann-selection' into 'dev'
+    
+    Resolve "[Orchestrator] [LifeCycle] - adaptation to regex supann selection"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!93
+
+[33mcommit 1dc17cbc7ceec8893d2fdd1a9109781661291e39[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue May 6 15:15:57 2025 +0100
+
+    :art: feat(lifecycle) - improve regex filtering and error handling for resource end date validation
+
+[33mcommit bcac70434f92d60699e3cf1e3a810636c7661fe5[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue May 6 13:32:37 2025 +0100
+
+    :art: feat(lifecycle) - enhance error handling for resource end date validation in lifecycle checks
+
+[33mcommit 385e26047c864ffb5cb94f443d6fed20cd30e604[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon May 5 16:22:52 2025 +0100
+
+    :art: feat(lifecycle) - add regex filtering for resource matching in lifecycle checks
+
+[33mcommit 09c6f94726c9f43fa3cb7c5c79edf3d43827b2c9[m
+Merge: e7b3812 840bb16
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Thu May 1 14:53:26 2025 +0000
+
+    Merge branch '88-orchestrator-automatic-group-enhancement-render-the-creation-of-dynamic-group-available-based-on' into 'dev'
+    
+    Resolve "[Orchestrator] - [Automatic-Group] - Enhancement - render the creation of dynamic group available based on resources"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!92
+
+[33mcommit 840bb164887e7b4a6e1bfba8e9950a89e9cabf8f[m[33m ([m[1;31morigin/88-orchestrator-automatic-group-enhancement-render-the-creation-of-dynamic-group-available-based-on[m[33m, [m[1;32m88-orchestrator-automatic-group-enhancement-render-the-creation-of-dynamic-group-available-based-on[m[33m)[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu May 1 15:51:11 2025 +0100
+
+    :art: style(automatic-groups) - standardize spacing and formatting in AutomaticGroups.php for improved readability
+
+[33mcommit 80a138dfb46b5c0cbc9f2281865d1e33c596f41b[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu May 1 15:39:19 2025 +0100
+
+    :art: feat(automatic-groups) - implement createDynamicGroup method for LDAP dynamic group creation
+
+[33mcommit 0cca05ff2fe50b45010ae672e9f6f36eb700ecc2[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Apr 29 16:55:50 2025 +0100
+
+    :art: feat(automatic-groups) - add dynamic group creation processing and enhance endpoint handling
+
+[33mcommit e7b3812e5dbd090bff97688d71b96f4340ccb359[m
+Merge: c8c6b65 98b2f0f
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 28 16:50:38 2025 +0000
+
+    Merge branch '87-orchestrator-change-the-dsa-authentication-within-orchestrator-to-be-a-binding-with-ldap-instead' into 'dev'
+    
+    Resolve "[Orchestrator] - Change the DSA authentication within orchestrator to be a binding with LDAP instead"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!91
+
+[33mcommit 98b2f0f1d5ede19b2c1e80e83e72e2919d96c745[m[33m ([m[1;31morigin/87-orchestrator-change-the-dsa-authentication-within-orchestrator-to-be-a-binding-with-ldap-instead[m[33m, [m[1;32m87-orchestrator-change-the-dsa-authentication-within-orchestrator-to-be-a-binding-with-ldap-instead[m[33m)[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 28 17:49:57 2025 +0100
+
+    :art: style(auth) - standardize spacing in the getDSAInfo method for improved code consistency
+
+[33mcommit 391b8caa93b61990a4fcb1cb7f51b5d40bea0c6b[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 28 17:47:38 2025 +0100
+
+    :art: style(auth) - apply consistent spacing in method signatures and variable assignments for improved readability
+
+[33mcommit 7a33e483632b7b4fe59c5f55ebb7d1cf0cb7fce3[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 28 17:45:29 2025 +0100
+
+    :art: refactor(authentication) - replace direct user info construction with a dedicated method for retrieving DSA info, enhancing code clarity and maintainability
+
+[33mcommit 526e68e8e7d17448b2386f6b1d932c252cf3cb26[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 28 17:20:31 2025 +0100
+
+    :art: refactor(authentication) - streamline user authentication process by removing unnecessary user info retrieval and directly constructing user data for JWT handling
+
+[33mcommit c8c6b6564c3a514124c2da07d53db66577cb392f[m
+Merge: 7c7bc7b 2474043
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 28 08:39:59 2025 +0000
+
+    Merge branch '76-orchestrator-task-for-csv-extraction-based-on-group-and-member-criteria' into 'dev'
+    
+    Resolve "[Orchestrator] - Task for CSV Extraction Based on Group and Member Criteria"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!90
+
+[33mcommit 2474043a52cec2f1a31f6e039382d5b98a7bd963[m[33m ([m[1;31morigin/76-orchestrator-task-for-csv-extraction-based-on-group-and-member-criteria[m[33m, [m[1;32m76-orchestrator-task-for-csv-extraction-based-on-group-and-member-criteria[m[33m)[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 28 09:37:30 2025 +0100
+
+    phpcs hanling
+
+[33mcommit d0bc5933b85c898069882e66528fe1d753cb4dd9[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 28 09:34:01 2025 +0100
+
+    phpstan handling
+
+[33mcommit 720a47afdde1ed10fa4ac0f201708debdc8e67c9[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 28 09:24:31 2025 +0100
+
+    :art: refactor(Extractor) - clean up code formatting and improve consistency in user data handling
+
+[33mcommit ff033108e6c392e46d2256af6fe9a33ffbedae98[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 24 17:48:48 2025 +0100
+
+    :art: refactor(Extractor) - enhance LDAP attribute fetching by including fdExtractorTaskAttributes and improving attribute selection logic
+
+[33mcommit 036f495914d9c0b97303ecc6203b96b25f03b81c[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 24 16:09:36 2025 +0100
+
+    :sparkles: Feat(Extractor) - implement email notification for batch extraction results with attachment
+
+[33mcommit 27d81139e08ab351dc2c48eaa9f4720089b61669[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 24 14:50:07 2025 +0100
+
+    :art: refactor(Extractor) - enhance user data handling by consolidating array values into a single string
+
+[33mcommit 7e9be2bbb6e812b4c946811e32b386b94ad35762[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 24 14:35:39 2025 +0100
+
+    :art: refactor(Extractor) - improve data handling in CSV extraction for consistent column structure
+
+[33mcommit d26be280e35d372371c65fb11a94855b51e514ba[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 24 14:05:30 2025 +0100
+
+    :sparkles: Feat(Extractor) - adapt endpoint to bulk csv
+    
+    Create on CSV per main task and do not append
+
+[33mcommit 7c7bc7bdf08a517dd8f736ba68634cc939f8d608[m
+Merge: ef5c5cc 4c58fbb
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 10 15:27:22 2025 +0000
+
+    Merge branch '75-orchestrator-automatic-group-management-task' into 'dev'
+    
+    Resolve "[Orchestrator] - Automatic Group Management Task"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!89
+
+[33mcommit 4c58fbbff80b99aabe289893377b07aed36d7b3b[m[33m ([m[1;31morigin/75-orchestrator-automatic-group-management-task[m[33m, [m[1;32m75-orchestrator-automatic-group-management-task[m[33m)[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 10 16:24:25 2025 +0100
+
+    :art: refactor(audit) - standardize spacing and formatting in AutomaticGroups class for improved readability
+
+[33mcommit dcc3580a6664d663b38b000250e288f7869d7a9e[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 10 14:48:44 2025 +0100
+
+    :art: feat(audit) - add AutomaticGroups endpoint for processing automatic group assignments based on task criteria
+
+[33mcommit 0654f6dabf2c78c07b919f9674421c6cff5d5cd3[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 10 14:48:06 2025 +0100
+
+    :art: feat(audit) - implement AutomaticGroups endpoint for processing group assignments based on task criteria
+
+[33mcommit ef5c5ccee53dff4cc1794be7761fb4ae1834ded7[m
+Merge: 1076e1b 64cb562
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Tue Apr 8 09:30:35 2025 +0000
+
+    Merge branch '77-orchestrator-update-audit-tasks-to-allows-generation-of-syslog-export-data' into 'dev'
+    
+    Resolve "[Orchestrator] - Update audit tasks to allows generation of syslog export data"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!88
+
+[33mcommit 64cb5624e6db7be2f657532319e380ffe803cd83[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Apr 8 10:29:48 2025 +0100
+
+    :art: refactor(audit) - clarify empty audit entries check by using count() for better readability
+
+[33mcommit e900b7fa0c6d07fb2ec105508201da72ba0d9250[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Apr 8 10:08:39 2025 +0100
+
+    :art: refactor(audit) - improve code readability by standardizing null checks and formatting adjustments
+
+[33mcommit cff8bd81e84a27e62aac597b731d07c5975f97a4[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Apr 8 10:05:12 2025 +0100
+
+    :art: feat(audit) - enhance syslog audit processing by implementing state tracking for last processed entries and ensuring directory existence
+
+[33mcommit 1e027117cd865440c0f5e87deb9729c275e37d4a[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 7 17:56:04 2025 +0100
+
+    :art: feat(audit) - implement syslog transformation for audit entries and handle duplicate entries
+
+[33mcommit c7847464b1610116deeda7d371b6105a35500d23[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 7 17:10:31 2025 +0100
+
+    :art: feat(audit) - enhance Audit class to support syslog audits and improve array filtering
+
+[33mcommit 1076e1b5f605c3f8b59a8bae3bda05ca7687badc[m
+Merge: 145fe94 a6a64fb
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 7 13:06:41 2025 +0000
+
+    Merge branch '76-orchestrator-task-for-csv-extraction-based-on-group-and-member-criteria' into 'dev'
+    
+    Resolve "[Orchestrator] - Task for CSV Extraction Based on Group and Member Criteria"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!83
+
+[33mcommit a6a64fbaa76a5a5d2abb3a4d17949b51e7a91343[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 7 14:05:34 2025 +0100
+
+    :art: style(extractor) - improve code formatting by adding spaces in function signatures for better readability
+
+[33mcommit 1e3d445cdae931cccaaf3f27435b2c59bf41e0a4[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Fri Apr 4 17:51:55 2025 +0100
+
+    :art: feat(extractor) - enhance CSV, JSON, and XML export methods to handle duplicate UIDs and improve filename formatting
+
+[33mcommit 2a922cb6d4ed612b44e5a4044f9c6136c629342e[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Fri Apr 4 17:04:54 2025 +0100
+
+    :art: feat(extractor) - implement Extractor class for handling task extraction with support for multiple formats
+
+[33mcommit 145fe943bede9f3efacbfc6562c75ecfe08d718f[m
+Merge: 5c0760d c63f7de
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri Apr 4 14:16:48 2025 +0000
+
+    Merge branch '85-errorhandler-php-is-called-statically-in-config-bootstrap-php-so-fila-patch-should-be-change-due' into 'dev'
+    
+    Resolve "errorhandler.php is called statically in config/bootstrap.php so file path should be change due to reorganising files"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!87
+
+[33mcommit c63f7de001f88e37ce6d7eaa241070fa29f89073[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri Apr 4 16:15:34 2025 +0200
+
+    :handshake: fix(errorhandlers) errorhandler.php is called statically in config/bootstrap.php so file path should be change due to reorganising files
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 5c0760deff8ff842c417261d878a5ce31a0243d3[m
+Merge: 2e1430b fa361d8
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri Apr 4 13:01:49 2025 +0000
+
+    Merge branch '84-reorganising-fusiondirectory-orchestrator-sources' into 'dev'
+    
+    Resolve "Reorganising FusionDirectory Orchestrator sources"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!86
+
+[33mcommit fa361d830bfffc77c453d145a978fabfa2ebc840[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri Apr 4 15:00:18 2025 +0200
+
+    :handshake: fix(directories) Reorganising FusionDirectory Orchestrator sources
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 2e1430b23dd179af8d1d0364286c31c39be2309f[m
+Merge: 55863b2 425afba
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Mon Mar 31 14:17:10 2025 +0000
+
+    Merge branch '74-orchestrator-automatic-archiving-based-on-supann-resource-states' into 'dev'
+    
+    Resolve "[Orchestrator] - Automatic Archiving Based on SupAnn Resource States"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!82
+
+[33mcommit 425afba0299bfcf18978efc9313e97bdbce2004e[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Mar 31 15:15:44 2025 +0100
+
+    :art: refactor(archive) - update return type of getUserSupannAccountStatus method to ensure consistent array output
+
+[33mcommit f05c3a412a26d3696f1ce7eba43bec6de3d3842e[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Mar 31 15:04:56 2025 +0100
+
+    :art: style(archive) - improve code formatting and enhance readability in Archive.php
+
+[33mcommit 55863b235124054aeee64d2f3f5a372a50745c78[m
+Merge: 08af123 98320b1
+Author: Alexa Oana eliza <alexa.oanaeliza@fusiondirectory.org>
+Date:   Mon Mar 31 11:01:07 2025 +0000
+
+    Merge branch '73-orchestrator-create-a-librabry-in-core-orchestrator' into 'dev'
+    
+    Resolve "[Orchestrator] - Create a librabry in core orchestrator"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!80
+
+[33mcommit 98320b15ea79ee0c9522c80124e0c62a366d01fc[m[33m ([m[1;31morigin/82-redesign-lifecycle-class[m[33m)[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Tue Mar 25 18:11:35 2025 +0100
+
+    :ambulance: fix(centos) remove centos from the builds
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 9edc95cfa56270005a6c438a2dbf332922226dc0[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Mar 25 15:17:33 2025 +0000
+
+    :art: style(archive) - apply consistent spacing in method signatures and improve code readability
+
+[33mcommit a381122877a5281a8396afbfd7a318dda6ba4e9a[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Mar 25 11:57:08 2025 +0000
+
+    :sparkles: feat(archive) - update archive request settings and improve error handling for unexpected HTTP status codes
+
+[33mcommit 2120e7d5fb8bed220edae73dc8cdbda59a1423b2[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Mar 25 00:40:12 2025 +0000
+
+    :sparkles: feat(archive) - refactor archiving logic to streamline user status checks and enhance error handling (still error from API)
+
+[33mcommit b64f5b3e33f1793a70f1c406d987d0e2ea588a5d[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Mar 24 16:44:58 2025 +0000
+
+    :sparkles: feat(archive) - enhance Archive functionality with WebServiceCall integration and improved error handling
+
+[33mcommit 98a44f282f695208f34e92e994ddf2732ee33a18[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Mar 24 15:21:23 2025 +0000
+
+    :sparkles: feat(archive) - implement Archive endpoint with GET, PATCH, POST, and DELETE methods
+
+[33mcommit 4b08c0eae0b003610e116f759d940ddac51058a6[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Mar 24 10:46:00 2025 +0000
+
+    :sparkles: Feat(gateway) - simply add gateway to get methods
+
+[33mcommit 5adb0ccd6445ed575fc5756125ab8daefd24c10f[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Mar 27 11:46:12 2025 +0000
+
+    :art: refactor(archive) - improve method structure and enhance supann status handling in archiving process
+
+[33mcommit 08af123ab408687666681ba783021477a72e57ae[m
+Merge: ffc3e3f c629c3e
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Tue Mar 25 17:12:12 2025 +0000
+
+    Merge branch '83-remove-centos-from-the-builds' into 'dev'
+    
+    Resolve "remove centos from the builds"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!81
+
+[33mcommit c629c3eb8d140a2c6234c834ef6c7b82b9378c67[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Tue Mar 25 18:11:35 2025 +0100
+
+    :ambulance: fix(centos) remove centos from the builds
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit ffc3e3faf28806132ebc37b74d552d7881671265[m
+Merge: 34aa3b1 2cc0b86
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Tue Mar 25 16:30:52 2025 +0000
+
+    Merge branch '74-orchestrator-automatic-archiving-based-on-supann-resource-states' into 'dev'
+    
+    Resolve "[Orchestrator] - Automatic Archiving Based on SupAnn Resource States"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!79
+
+[33mcommit 2cc0b860e15f24de5febd00fd9f3887d8c9f9f42[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Mar 25 15:17:33 2025 +0000
+
+    :art: style(archive) - apply consistent spacing in method signatures and improve code readability
+
+[33mcommit cb18ec2eeab93542fc8cb009f424b8227274734b[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Mar 25 11:57:08 2025 +0000
+
+    :sparkles: feat(archive) - update archive request settings and improve error handling for unexpected HTTP status codes
+
+[33mcommit bd1ea57e3bcac3a5e6ba4a94da88737d3ab6c70e[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Tue Mar 25 11:57:20 2025 +0100
+
+    fix indent
+
+[33mcommit ad060812c079c616144192bc483add434a416f79[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Tue Mar 25 11:56:04 2025 +0100
+
+    make non static
+
+[33mcommit b0604bd5deeea3d8002ff629346c119a2213b69c[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Tue Mar 25 11:12:26 2025 +0100
+
+    indent
+
+[33mcommit c8555f5bed86667a7bd0f75d3014063d9ce965eb[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Tue Mar 25 11:11:09 2025 +0100
+
+    use maps
+
+[33mcommit bb879dfcc98cdd94a26eba0959370cc60fd81c30[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Mar 25 00:40:12 2025 +0000
+
+    :sparkles: feat(archive) - refactor archiving logic to streamline user status checks and enhance error handling (still error from API)
+
+[33mcommit a94db1b91d2391c090bd46006bcf8f48196d4c69[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Mar 24 16:44:58 2025 +0000
+
+    :sparkles: feat(archive) - enhance Archive functionality with WebServiceCall integration and improved error handling
+
+[33mcommit 164739c09897f20c213173f91acc7e614f2fc81d[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Mar 24 15:21:23 2025 +0000
+
+    :sparkles: feat(archive) - implement Archive endpoint with GET, PATCH, POST, and DELETE methods
+
+[33mcommit 752fcad55a62061ad1cbdb22b0fb1e0199f24b70[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Mon Mar 24 13:23:22 2025 +0100
+
+    fix indent
+
+[33mcommit 817f80ada8347214ae53b400d8a32d8d74b3f253[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Mon Mar 24 13:22:52 2025 +0100
+
+    fix indent
+
+[33mcommit 3198ae3d1501c7ef7ce05b873aa4f971f06c7ed3[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Mon Mar 24 13:10:44 2025 +0100
+
+    add method
+
+[33mcommit 9a0adfbb4696bbb0e8d8fddd1e9826b3e35c5ef0[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Mon Mar 24 13:05:43 2025 +0100
+
+    Add mail utils
+
+[33mcommit fc915a520d4ef4630ca98163789780467a8cb687[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Mon Mar 24 12:15:32 2025 +0100
+
+    fix self
+
+[33mcommit b39f4e4cc54ea297b9aa42dceb6f24b9511acb68[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Mon Mar 24 12:14:46 2025 +0100
+
+    fix params
+
+[33mcommit abe6c6dcfcdfb2c97a21a827e87498a28301663e[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Mon Mar 24 12:12:51 2025 +0100
+
+    fix indent
+
+[33mcommit 43f4997c3786fa491c42cab60c5e2f14f560fc35[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Mon Mar 24 12:12:12 2025 +0100
+
+    fix indent
+
+[33mcommit 615347e75956ce6f63cda94ad9dc69a0438843b4[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Mon Mar 24 12:11:12 2025 +0100
+
+    fix braket
+
+[33mcommit 9b0a527978b58de70789da176b285d9f734f75c5[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Mon Mar 24 12:10:22 2025 +0100
+
+    fix indent
+
+[33mcommit bb5dfd5fba0bf029b1c88ff77255dc28412c28e0[m
+Author: Oana-Eliza Alexa <43857161+alexaeliza@users.noreply.github.com>
+Date:   Mon Mar 24 12:08:50 2025 +0100
+
+    Refactor libraries
+
+[33mcommit a799e46b944d6c869eb1456607f471747b9134e3[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Mar 24 10:46:00 2025 +0000
+
+    :sparkles: Feat(gateway) - simply add gateway to get methods
+
+[33mcommit 34aa3b11be052d6e77cf635a294f4e80dac846ef[m
+Merge: 456a731 58252ea
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri Jan 31 15:27:54 2025 +0000
+
+    Merge branch '67-release-fusiondirectory-orchestrator-1-1' into 'dev'
+    
+    Resolve "Release FusionDirectory Orchestrator 1.1"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!69
+
+[33mcommit 58252ea4a24a5c9fe0689f8acd8eb9b17bd2dc09[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri Jan 31 16:26:53 2025 +0100
+
+    :sparkles: feat(Changelog) add Changelog for FusionDirectory Orchestrator 1.1
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 456a7312be2b36e5dc9b966723526d4ffe197577[m
+Merge: b54d667 bb0b390
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri Jan 31 14:24:56 2025 +0000
+
+    Merge branch '68-update-the-readme-md' into 'dev'
+    
+    Resolve "Update the readme.md"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!70
+
+[33mcommit b54d667c4edb3d2d94cc96aa5b3575816a9bd256[m
+Merge: 26819e6 b993cde
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri Jan 17 17:23:50 2025 +0000
+
+    Merge branch '68-update-the-readme-md-2' into 'dev'
+    
+    Resolve "Update the readme.md"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!71
+
+[33mcommit b993cdedd308bc1f9a92cbb49085ab542334438a[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri Jan 17 18:22:47 2025 +0100
+
+    :docs: fix(readme) added new text and removed subscription and crowfunding no longer used
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit bb0b3905c1300f7cfbff2009646ddd577bcd20ab[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri Jan 17 18:20:40 2025 +0100
+
+    :docs: fix(readme) fix the readme to add the new text and remove the crowfunding option no longer used
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 26819e604005a9159e8614d6b384dbb04fdfba00[m
+Merge: 5fec763 eff1f9d
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Mon Dec 9 12:13:50 2024 +0000
+
+    Merge branch '66-orchestrator-user-reminder-issue-when-only-one-members-is-set' into 'dev'
+    
+    Resolve "[Orchestrator] - user-reminder - issue when only one members is set"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!68
+
+[33mcommit eff1f9dc2e81b034bbc1358256057d6c330b7b9d[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Dec 9 12:10:57 2024 +0000
+
+    :sparkles: feat(Orchestrator)
+    
+    Allows standalone member
+
+[33mcommit 5fec7637f80435f543219d804395a55664da8861[m
+Merge: eec5e24 e207e85
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Fri Nov 15 11:45:53 2024 +0000
+
+    Merge branch '65-orchestrator-format-of-the-orchestrator-conf-updates' into 'dev'
+    
+    Resolve "[Orchestrator] - Format of the orchestrator.conf updates"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!67
+
+[33mcommit e207e852e74ecb5de90f18875a002cfa3a5bbcff[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Fri Nov 15 11:44:18 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - Changes configuration file logic
+    
+    Enhance configuration file logic.
+
+[33mcommit eec5e243acedcf2956e6deb46101f1951f6758c8[m
+Merge: 24cb5a7 d1e5755
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Thu Nov 14 17:52:08 2024 +0000
+
+    Merge branch '62-orchestrator-lifecycle-prolongation-adds-time-from-date-of-process-and-not-from-resource-end-date' into 'dev'
+    
+    Resolve "[Orchestrator] - lifeCycle prolongation adds time from date of process and not from resource end date"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!66
+
+[33mcommit d1e5755b75a5d75b427e0500bed49e27c41575f9[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Nov 14 17:44:12 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - phpcs
+    
+    PHPCS
+
+[33mcommit a36a5c98bb35edc7bbd6762a05844ae7e0cd1d06[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Nov 14 17:38:51 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - small refactor
+    
+    Adds better readability
+
+[33mcommit 03572c0b87e3d32c70482ccfbc2477a51b444d3e[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Nov 12 18:10:28 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - logic of end date
+    
+    Adds better logic of endate but requires refactoring.
+
+[33mcommit 24cb5a72aa4a68eb6d1941088ffef4462807d981[m
+Merge: 4d1ee8c 98225cc
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Tue Nov 12 14:44:32 2024 +0000
+
+    Merge branch '64-orchestrator-reminder-removal-of-fdtasksremindermanager' into 'dev'
+    
+    Resolve "[Orchestrator] - Reminder - Removal of fdTasksReminderManager"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!65
+
+[33mcommit 98225cc1a2f96228879d40e4d380541b64494344[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Nov 12 14:41:57 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - removing debugging
+    
+    Removing debugging
+
+[33mcommit 4d1ee8c0f95ee106c1e3135df0db00e70b9c35d1[m[33m ([m[1;31morigin/63-orchestrator-mail-controller-format-of-mail-text-and-signature-are-not-utf8-usage-of-accents-is[m[33m)[m
+Merge: 0a253a7 35ef51f
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Mon Nov 11 21:33:08 2024 +0000
+
+    Merge branch '57-orchestrator-new-endpoint-for-userreminder-allowing-to-send-notification-to-use-with-token-to' into 'dev'
+    
+    Resolve "[Orchestrator] - New endpoint for userReminder allowing to send notification to use with token to extend their account longevity"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!61
+
+[33mcommit 35ef51f2ce0f78afb2c3a3bbde463623248e01be[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Nov 11 21:12:20 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - removing debugging
+    
+    Removing debugging
+
+[33mcommit 8bcc7271aa395fdbf108818eec3c1d035789c062[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Nov 11 21:03:16 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - fixing phpcs
+    
+    fixing phpcs
+
+[33mcommit 52d37304b754669a7dfe68b7bce67c8e7562c92e[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Nov 11 17:55:03 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - fixing multi supann status
+    
+    fixing multi supann status.
+
+[33mcommit 0a253a700fadc89e9a7ba9e8d0ebbfd0a829b27c[m
+Merge: d22abf2 0c88be1
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Thu Nov 7 10:59:01 2024 +0000
+
+    Merge branch '61-orchestrator-lifecycle-array-supann-is-analyzed-with-static-numbering-2' into 'dev'
+    
+    Resolve "[Orchestrator] - LifeCycle array supann is analyzed with static numbering"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!63
+
+[33mcommit 0c88be1fad0d569ad4015ebd64edcb0cc4599119[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Nov 7 10:56:33 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - phpcs
+    
+    phpcs
+
+[33mcommit b63555564cf8338b27a3900c6fa24608916f7bc3[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Nov 7 10:48:54 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - lifecycle small refactor
+    
+    Adds refactoring and comments
+
+[33mcommit 532cf7b629cf1f077206569f2b61c76b209a9a3f[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Nov 7 09:29:46 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - lifecycle supann check logic
+    
+    Changes supann check logic
+
+[33mcommit 02864376a5e3d5097a5a1f9358dd4f36ab02c248[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Nov 4 17:24:52 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - removal of ppolicy
+    
+    Removal of ppolicy
+
+[33mcommit 80e1a0823d9ce506d0f19f5afcd5034e7001baba[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Nov 4 10:53:10 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - phpstan fixes
+    
+    phpstan fixes
+
+[33mcommit e83f6afd5a473f011b39bd008797e8e0ff9fd018[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Oct 31 17:30:30 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - phpcs
+    
+    phpcs
+
+[33mcommit e8e8dcce3cff515025991bc792fbd816ae589bce[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Oct 31 16:38:58 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - supann array corrections
+    
+    Adds supann array corrections
+
+[33mcommit ff0bb46c36d1a08272f92b0e59ad4fd71fac552c[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Oct 29 17:38:29 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - supann issues - we need to iterate through supann
+    
+    We need to iterate through supann - to be done !
+
+[33mcommit 3f259ae4c6b3d32b7c84bdde34f600ef7f29ad35[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Oct 29 15:20:51 2024 +0000
+
+    :sparkles: Feat(Orchestrator) - posix shadowExpire verifications
+    
+    Adds verification for posix shadowExpire.
+
+[33mcommit 52c35affb0983a95a525f83d8ec0ad59d0bc3ee6[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Oct 22 18:11:34 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - url is being sent properly
+    
+    save commit - timetamp to unix.
+
+[33mcommit 24b9905929619dc07507bde675ddbd21b6d25620[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Oct 22 18:03:06 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - url is being sent properly
+    
+    save commit - change of the token generation.
+
+[33mcommit 52938ac0a71d71197d852828a67c06dafc55dadd[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Oct 22 15:42:45 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - url is being sent properly
+    
+    save commit - change in url.
+
+[33mcommit 93a087d490729cacdb12f4912cde48f6be5cbf16[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Oct 22 11:36:11 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - url is being sent properly
+    
+    save commit - url is being sent properly.
+
+[33mcommit ca0f4ee5fbc9f35bc4ffb1d9fec58d01733dacb8[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Oct 22 10:58:53 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - token generation logic 2
+    
+    save commit - token generation logic 2
+
+[33mcommit ee575f34db0eaf511f7f56c96be5bc406e37210c[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Oct 21 12:08:35 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - token generation logic 1
+    
+    save commit - token generation logic 1
+
+[33mcommit dac6bab22c8d0029e3f917bee4c3f180b1cd163e[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Oct 14 16:41:54 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - second reminder properly sent
+    
+    save commit - second reminder properly sent
+
+[33mcommit 6b1fe584af786bd2d9a9c06883d8546b350e2a2b[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Oct 14 16:19:38 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - reminded email send to both monit & forward
+    
+    save commit - forward and remind mail sent + update tasks
+
+[33mcommit 8809fef5df4044d27f818b22f38ea9502a5bcb5d[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Oct 10 19:16:56 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - how to send reminded email.
+    
+    save commit - backup + how to send reminded email brainstorm.
+
+[33mcommit 06360271ab75aa9a257c7a5b534f3cd321e0e4ba[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Oct 10 19:13:21 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - before reminded mail template 2
+    
+    save commit - backup + logic to be though on mail separation and status update 2
+
+[33mcommit 53201d33a5637a8b1fe1a4b461cf63b977bb0e88[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Oct 10 18:29:45 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - before reminded mail template
+    
+    save commit - backup + logic to be though on mail separation and status update.
+
+[33mcommit c0d80135fe54049edc8effebda9618ac9559d580[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Oct 8 18:12:27 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - removal and send workign
+    
+    save commit - removal and send working - subtask updated
+
+[33mcommit 6a99579e275f0372444d1c52b3f02fafc19e1d7c[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Oct 8 17:41:51 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - continuation of logic
+    
+    save commit - continuation of logic
+
+[33mcommit 1d743cfcc36c80cd6ccd18a64fcf9569723a33c3[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Oct 8 16:36:41 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - supann state verification
+    
+    save commit - supann state verif
+
+[33mcommit 8921685e915e59998041760f8f0b535ff5e93020[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Oct 7 18:27:26 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - next step : verification of supann for passed DN
+    
+    save commit backup - see next step
+
+[33mcommit 63e06a560f9d2205e2688a70cd5614defe4fed21[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Oct 7 17:38:59 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - removal subTasks if no triggers
+    
+    save commit backup - removal of subTasks if no triggers
+
+[33mcommit 0aef9692d47d1fa51ab64162e7909d1b2aec3b7d[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Oct 7 17:12:00 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - concept of monitoreds attrs restored
+    
+    save commit backup - monitored attrs
+
+[33mcommit 5cd7d15e3ae003168ceda3cda0c15a75bdc2d353[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Oct 7 16:18:22 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - next supann retrieved
+    
+    save commit backup - next supann
+
+[33mcommit 379ea2f8d381453d0035aae46cfd31625e6d19b1[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Oct 7 15:09:32 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - supann retrieved
+    
+    save commit backup - supann retrieved
+
+[33mcommit b80fe62ad1c9cdcc04e24c14dc3daab27fe5afc3[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Oct 7 11:47:12 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - up to generate mail template
+    
+    save commit backup - up to generate mail template
+
+[33mcommit d22abf24c974de56a78ad8158e1f22bcf04c9cd2[m[33m ([m[1;31morigin/61-orchestrator-lifecycle-array-supann-is-analyzed-with-static-numbering[m[33m)[m
+Merge: 5cb9295 d4b52ca
+Author: bmortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri Oct 4 15:26:54 2024 +0000
+
+    Merge branch '51-add-ubuntu-focal-in-the-ci-trigger' into 'dev'
+    
+    Resolve "add ubuntu focal in the ci trigger"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!55
+
+[33mcommit d4b52ca516e602b8554cc961d35909d9628def1d[m
+Merge: 947717e 5cb9295
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Fri Oct 4 17:23:51 2024 +0200
+
+    Merge branch 'dev' into 51-add-ubuntu-focal-in-the-ci-trigger
+
+[33mcommit c78c2c0df5784ffb32814f75b7e0bf76cc622488[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Oct 3 14:14:24 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - reminder backup
+    
+    save commit backup - gateway implemented.
+
+[33mcommit 9f11ced093d54348ad5f7d2a3f0876f7414ad90b[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Oct 1 18:57:18 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - reminder endpoint step 1
+    
+    reminder endpoint step 1
+
+[33mcommit 5cb92952b53d6d149733d942cdc16b1e773c3194[m
+Merge: ab3eeb2 6431bb7
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Mon Sep 23 21:59:25 2024 +0000
+
+    Merge branch '55-orchestrator-notifications-must-be-updated-to-be-aware-of-supannstatus-values' into 'dev'
+    
+    Resolve "[Orchestrator] - Notifications must be updated to be aware of supannStatus values"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!60
+
+[33mcommit 6431bb73ec7734f340474d417fa680b6dcb4f12f[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Sep 23 22:57:27 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - phpstan fixes
+    
+    phpstan fixes
+
+[33mcommit dbebc8e9e1d19e92bb1ee5d366a7e446a1b3ca3a[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Sep 23 22:55:07 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - small refactor and phpcs
+    
+    phpcs and refactor
+
+[33mcommit ec310df4398f7cee4823f08e28fab2a9813b8c56[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Sep 23 22:43:17 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - phpstan
+    
+    phpstan
+
+[33mcommit 04540db2c3092dbc965ba649e3511ace4563303a[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Sep 23 22:40:04 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - small refactor
+    
+    small refactor
+
+[33mcommit 3cd2dbc03322af4b8c154e83fbccab83eb2d3ad5[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Sep 23 20:11:45 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - all attrs monitored and sent
+    
+    All attrs monitored and sent
+
+[33mcommit 0807e97247be9087d78bd6575670843b97f2be19[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Sep 23 19:54:40 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - all attrs monitored
+    
+    All attrs monitored.
+
+[33mcommit 5ca9c13f24d9887055139ee318c291c9e13d3baa[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Sep 17 18:26:48 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - small code fixes
+    
+    Small code fixes.
+
+[33mcommit 7ab2a70a94a7fff9a5a5cb0d8ee113e19cff4c57[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Sep 17 18:26:16 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - supann aware but can be notified if another supann if reached
+    
+    Supann aware but supannRessourceEtat can be a different one than the target.
+
+[33mcommit eb5531e248945450bf0d4beca0265e30def2e64c[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Sep 16 16:59:22 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Adding first concept of supann awareness
+    
+    First concept of supann awareness within notifications.
+
+[33mcommit ab3eeb2846d5666d4e6634d6d2c81f9f2b2ffe6d[m
+Merge: 58397af ffa2725
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Thu Sep 12 13:53:53 2024 +0000
+
+    Merge branch '48-orchestrator-add-options-mailauth-and-mail_sec_verify-in-orchestrator-configuration-file' into 'dev'
+    
+    Resolve "[Orchestrator] - Add options mailAuth and mail_sec_verify in orchestrator configuration file"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!59
+
+[33mcommit ffa2725adc1914f52a36fcad327116dc4db2cdb2[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Sep 12 14:48:45 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Adding two new environment var.
+    
+    Adds 2 new env var to allow mail to be secure or not. With auth or without.
+
+[33mcommit 58397afc09e918960296c4e188785c4288256270[m
+Merge: ccbb795 d8ca24c
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Thu Aug 29 16:22:05 2024 +0000
+
+    Merge branch '37-orchestrator-analyze-the-library-mail-to-integrate-it-to-integrator' into 'dev'
+    
+    Resolve "[Orchestrator] - Analyze the library mail to integrate it to integrator"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!58
+
+[33mcommit d8ca24caf3a5caf258bd565f5fb161b5c347a682[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Aug 29 16:29:33 2024 +0100
+
+    :sparkles: Feat(Audit) - Removal of mailController
+    
+    Removal of Mail controller and fix typo in mail object.
+
+[33mcommit ccbb7956566f4dd7b1446162e29e8c87af9c6ef2[m
+Merge: a726d7b b2af582
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Tue Aug 27 08:45:42 2024 +0000
+
+    Merge branch '52-orchestrator-audit-automatic-deletion-from-audit-tasks' into 'dev'
+    
+    Resolve "[Orchestrator] - AUDIT - automatic deletion from audit tasks"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!56
+
+[33mcommit b2af582070556e53e31c48b53636ebfd64df1d24[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Aug 26 16:38:37 2024 +0100
+
+    :sparkles: Feat(Audit) - integration of lib part 2
+    
+    Integration of audit lib integrator part 2
+
+[33mcommit 1ec066145499ba011b4c804500d65e7043bbf157[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Aug 26 11:56:34 2024 +0100
+
+    :sparkles: Feat(Audit) - integration of lib part 1
+    
+    Integration of audit lib integrator part 1
+
+[33mcommit 50fc43af4a442f8957d83f6bb17502d69fe6c75b[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Aug 22 14:50:15 2024 +0100
+
+    :ambulance: stable commit
+    
+    stable commit
+
+[33mcommit 328e10a862d7bb5fe9de52c1c282ed0e6e895ef1[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Aug 22 14:40:04 2024 +0100
+
+    :ambulance: Fix typo
+
+[33mcommit a726d7be0c1607c658f1ce066e7e4d909626edd0[m
+Merge: 74ab166 8c05474
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Thu Aug 22 13:38:18 2024 +0000
+
+    Merge branch '56-orchestrator-failing-to-activate-cyclic-tasks' into 'dev'
+    
+    Resolve "[Orchestrator] - Failing to activate cyclic tasks"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!57
+
+[33mcommit 8c05474b15bb0ba0e2e5f1f29f6b2c560d09c649[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Aug 22 14:36:27 2024 +0100
+
+    :ambulance: Fixes webService call namespace
+    
+    In plugins
+
+[33mcommit b23003ddf7c9c48a4f5ef51dfcda8afd680180cd[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Aug 22 14:35:31 2024 +0100
+
+    :ambulance: Fixes webService call namespace
+
+[33mcommit f44b078d6df007ad617f78df96d09819c770b7e0[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Aug 22 14:31:42 2024 +0100
+
+    :ambulance: Fixes webService call namespace
+
+[33mcommit 69595aa537dd44aedb23f9419aa3690c62986fc7[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Aug 22 14:08:25 2024 +0100
+
+    :sparkles: quick backup
+    
+    quick backup
+
+[33mcommit 42a05e9717df275c2cfdf5160b801027e67aac4e[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Aug 20 17:27:22 2024 +0100
+
+    :sparkles: Audit - proper msg when no audit found
+    
+    Proper msg logic when no audit found.
+
+[33mcommit 2f961416f0b5ee222619352fbc00bec244832e02[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Aug 20 16:54:59 2024 +0100
+
+    :sparkles: Audit - subTasks updates
+    
+    SubTasks updates
+
+[33mcommit 42aa35da6c8e41fbcfbc280560e9687c4535a6ea[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Aug 20 15:32:35 2024 +0100
+
+    :sparkles: Audit - Correct log output
+    
+    Correct log output, remain to update subtasks status.
+
+[33mcommit 3d9bf1649415ee2423998a821139b4ba74d6ff1a[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue Aug 20 12:03:55 2024 +0100
+
+    :sparkles: Audit - enhance log result
+    
+    Enhancing log result output.
+
+[33mcommit 35b2e42b79629d1121aee145dd79980630059bdf[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Aug 19 18:19:16 2024 +0100
+
+    :sparkles: Audit - removal operational
+    
+    Removal of passed audit retention is ok.
+    Return of result must be enhanced.
+
+[33mcommit cd194c536f107630008ecb6d2195ab869d7fead2[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Aug 19 16:40:31 2024 +0100
+
+    :sparkles: Audit - Enhancing logic
+    
+    Enhancing logic with generalized timestamp
+
+[33mcommit b30ff56cca02326fa6f0632bc73b81930a3a878f[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Aug 19 12:25:17 2024 +0100
+
+    :ambulance: (taskGateway) - fixes getTasks
+    
+    Fixing getTasks filter typo
+
+[33mcommit 71d80a30fc0944a43ebce5dbdc8d3fa0dfe209c8[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Aug 15 17:08:44 2024 +0100
+
+    :sparkles: Feat(Audit) - simply endpoint check
+    
+    Simple endpoint check response using binary client.
+
+[33mcommit 92fa6a0c9f644f464c23efdcd7ea1dd66c60b8d6[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Aug 15 14:39:06 2024 +0100
+
+    :sparkles: Feat(Audit) - first commit
+    
+    First audit commit logic as plugin
+
+[33mcommit 947717ed40fabfffdf626379becf2b702b887fd4[m
+Author: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+Date:   Thu Jul 11 18:43:03 2024 +0200
+
+    :sparkles: feat(ci) add ubuntu focal in the ci trigger
+    
+    Signed-off-by: Benoit Mortier <benoit.mortier@fusiondirectory.org>
+
+[33mcommit 74ab166dbb70614f1266d1d8e08c56603f3ef1b0[m
+Merge: aa43b73 003f47f
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Mon Jun 3 18:50:46 2024 +0000
+
+    Merge branch '43-orchestrator-create-a-possible-plugin-endpoints-allowing-new-endpoints-developed-to-be' into 'dev'
+    
+    Resolve "[Orchestrator] - Create a possible plugin endpoints, allowing new endpoints developed to be considered as plugin base."
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!53
+
+[33mcommit 003f47f114b526e6c0c0544878749f9b54d81d14[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Jun 3 19:33:20 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - phpcs
+    
+    phpcs
+
+[33mcommit 69991636ad373acc0a05d6a9ecef2dedae09f9d0[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Jun 3 17:11:48 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 16
+    
+    Iteration 16
+
+[33mcommit e2d9cd0043d1b15065ff4889479b3c8a1aabd67e[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Jun 3 17:09:31 2024 +0100
+
+    :sparkles: delete obsolete class
+
+[33mcommit b00323dbe8965d986d239f9d79f6e4a5e4fbe106[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Jun 3 17:03:31 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 15
+    
+    Iteration 15
+
+[33mcommit 494187e5217c2e821b0b282f23497bd4f86c0a21[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Jun 3 16:45:45 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 14
+    
+    Removal of obsolete code
+
+[33mcommit d3228feca4054709f417a0217e4915675194e340[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Jun 3 16:04:26 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 13
+    
+    Lifecycle adjustments
+
+[33mcommit 4bf4d673363643cdcb75e98ea765cbb7c70a8010[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Jun 3 16:00:29 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 12 - last part notifications as plugin
+    
+    notifications as plugin and interface enhancement
+
+[33mcommit 47253456e70b30a0acb59f2e97d1e6847223d735[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Fri May 31 18:11:31 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 11 - part 2 notifications as plugin
+    
+    notifications as plugin
+
+[33mcommit 2ea6256085a591c56906dbb4ab65d7757fff3c59[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Fri May 31 18:08:04 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 10 - part 1 notifications as plugin
+    
+    notifications as plugin
+
+[33mcommit e70060792a3ce0be4768dc886a81268c3a44b6ef[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Fri May 31 17:46:16 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 9 - lifecycle and autoloader update
+    
+    lifecycle is not integrated as plugin
+
+[33mcommit bc3b0ea5b7d4028408d6c1870d14cbe3fb6f87a9[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Fri May 31 15:33:47 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 8 - endpoint interface
+    
+    Mail is now integrated as part of a plugin within plugins/tasks
+    New interface implementation.
+
+[33mcommit cbd69f09b93c1e627edd9010c3a9d5d55d097344[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Tue May 21 17:59:13 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 7
+    
+    Added a search LDAP method as well as forcing timezone from fusiondirectory configuration.
+
+[33mcommit b849bb179cff886a1c4a019c62c42b30aea120ae[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon May 20 17:42:06 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 6
+    
+    Resolve issue with GET within tasks object without objectType passed.
+
+[33mcommit 4681e3bb3051de0b0e7fb83d558c430f4d0704e0[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu May 16 22:58:31 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 5
+    
+    Resolve issue with mail controller always seeing TRUE for notification
+
+[33mcommit d87bac8dd341ac15144a2ad6b414ec10a3a74782[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu May 16 17:40:30 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 4
+    
+    Resolve a bug with notifications endpoints.
+
+[33mcommit f9e874ca88064d79210590580b2388b5f02f202a[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu May 16 15:20:44 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 3
+    
+    Iteration 3
+
+[33mcommit d84421df696de3811962835d634938cf18392146[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Wed May 15 21:43:45 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration 2
+    
+    Iteration 2
+
+[33mcommit 60a3018c064eb42230278d7bbb759090a7c81231[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Wed May 15 16:31:48 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - Iteration
+    
+    Iteration
+
+[33mcommit aa43b7394ad91aeac61df76ecb575bf57cee8e47[m
+Merge: a8353fd d66a722
+Author: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+Date:   Wed May 8 15:11:14 2024 +0000
+
+    Merge branch '47-use-overload-instead-of-load-for-dotenv' into 'dev'
+    
+    Resolve "Use overload instead of load for dotenv"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!54
+
+[33mcommit d66a722234b961971ce1e58b9c36441c3418e2e3[m
+Author: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+Date:   Wed May 8 17:07:54 2024 +0200
+
+    :sparkles: feat(php): Use overload method instead of load for dotenv
+    
+    Load function doesn't overwrite existing env variable even if specified
+    in the configuration file.
+    
+    Signed-off-by: Jonathan Swaelens <jonathan.swaelens@fusiondirectory.org>
+
+[33mcommit 6c6fc5e5d12e1c3230986614d2fc4bb1573df925[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Mon Apr 15 21:46:52 2024 +0100
+
+    :sparkles: Feat(Orchestrator) - First way to add potential plugins
+    
+    Function plugins added with current logic.
+
+[33mcommit a8353fd8e8dff5f060bd895dd23c82d4269d3cd0[m
+Merge: b20d72a 1ec0010
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 11 10:23:18 2024 +0000
+
+    Merge branch '39-orchestrator-new-endpoint-notifications-in-order-to-manage-notifications-tasks' into 'dev'
+    
+    Resolve "[Orchestrator] - New endpoint notifications in order to manage notifications tasks"
+    
+    See merge request fusiondirectory/fusiondirectory-orchestrator!41
+
+[33mcommit 1ec00104f81dbd0fcd05a3f86ab2b9f378186d34[m
+Merge: f3ec012 b20d72a
+Author: dockx thibault <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 11 10:18:36 2024 +0000
+
+    Merge branch 'dev' into '39-orchestrator-new-endpoint-notifications-in-order-to-manage-notifications-tasks'
+    
+    # Conflicts:
+    #   library/TaskGateway.php
+
+[33mcommit f3ec0124ca39c2b9dce15cdce6b3287f536fa691[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 11 11:13:50 2024 +0100
+
+    :ambulance: Fixes(mailController) - phpcs fixes
+    
+    phpcs fixes
+
+[33mcommit 77d32b04067e030ae635cea3f2df842a214b6719[m
+Author: Thibault Dockx <thibault.dockx@fusiondirectory.org>
+Date:   Thu Apr 11 11:11:48 2024 +0100
+
+    :ambulance: Fixes(mailController) - phpcs fixes
+    
+    phpcs fixes
