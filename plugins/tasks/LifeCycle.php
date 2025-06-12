@@ -96,7 +96,7 @@ class LifeCycle implements EndpointInterface
 
   /**
    * @param array $lifeCycleBehavior
-   * @param string $userDN
+   * @param string $userDNprocessAccountClosure
    * @param array $currentUserLifeCycle
    * @return bool|string
    * Note: Process account closure if enabled and conditions are met
@@ -144,10 +144,8 @@ class LifeCycle implements EndpointInterface
       if ($isMatched) {
         $matchingResources[] = [
           'name' => $resourceName,
-          'state' => $resourceState
+          'state' => $resourceState,
         ];
-        
-        // Check if any matching resource is active
         if ($resourceState === 'A') {
           $hasActiveResource = true;
         }
@@ -173,13 +171,18 @@ class LifeCycle implements EndpointInterface
         if ($resourceName === 'COMPTE') {
           // Set ACCOUNT resource to inactive (I)
           $newResourceString = "{COMPTE}I:"; // Empty substate
-          
-          // Preserve dates if they exist
+
+          // If start date exists, preserve it, otherwise use today's date
           if (!empty($startDate)) {
             $newResourceString .= ":" . $startDate;
+            // If end date exists, preserve it
             if (!empty($endDate)) {
               $newResourceString .= ":" . $endDate;
             }
+          } else {
+            // No dates exist, use today's date for both start and end date
+            $todayDate = date('Ymd');
+            $newResourceString .= ":" . $todayDate . ":" . $todayDate;
           }
           
           $updatedStateHistory[$i] = $newResourceString;
@@ -198,13 +201,19 @@ class LifeCycle implements EndpointInterface
       
       try {
         $op_result = ldap_modify($this->gateway->ds, $userDN, $ldapEntry);
-        return $op_result;
+        if ($op_result) {
+          return "ACCOUNT_CLOSURE_APPLIED"; // Successfully applied changes
+        } else {
+          return "LDAP modification failed"; 
+        }
       } catch (Exception $e) {
         return "Ldap Error: " . $e->getMessage();
       }
+    } else if (empty($matchingResources)) {
+      return "NO_MATCHING_RESOURCES"; // No resources match the criteria
+    } else {
+      return "NO_CLOSURE_NEEDED"; // Has active resources, no need to close
     }
-    
-    return true; // No changes needed
   }
 
   /**
@@ -237,13 +246,24 @@ class LifeCycle implements EndpointInterface
           // Process account closure
           $lifeCycleResult = $this->processAccountClosure($lifeCycleBehavior, $task['fdtasksgranulardn'][0], $currentUserLifeCycle);
           
-          if ($lifeCycleResult === TRUE) {
+          if ($lifeCycleResult === "ACCOUNT_CLOSURE_APPLIED") {
             $result[$task['dn']]['results'] = json_encode("Account closure processed successfully for " . $task['fdtasksgranulardn'][0]);
             // Status of the task must be updated to success
             $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
             // Here the user is refresh in order to activate methods based on supann Status changes.
             $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
-          } else {
+          } 
+          else if ($lifeCycleResult === "NO_MATCHING_RESOURCES") {
+            $result[$task['dn']]['results'] = json_encode("No matching resources found for " . $task['fdtasksgranulardn'][0] . " - nothing to process");
+            // The task is still considered "complete" as we checked what we needed to
+            $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          }
+          else if ($lifeCycleResult === "NO_CLOSURE_NEEDED") {
+            $result[$task['dn']]['results'] = json_encode("Account closure not needed for " . $task['fdtasksgranulardn'][0] . " - user has active resources");
+            // The task is still considered "complete" as we checked what we needed to
+            $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          }
+          else {
             // In case the modification failed
             $result[$task['dn']]['results'] = json_encode("Error processing account closure for " . $task['fdtasksgranulardn'][0] . " - " . $lifeCycleResult);
             // Update of the task status error message
