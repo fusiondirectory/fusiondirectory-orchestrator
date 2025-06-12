@@ -81,17 +81,17 @@ class LifeCycle implements EndpointInterface
    * @return bool
    * Note: Check if account closure conditions are met
    */
-  protected function shouldProcessAccountClosure(array $lifeCycleBehavior, array $currentUserLifeCycle): bool
+  protected function shouldProcessAccountClosure (array $lifeCycleBehavior, array $currentUserLifeCycle): bool
   {
     // Check if account closure is enabled
     $enableAccountClosure = ($lifeCycleBehavior[0]['fdtaskslifecycleenableaccountclosure'][0] ?? 'FALSE') === 'TRUE';
-    
+
     if (!$enableAccountClosure) {
-      return false;
+      return FALSE;
     }
-    
+
     // The rest of the logic will be handled in processAccountClosure
-    return true;
+    return TRUE;
   }
 
 
@@ -104,35 +104,35 @@ class LifeCycle implements EndpointInterface
 
     // Get task parameters
     $taskPreResourceRaw = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0] ?? '';
-    $taskPreState = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0] ?? '';
-    $taskPreSubState = $lifeCycleBehavior[0]['fdtaskslifecyclepresubstate'][0] ?? '';
-    $regexPattern = $lifeCycleBehavior[0]['fdtaskslifecycleregexpattern'][0] ?? NULL;
+    $taskPreState       = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0] ?? '';
+    $taskPreSubState    = $lifeCycleBehavior[0]['fdtaskslifecyclepresubstate'][0] ?? '';
+    $regexPattern       = $lifeCycleBehavior[0]['fdtaskslifecycleregexpattern'][0] ?? NULL;
     $preResourceIsRegex = ($taskPreResourceRaw === 'REGEX');
 
     // Find matching resources
     $matchingResources = [];
-    $hasActiveResource = false;
+    $hasActiveResource = FALSE;
 
     foreach ($userStateHistory as $resourceString) {
       preg_match($pattern, $resourceString, $matches);
 
-      $resourceName = $matches[1] ?? '';
-      $resourceState = $matches[2] ?? '';
-      
+      $resourceName   = $matches[1] ?? '';
+      $resourceState  = $matches[2] ?? '';
+
       // Skip if there's no resource name or state
       if (empty($resourceName) || empty($resourceState)) {
         continue;
       }
 
       // Check if this resource matches our criteria
-      $isMatched = false;
+      $isMatched = FALSE;
       if ($preResourceIsRegex) {
         if ($regexPattern && @preg_match('/' . $regexPattern . '/', $resourceName)) {
-          $isMatched = true;
+          $isMatched = TRUE;
         }
       } else {
         if ($resourceName === $taskPreResourceRaw) {
-          $isMatched = true;
+          $isMatched = TRUE;
         }
       }
 
@@ -142,7 +142,7 @@ class LifeCycle implements EndpointInterface
           'state' => $resourceState,
         ];
         if ($resourceState === 'A') {
-          $hasActiveResource = true;
+          $hasActiveResource = TRUE;
         }
       }
     }
@@ -150,19 +150,19 @@ class LifeCycle implements EndpointInterface
     // If we have matching resources and none are active, lock the account
     if (!empty($matchingResources) && !$hasActiveResource) {
       // Find the ACCOUNT resource to update
-      $accountResourceFound = false;
-      $updatedStateHistory = $userStateHistory;
-      
+      $accountResourceFound = FALSE;
+      $updatedStateHistory  = $userStateHistory;
+
       for ($i = 0; $i < count($userStateHistory); $i++) {
         $resourceString = $userStateHistory[$i];
         preg_match($pattern, $resourceString, $matches);
-        
-        $resourceName = $matches[1] ?? '';
-        $resourceState = $matches[2] ?? '';
+
+        $resourceName     = $matches[1] ?? '';
+        $resourceState    = $matches[2] ?? '';
         $resourceSubState = $matches[3] ?? '';
-        $startDate = $matches[4] ?? '';
-        $endDate = $matches[5] ?? '';
-        
+        $startDate        = $matches[4] ?? '';
+        $endDate          = $matches[5] ?? '';
+
         if ($resourceName === 'COMPTE') {
           // Set ACCOUNT resource to inactive (I)
           $newResourceString = "{COMPTE}I:"; // Empty substate
@@ -179,27 +179,27 @@ class LifeCycle implements EndpointInterface
             $todayDate = date('Ymd');
             $newResourceString .= ":" . $todayDate . ":" . $todayDate;
           }
-          
-          $updatedStateHistory[$i] = $newResourceString;
-          $accountResourceFound = true;
+
+          $updatedStateHistory[$i]  = $newResourceString;
+          $accountResourceFound     = TRUE;
           break;
         }
       }
-      
+
       // If no ACCOUNT resource found.
       if (!$accountResourceFound) {
         return "No ACCOUNT resource found to deactivate";
       }
-      
+
       // Update LDAP with the modified state history
       $ldapEntry = ['supannRessourceEtatDate' => $updatedStateHistory];
-      
+
       try {
         $op_result = ldap_modify($this->gateway->ds, $userDN, $ldapEntry);
         if ($op_result) {
           return "ACCOUNT_CLOSURE_APPLIED"; // Successfully applied changes
         } else {
-          return "LDAP modification failed"; 
+          return "LDAP modification failed";
         }
       } catch (Exception $e) {
         return "Ldap Error: " . $e->getMessage();
@@ -236,29 +236,26 @@ class LifeCycle implements EndpointInterface
 
         // Check if we should process account closure or normal lifecycle changes
         $isAccountClosureEnabled = $this->shouldProcessAccountClosure($lifeCycleBehavior, $currentUserLifeCycle);
-        
+
         if ($isAccountClosureEnabled) {
           // Process account closure
           $lifeCycleResult = $this->processAccountClosure($lifeCycleBehavior, $task['fdtasksgranulardn'][0], $currentUserLifeCycle);
-          
+
           if ($lifeCycleResult === "ACCOUNT_CLOSURE_APPLIED") {
             $result[$task['dn']]['results'] = json_encode("Account closure processed successfully for " . $task['fdtasksgranulardn'][0]);
             // Status of the task must be updated to success
             $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
             // Here the user is refresh in order to activate methods based on supann Status changes.
             $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
-          } 
-          else if ($lifeCycleResult === "NO_MATCHING_RESOURCES") {
+          } else if ($lifeCycleResult === "NO_MATCHING_RESOURCES") {
             $result[$task['dn']]['results'] = json_encode("No matching resources found for " . $task['fdtasksgranulardn'][0] . " - nothing to process");
             // The task is still considered "complete" as we checked what we needed to
             $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-          }
-          else if ($lifeCycleResult === "NO_CLOSURE_NEEDED") {
+          } else if ($lifeCycleResult === "NO_CLOSURE_NEEDED") {
             $result[$task['dn']]['results'] = json_encode("Account closure not needed for " . $task['fdtasksgranulardn'][0] . " - user has active resources");
             // The task is still considered "complete" as we checked what we needed to
             $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-          }
-          else {
+          } else {
             // In case the modification failed
             $result[$task['dn']]['results'] = json_encode("Error processing account closure for " . $task['fdtasksgranulardn'][0] . " - " . $lifeCycleResult);
             // Update of the task status error message
@@ -289,7 +286,7 @@ class LifeCycle implements EndpointInterface
             $result[$task['dn']]['statusUpdate'] = 'No updates required, sub-task will be removed.';
           }
         }
-        
+
         // Verification if the sub-task status has been updated correctly
         if (isset($updateResult) && $updateResult === TRUE) {
           $result[$task['dn']]['statusUpdate'] = 'Success';
@@ -298,7 +295,7 @@ class LifeCycle implements EndpointInterface
         }
       }
     }
-    
+
     // If array is empty, no tasks of type life cycle needs to be treated.
     if (empty($result)) {
       $result = 'No tasks of type "Life Cycle" requires processing.';
