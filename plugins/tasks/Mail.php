@@ -100,7 +100,7 @@ class Mail implements EndpointInterface
           // Replace each $macro with the attribute in $body
           foreach ($recipients as $recipient) {
             foreach ($hardcodedMacros as $macro) {
-              $filter        = "(&(objectClass=inetOrgPerson)(|(mail=$recipient)(gosaMailAlternateAddress=$recipient)(gosaMailForwardingAddress=$recipient)(supannAutreMail=$recipient)(supannMailPerso=$recipient)(supannMailPrive=$recipient)))";
+              $filter        = "(&(objectClass=inetOrgPerson)(|(mail=$recipient)(gosaMailAlternateAddress=$recipient)(gosaMailForwardingAddress=$recipient)(supannAutreMail=$recipient)(supannMailPerso=$recipient)(supannMailPrive={*}$recipient)))";
               $ldapAttribute = $this->gateway->getLdapTasks("$filter", ["$macro"]);
               if (isset($ldapAttribute[0][strtolower($macro)][0])) {
                 $body          = preg_replace('/%' . $macro . '%/', $ldapAttribute[0][strtolower($macro)][0], $body);
