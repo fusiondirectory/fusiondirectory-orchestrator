@@ -51,6 +51,167 @@ class LifeCycle implements EndpointInterface
   }
 
   /**
+   * @param string $taskDN
+   * @return array
+   * Note : Simply return attributes from main task, here supann desired behavior
+   */
+  private function getLifeCycleBehaviorFromMainTask (string $taskDN): array
+  {
+    return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
+      'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
+      'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate',
+      'fdTasksLifeCycleRegexPattern', 'fdTasksLifeCycleEnableAccountClosure'],
+                                        '', $taskDN);
+  }
+
+  /**
+   * @param $userDN
+   * @return array
+   * Note : simply return the current values of supannRessourceEtatDate of the specified user.
+   */
+  private function getUserSupannHistory ($userDN): array
+  {
+    return $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate'],
+                                        '', $userDN);
+  }
+
+  /**
+   * @param array $lifeCycleBehavior
+   * @param array $currentUserLifeCycle
+   * @return bool
+   * Note: Check if account closure conditions are met
+   */
+  protected function shouldProcessAccountClosure (array $lifeCycleBehavior, array $currentUserLifeCycle): bool
+  {
+    // Check if account closure is enabled
+    $enableAccountClosure = ($lifeCycleBehavior[0]['fdtaskslifecycleenableaccountclosure'][0] ?? 'FALSE') === 'TRUE';
+
+    if (!$enableAccountClosure) {
+      return FALSE;
+    }
+
+    // The rest of the logic will be handled in processAccountClosure
+    return TRUE;
+  }
+
+
+  // Simply process the account closure if the conditions are met
+  protected function processAccountClosure (array $lifeCycleBehavior, string $userDN, array $currentUserLifeCycle)
+  {
+    $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
+    $userStateHistory = $currentUserLifeCycle[0]['supannressourceetatdate'] ?? [];
+    $this->gateway->unsetCountKeys($userStateHistory);
+
+    // Get task parameters
+    $taskPreResourceRaw = $lifeCycleBehavior[0]['fdtaskslifecyclepreresource'][0] ?? '';
+    $taskPreState       = $lifeCycleBehavior[0]['fdtaskslifecycleprestate'][0] ?? '';
+    $taskPreSubState    = $lifeCycleBehavior[0]['fdtaskslifecyclepresubstate'][0] ?? '';
+    $regexPattern       = $lifeCycleBehavior[0]['fdtaskslifecycleregexpattern'][0] ?? NULL;
+    $preResourceIsRegex = ($taskPreResourceRaw === 'REGEX');
+
+    // Find matching resources
+    $matchingResources = [];
+    $hasActiveResource = FALSE;
+
+    foreach ($userStateHistory as $resourceString) {
+      preg_match($pattern, $resourceString, $matches);
+
+      $resourceName   = $matches[1] ?? '';
+      $resourceState  = $matches[2] ?? '';
+
+      // Skip if there's no resource name or state
+      if (empty($resourceName) || empty($resourceState)) {
+        continue;
+      }
+
+      // Check if this resource matches our criteria
+      $isMatched = FALSE;
+      if ($preResourceIsRegex) {
+        if ($regexPattern && @preg_match('/' . $regexPattern . '/', $resourceName)) {
+          $isMatched = TRUE;
+        }
+      } else {
+        if ($resourceName === $taskPreResourceRaw) {
+          $isMatched = TRUE;
+        }
+      }
+
+      if ($isMatched) {
+        $matchingResources[] = [
+          'name' => $resourceName,
+          'state' => $resourceState,
+        ];
+        if ($resourceState === 'A') {
+          $hasActiveResource = TRUE;
+        }
+      }
+    }
+
+    // If we have matching resources and none are active, lock the account
+    if (!empty($matchingResources) && !$hasActiveResource) {
+      // Find the ACCOUNT resource to update
+      $accountResourceFound = FALSE;
+      $updatedStateHistory  = $userStateHistory;
+
+      for ($i = 0; $i < count($userStateHistory); $i++) {
+        $resourceString = $userStateHistory[$i];
+        preg_match($pattern, $resourceString, $matches);
+
+        $resourceName     = $matches[1] ?? '';
+        $resourceState    = $matches[2] ?? '';
+        $resourceSubState = $matches[3] ?? '';
+        $startDate        = $matches[4] ?? '';
+        $endDate          = $matches[5] ?? '';
+
+        if ($resourceName === 'COMPTE') {
+          // Set ACCOUNT resource to inactive (I)
+          $newResourceString = "{COMPTE}I:"; // Empty substate
+
+          // If start date exists, preserve it, otherwise use today's date
+          if (!empty($startDate)) {
+            $newResourceString .= ":" . $startDate;
+            // If end date exists, preserve it
+            if (!empty($endDate)) {
+              $newResourceString .= ":" . $endDate;
+            }
+          } else {
+            // No dates exist, use today's date for both start and end date
+            $todayDate = date('Ymd');
+            $newResourceString .= ":" . $todayDate . ":" . $todayDate;
+          }
+
+          $updatedStateHistory[$i]  = $newResourceString;
+          $accountResourceFound     = TRUE;
+          break;
+        }
+      }
+
+      // If no ACCOUNT resource found.
+      if (!$accountResourceFound) {
+        return "No ACCOUNT resource found to deactivate";
+      }
+
+      // Update LDAP with the modified state history
+      $ldapEntry = ['supannRessourceEtatDate' => $updatedStateHistory];
+
+      try {
+        $op_result = ldap_modify($this->gateway->ds, $userDN, $ldapEntry);
+        if ($op_result) {
+          return "ACCOUNT_CLOSURE_APPLIED"; // Successfully applied changes
+        } else {
+          return "LDAP modification failed";
+        }
+      } catch (Exception $e) {
+        return "Ldap Error: " . $e->getMessage();
+      }
+    } else if (empty($matchingResources)) {
+      return "NO_MATCHING_RESOURCES"; // No resources match the criteria
+    } else {
+      return "NO_CLOSURE_NEEDED"; // Has active resources, no need to close
+    }
+  }
+
+  /**
    * @param array $list_tasks
    * @return array[]|string[]
    * @throws Exception
@@ -73,38 +234,68 @@ class LifeCycle implements EndpointInterface
         // Simply retrieve the current supannStatus of the user DN related to the task at hand
         $currentUserLifeCycle = $this->getUserSupannHistory($task['fdtasksgranulardn'][0]);
 
-        // Compare both the required schedule and the current user status - returning TRUE if modification is required
-        if ($this->isLifeCycleRequiringModification($lifeCycleBehavior, $currentUserLifeCycle)) {
+        // Check if we should process account closure or normal lifecycle changes
+        $isAccountClosureEnabled = $this->shouldProcessAccountClosure($lifeCycleBehavior, $currentUserLifeCycle);
 
-          // This will call a method to modify the ressourcesSupannEtatDate of the DN linked to the subTask
-          $lifeCycleResult = $this->updateLifeCycle($lifeCycleBehavior, $task['fdtasksgranulardn'][0], $currentUserLifeCycle);
+        if ($isAccountClosureEnabled) {
+          // Process account closure
+          $lifeCycleResult = $this->processAccountClosure($lifeCycleBehavior, $task['fdtasksgranulardn'][0], $currentUserLifeCycle);
 
-          if ($lifeCycleResult === TRUE) {
-            $result[$task['dn']]['results'] = json_encode("Account states have been successfully modified for " . $task['fdtasksgranulardn'][0]);
+          if ($lifeCycleResult === "ACCOUNT_CLOSURE_APPLIED") {
+            $result[$task['dn']]['results'] = json_encode("Account closure processed successfully for " . $task['fdtasksgranulardn'][0]);
             // Status of the task must be updated to success
             $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
             // Here the user is refresh in order to activate methods based on supann Status changes.
             $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
+          } else if ($lifeCycleResult === "NO_MATCHING_RESOURCES") {
+            $result[$task['dn']]['results'] = json_encode("No matching resources found for " . $task['fdtasksgranulardn'][0] . " - nothing to process");
+            // The task is still considered "complete" as we checked what we needed to
+            $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          } else if ($lifeCycleResult === "NO_CLOSURE_NEEDED") {
+            $result[$task['dn']]['results'] = json_encode("Account closure not needed for " . $task['fdtasksgranulardn'][0] . " - user has active resources");
+            // The task is still considered "complete" as we checked what we needed to
+            $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
           } else {
             // In case the modification failed
-            $result[$task['dn']]['results'] = json_encode("Error updating " . $task['fdtasksgranulardn'][0] . "-" . $lifeCycleResult);
+            $result[$task['dn']]['results'] = json_encode("Error processing account closure for " . $task['fdtasksgranulardn'][0] . " - " . $lifeCycleResult);
             // Update of the task status error message
             $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult);
           }
-          // Verification if the sub-task status has been updated correctly
-          if ($updateResult === TRUE) {
-            $result[$task['dn']]['statusUpdate'] = 'Success';
-          } else {
-            $result[$task['dn']]['statusUpdate'] = $updateResult;
-          }
         } else {
-          // Remove the subtask as it is not required to update it nor to process it.
-          $result[$task['dn']]['results']      = 'Sub-task removed for : ' . $task['fdtasksgranulardn'][0] . ' with result : '
-            . $this->gateway->removeSubTask($task['dn']);
-          $result[$task['dn']]['statusUpdate'] = 'No updates required, sub-task will be removed.';
+          // Compare both the required schedule and the current user status - returning TRUE if modification is required
+          if ($this->isLifeCycleRequiringModification($lifeCycleBehavior, $currentUserLifeCycle)) {
+            // This will call a method to modify the ressourcesSupannEtatDate of the DN linked to the subTask
+            $lifeCycleResult = $this->updateLifeCycle($lifeCycleBehavior, $task['fdtasksgranulardn'][0], $currentUserLifeCycle);
+
+            if ($lifeCycleResult === TRUE) {
+              $result[$task['dn']]['results'] = json_encode("Account states have been successfully modified for " . $task['fdtasksgranulardn'][0]);
+              // Status of the task must be updated to success
+              $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+              // Here the user is refresh in order to activate methods based on supann Status changes.
+              $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
+            } else {
+              // In case the modification failed
+              $result[$task['dn']]['results'] = json_encode("Error updating " . $task['fdtasksgranulardn'][0] . " - " . $lifeCycleResult);
+              // Update of the task status error message
+              $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult);
+            }
+          } else {
+            // Remove the subtask as it is not required to update it nor to process it.
+            $result[$task['dn']]['results'] = 'Sub-task removed for : ' . $task['fdtasksgranulardn'][0] . ' with result : '
+              . $this->gateway->removeSubTask($task['dn']);
+            $result[$task['dn']]['statusUpdate'] = 'No updates required, sub-task will be removed.';
+          }
+        }
+
+        // Verification if the sub-task status has been updated correctly
+        if (isset($updateResult) && $updateResult === TRUE) {
+          $result[$task['dn']]['statusUpdate'] = 'Success';
+        } else if (isset($updateResult)) {
+          $result[$task['dn']]['statusUpdate'] = $updateResult;
         }
       }
     }
+
     // If array is empty, no tasks of type life cycle needs to be treated.
     if (empty($result)) {
       $result = 'No tasks of type "Life Cycle" requires processing.';
@@ -250,21 +441,12 @@ class LifeCycle implements EndpointInterface
         // Pre-condition is REGEX
         if (!$postResourceIsRegex) {
           // Case 1: Pre-REGEX, Post-Static
-          // The overall task runs if *any* pre-regex match was found and expired (checked by isLifeCycleRequiringModification).
-          // Here, we target the specific static post-resource for update if its name matches.
           if ($userOriginalResourceName === $taskPostResourceRaw) {
             $targetThisResourceForUpdate = TRUE;
           }
         } else {
-          // Case 2: Pre-REGEX, Post-REGEX (both $preResourceIsRegex and $postResourceIsRegex are true)
-          // Update "that same resource" if it was a pre-match.
-          // $isPreMatchedAndExpired confirms this specific resource instance ($currentUserResourceString)
-          // met the pre-conditions (name via regex, state, sub-state) and is expired.
-          // The $regexPattern is used for both pre and post matching in this scenario.
+          // Case 2: Pre-REGEX, Post-REGEX
           if ($isPreMatchedAndExpired) {
-            // Since $isPreMatchedAndExpired is true for this resource, and $preResourceIsRegex is true,
-            // it implies $userOriginalResourceName already matched $regexPattern.
-            // So, this specific resource is targeted for update.
             $targetThisResourceForUpdate = TRUE;
           }
         }
@@ -272,15 +454,11 @@ class LifeCycle implements EndpointInterface
         // Pre-condition is Static (NOT REGEX)
         if ($postResourceIsRegex) {
           // Case 3: Pre-Static, Post-REGEX
-          // The overall task runs if the static pre-resource was matched & expired.
-          // Here, we update all user resources whose names match the post-regex.
           if ($regexPattern && !empty($userOriginalResourceName) && @preg_match('/' . $regexPattern . '/', $userOriginalResourceName)) {
             $targetThisResourceForUpdate = TRUE;
           }
         } else {
-          // Case 4: Pre-Static, Post-Static (both !$preResourceIsRegex and !$postResourceIsRegex are true)
-          // The overall task runs if the static pre-resource was matched & expired.
-          // Here, we target the specific static post-resource for update if its name matches.
+          // Case 4: Pre-Static, Post-Static
           if ($userOriginalResourceName === $taskPostResourceRaw) {
             $targetThisResourceForUpdate = TRUE;
           }
@@ -290,13 +468,11 @@ class LifeCycle implements EndpointInterface
       if ($targetThisResourceForUpdate) {
         // Cannot update this resource if it lacks a valid end date to serve as the new start date.
         if (empty($userOriginalPeriodEndDateStr) || !DateTime::createFromFormat("Ymd", $userOriginalPeriodEndDateStr)) {
-          // Log or skip. For now, skipping this specific resource update.
           continue;
         }
 
         $newPeriodStartDateStr  = $userOriginalPeriodEndDateStr;
         $newPeriodEndDateObject = DateTime::createFromFormat("Ymd", $newPeriodStartDateStr);
-        // $newPeriodEndDateObject will be valid due to the check above.
         $newPeriodEndDateObject->modify("+" . $taskPostExtraDays . " days");
         $newPeriodEndDateFormatted = $newPeriodEndDateObject->format('Ymd');
 
@@ -325,30 +501,4 @@ class LifeCycle implements EndpointInterface
       return "Ldap Error: " . $e->getMessage();
     }
   }
-
-   /**
-   * @param string $taskDN
-   * @return array
-   * Note : Simply return attributes from main task, here supann desired behavior
-   */
-  private function getLifeCycleBehaviorFromMainTask (string $taskDN): array
-  {
-    return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
-      'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
-      'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate',
-      'fdTasksLifeCycleRegexPattern'],
-                                        '', $taskDN);
-  }
-
-  /**
-   * @param $userDN
-   * @return array
-   * Note : simply return the current values of supannRessourceEtatDate of the specified user.
-   */
-  private function getUserSupannHistory ($userDN): array
-  {
-    return $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate'],
-                                        '', $userDN);
-  }
-
 }
