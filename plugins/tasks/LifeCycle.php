@@ -94,13 +94,8 @@ class LifeCycle implements EndpointInterface
     return true;
   }
 
-  /**
-   * @param array $lifeCycleBehavior
-   * @param string $userDNprocessAccountClosure
-   * @param array $currentUserLifeCycle
-   * @return bool|string
-   * Note: Process account closure if enabled and conditions are met
-   */
+
+  // Simply process the account closure if the conditions are met
   protected function processAccountClosure (array $lifeCycleBehavior, string $userDN, array $currentUserLifeCycle)
   {
     $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
