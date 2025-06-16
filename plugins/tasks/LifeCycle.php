@@ -127,7 +127,12 @@ class LifeCycle implements EndpointInterface
       // Check if this resource matches our criteria
       $isMatched = FALSE;
       if ($preResourceIsRegex) {
-        if ($regexPattern && @preg_match('/' . $regexPattern . '/', $resourceName)) {
+        $currentPattern = $regexPattern; // Use a temporary variable for the pattern
+        if ($currentPattern === '*') {
+          $currentPattern = '.*'; // Convert user-friendly '*' to a valid "match all" regex '.*'
+        }
+
+        if ($currentPattern && @preg_match('/' . $currentPattern . '/', $resourceName)) {
           $isMatched = TRUE;
         }
       } else {
@@ -141,7 +146,8 @@ class LifeCycle implements EndpointInterface
           'name' => $resourceName,
           'state' => $resourceState,
         ];
-        if ($resourceState === 'A') {
+        // We skip the account resource for active check
+        if ($resourceState === 'A' && $resourceName !== 'COMPTE') {
           $hasActiveResource = TRUE;
         }
       }
@@ -165,14 +171,14 @@ class LifeCycle implements EndpointInterface
 
         if ($resourceName === 'COMPTE') {
           // Set ACCOUNT resource to inactive (I)
-          $newResourceString = "{COMPTE}I:"; // Empty substate
+          $newResourceString = "{COMPTE}S:SupannVerrouAdministratif";
 
           // If start date exists, preserve it, otherwise use today's date
           if (!empty($startDate)) {
-            $newResourceString .= ":" . $startDate;
+            $newResourceString .= ":" .$startDate. ":"; // Placeholder for end date
             // If end date exists, preserve it
             if (!empty($endDate)) {
-              $newResourceString .= ":" . $endDate;
+              $newResourceString .= ":" .$endDate;
             }
           } else {
             // No dates exist, use today's date for both start and end date
