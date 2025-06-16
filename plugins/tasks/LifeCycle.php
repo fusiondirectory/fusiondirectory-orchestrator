@@ -166,25 +166,14 @@ class LifeCycle implements EndpointInterface
         $resourceName     = $matches[1] ?? '';
         $resourceState    = $matches[2] ?? '';
         $resourceSubState = $matches[3] ?? '';
-        $startDate        = $matches[4] ?? '';
-        $endDate          = $matches[5] ?? '';
 
         if ($resourceName === 'COMPTE') {
           // Set ACCOUNT resource to inactive (I)
           $newResourceString = "{COMPTE}S:SupannVerrouAdministratif";
 
-          // If start date exists, preserve it, otherwise use today's date
-          if (!empty($startDate)) {
-            $newResourceString .= ":" .$startDate. ":"; // Placeholder for end date
-            // If end date exists, preserve it
-            if (!empty($endDate)) {
-              $newResourceString .= ":" .$endDate;
-            }
-          } else {
-            // No dates exist, use today's date for both start and end date
-            $todayDate = date('Ymd');
-            $newResourceString .= ":" . $todayDate . ":" . $todayDate;
-          }
+          // No dates exist, use today's date for both start and end date
+          $todayDate = date('Ymd');
+          $newResourceString .= ":" . $todayDate . ":";
 
           $updatedStateHistory[$i]  = $newResourceString;
           $accountResourceFound     = TRUE;
