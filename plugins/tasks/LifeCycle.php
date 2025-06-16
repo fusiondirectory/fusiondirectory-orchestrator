@@ -131,7 +131,7 @@ class LifeCycle implements EndpointInterface
         if ($currentPattern === '*') {
           $currentPattern = '.*'; // Convert user-friendly '*' to a valid "match all" regex '.*'
         }
-        
+
         if ($currentPattern && @preg_match('/' . $currentPattern . '/', $resourceName)) {
           $isMatched = TRUE;
         }
