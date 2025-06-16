@@ -174,7 +174,7 @@ class LifeCycle implements EndpointInterface
           // No dates exist, use today's date for both start and end date
           $todayDate = date('Ymd');
           $newResourceString .= ":" . $todayDate . ":";
-          
+
           $updatedStateHistory[$i]  = $newResourceString;
           $accountResourceFound     = TRUE;
           break;
