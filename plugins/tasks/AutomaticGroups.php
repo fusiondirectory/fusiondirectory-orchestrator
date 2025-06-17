@@ -95,9 +95,10 @@ class AutomaticGroups implements EndpointInterface
         }
 
         // Check if user meets the criteria (if resource/state specified)
-        $shouldAddToGroup = TRUE;
+        $shouldAddToGroup = FALSE;
 
         if ($resource !== 'NONE' && !empty($resource) && !empty($state)) {
+          // If resource is a regex, we need to check against all resources
           if (isset($pattern)) {
             // Get all ressources
             $supannResources = $this->gateway->getLdapTasks('(objectClass=fdSupannRessource)', ['fdSupannRessourceName'], '', $_ENV["LDAP_BASE"]);
@@ -112,19 +113,24 @@ class AutomaticGroups implements EndpointInterface
                 $userSupannState = $this->getUserSupannState($userDn);
                 $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resourceReplace, $state, $subState);
 
-                // Add/remove user from group based on criteria
                 if ($shouldAddToGroup) {
-                  $this->addUserToGroup($userDn, $targetGroup);
-                  $resultMessage[] = "User $userDn successfully added to group $targetGroup";
-
                   // If one match then quit
                   break;
-                } else {
-                  $this->removeUserFromGroup($userDn, $targetGroup);
-                  $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
                 }
+
               }
             }
+
+            // If we found a match, add the user to the group
+            if ($shouldAddToGroup) {
+              $this->addUserToGroup($userDn, $targetGroup);
+              $resultMessage[] = "User $userDn successfully added to group $targetGroup";
+            } else { // If no match found, remove the user from the group although it might not be in it.
+              $this->removeUserFromGroup($userDn, $targetGroup);
+              $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
+            }
+
+            // If no pattern, just check the user state directly
           } else {
             $userSupannState = $this->getUserSupannState($userDn);
             $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resource, $state, $subState);
