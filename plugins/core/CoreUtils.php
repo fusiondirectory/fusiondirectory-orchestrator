@@ -57,19 +57,19 @@ class CoreUtils
     }, []);
   }
 
-  /**
-   * @param string $path
-   * @return bool
-   * @throws Exception
-   * Note: Create directory if it doesn't exist.
-   */
-  public function ensureDirectoryExists (string $path): bool
-  {
-    if (!is_dir($path)) {
-      if (!mkdir($path, 0755, TRUE)) {
-        throw new Exception("Failed to create directory: $path");
-      }
+    /**
+     * @param string $path
+     * @return bool
+     * @throws Exception
+     * Note: Create directory if it doesn't exist.
+     */
+    public function ensureDirectoryExists (string $path): bool
+    {
+        if (!is_dir($path)) {
+            if (!mkdir($path, 0755, TRUE)) {
+                throw new Exception("Failed to create directory: $path");
+            }
+        }
+        return TRUE;
     }
-    return TRUE;
-  }
 }
