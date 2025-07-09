@@ -78,20 +78,20 @@ class Audit implements EndpointInterface
      return array_values(array_map(fn($task) => $this->processScheduledTask($task), array_filter($auditSubTasks, fn($task) => $this->gateway->statusAndScheduleCheck($task))));
   }
 
-    /**
-     * @param array $task
-     * @return array
-     * @throws Exception
-     */
-    private function processScheduledTask (array $task): array
-    {
-        // Retrieve data from the main task.
-        $auditMainTask  = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
-        // Simply get the days to retain audit.
-        $auditRetention = $auditMainTask[0]['fdaudittasksretention'][0];
-        // Verification of all audit and their potential removal based on retention days passed, also update subtasks.
-        return $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0]);
-    }
+  /**
+   * @param array $task
+   * @return array
+   * @throws Exception
+   */
+  private function processScheduledTask (array $task): array
+  {
+    // Retrieve data from the main task.
+    $auditMainTask  = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
+    // Simply get the days to retain audit.
+    $auditRetention = $auditMainTask[0]['fdaudittasksretention'][0];
+    // Verification of all audit and their potential removal based on retention days passed, also update subtasks.
+    return $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0]);
+  }
 
   /**
    * @param array $syslogAuditSubTasks
