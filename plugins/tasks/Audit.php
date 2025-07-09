@@ -203,46 +203,7 @@ class Audit implements EndpointInterface
               $timestamp = date('M d H:i:s');
             }
 
-            // Get hostname (use IP if available, otherwise use system hostname)
-            $hostname = $entry['fdauditauthorip'][0] ?? gethostname();
-
-            // Get user information (use DN if available)
-            $user = $entry['fdauditauthordn'][0] ?? 'unknown';
-
-            // Get action
-            $action = $entry['fdauditaction'][0] ?? 'unknown';
-
-            // Get object type and object
-            $objectType = $entry['fdauditobjecttype'][0] ?? '';
-
-            $object = $entry['fdauditobject'][0] ?? '';
-
-            // Get result
-            $auditResult = $entry['fdauditresult'][0] ?? '';
-
-            // Format the syslog message
-            // <priority>timestamp hostname tag: message
-            $syslogMessage = "<local4.info>$timestamp $hostname FusionDirectory-Audit: ";
-            $syslogMessage .= "id=\"" . $auditId . "\" ";
-            $syslogMessage .= "user=\"$user\" ";
-            $syslogMessage .= "action=\"$action\" ";
-
-            if (!empty($objectType)) {
-              $syslogMessage .= "objectType=\"$objectType\" ";
-            }
-
-            if (!empty($object)) {
-              $syslogMessage .= "object=\"$object\" ";
-            }
-
-            if (!empty($auditResult)) {
-              $syslogMessage .= "result=\"$auditResult\" ";
-            }
-
-            // Add attributes if available (contains changes made)
-            if (isset($entry['fdauditattributes'][0])) {
-              $syslogMessage .= "changes=\"" . $entry['fdauditattributes'][0] . "\" ";
-            }
+            $syslogMessage = $this->createSyslogMessage($entry, $timestamp, $auditId);
 
             // Write the message to the file
             fwrite($handle, $syslogMessage . PHP_EOL);
@@ -324,5 +285,51 @@ class Audit implements EndpointInterface
     $this->gateway->unsetCountKeys($audit);
 
     return $audit;
+  }
+
+  private function createSyslogMessage (array $entry, string $timestamp, string $auditId)
+  {
+    // Get hostname (use IP if available, otherwise use system hostname)
+    $hostname = $entry['fdauditauthorip'][0] ?? gethostname();
+
+    // Get user information (use DN if available)
+    $user = $entry['fdauditauthordn'][0] ?? 'unknown';
+
+    // Get action
+    $action = $entry['fdauditaction'][0] ?? 'unknown';
+
+    // Get object type and object
+    $objectType = $entry['fdauditobjecttype'][0] ?? '';
+
+    $object = $entry['fdauditobject'][0] ?? '';
+
+    // Get result
+    $auditResult = $entry['fdauditresult'][0] ?? '';
+
+    // Format the syslog message
+    // <priority>timestamp hostname tag: message
+    $syslogMessage = "<local4.info>$timestamp $hostname FusionDirectory-Audit: ";
+    $syslogMessage .= "id=\"" . $auditId . "\" ";
+    $syslogMessage .= "user=\"$user\" ";
+    $syslogMessage .= "action=\"$action\" ";
+
+    if (!empty($objectType)) {
+      $syslogMessage .= "objectType=\"$objectType\" ";
+    }
+
+    if (!empty($object)) {
+      $syslogMessage .= "object=\"$object\" ";
+    }
+
+    if (!empty($auditResult)) {
+      $syslogMessage .= "result=\"$auditResult\" ";
+    }
+
+    // Add attributes if available (contains changes made)
+    if (isset($entry['fdauditattributes'][0])) {
+      $syslogMessage .= "changes=\"" . $entry['fdauditattributes'][0] . "\" ";
+    }
+
+    return $syslogMessage;
   }
 }
