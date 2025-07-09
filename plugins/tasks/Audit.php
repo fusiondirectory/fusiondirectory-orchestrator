@@ -73,27 +73,25 @@ class Audit implements EndpointInterface
    * @return array
    * @throws Exception
    */
-  public function processAuditDeletion (array $auditSubTasks): array
-  {
-    $result = [];
-
-    foreach ($auditSubTasks as $task) {
-
-      // If the tasks must be treated - status and scheduled - process the sub-tasks
-      if ($this->gateway->statusAndScheduleCheck($task)) {
-
-        // Retrieve data from the main task.
-        $auditMainTask = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
-        // Simply get the days to retain audit.
-        $auditRetention = $auditMainTask[0]['fdaudittasksretention'][0];
-
-        // Verification of all audit and their potential removal based on retention days passed, also update subtasks.
-        $result[] = $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0]);
-      }
+    public function processAuditDeletion (array $auditSubTasks): array
+    {
+        return array_values(array_map(fn($task) => $this->processScheduledTask($task), array_filter($auditSubTasks, fn($task) => $this->gateway->statusAndScheduleCheck($task))));
     }
 
-    return $result;
-  }
+    /**
+     * @param array $task
+     * @return array
+     * @throws Exception
+     */
+    private function processScheduledTask (array $task): array
+    {
+        // Retrieve data from the main task.
+        $auditMainTask  = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
+        // Simply get the days to retain audit.
+        $auditRetention = $auditMainTask[0]['fdaudittasksretention'][0];
+        // Verification of all audit and their potential removal based on retention days passed, also update subtasks.
+        return $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0]);
+    }
 
   /**
    * @param array $syslogAuditSubTasks
@@ -105,7 +103,7 @@ class Audit implements EndpointInterface
     $result = [];
 
     $path = '/var/log/fusiondirectory/';
-    $this->ensureDirectoryExists($path);
+    $this->utils->ensureDirectoryExists($path);
 
     foreach ($syslogAuditSubTasks as $task) {
       try {
@@ -206,27 +204,21 @@ class Audit implements EndpointInterface
             }
 
             // Get hostname (use IP if available, otherwise use system hostname)
-            $hostname = isset($entry['fdauditauthorip'][0]) ?
-                       $entry['fdauditauthorip'][0] : gethostname();
+            $hostname = $entry['fdauditauthorip'][0] ?? gethostname();
 
             // Get user information (use DN if available)
-            $user = isset($entry['fdauditauthordn'][0]) ?
-                   $entry['fdauditauthordn'][0] : 'unknown';
+            $user = $entry['fdauditauthordn'][0] ?? 'unknown';
 
             // Get action
-            $action = isset($entry['fdauditaction'][0]) ?
-                     $entry['fdauditaction'][0] : 'unknown';
+            $action = $entry['fdauditaction'][0] ?? 'unknown';
 
             // Get object type and object
-            $objectType = isset($entry['fdauditobjecttype'][0]) ?
-                         $entry['fdauditobjecttype'][0] : '';
+            $objectType = $entry['fdauditobjecttype'][0] ?? '';
 
-            $object = isset($entry['fdauditobject'][0]) ?
-                     $entry['fdauditobject'][0] : '';
+            $object = $entry['fdauditobject'][0] ?? '';
 
             // Get result
-            $auditResult = isset($entry['fdauditresult'][0]) ?
-                         $entry['fdauditresult'][0] : '';
+            $auditResult = $entry['fdauditresult'][0] ?? '';
 
             // Format the syslog message
             // <priority>timestamp hostname tag: message
@@ -332,21 +324,5 @@ class Audit implements EndpointInterface
     $this->gateway->unsetCountKeys($audit);
 
     return $audit;
-  }
-
-  /**
-   * @param string $path
-   * @return bool
-   * @throws Exception
-   * Note: Create directory if it doesn't exist.
-   */
-  private function ensureDirectoryExists (string $path): bool
-  {
-    if (!is_dir($path)) {
-      if (!mkdir($path, 0755, TRUE)) {
-        throw new Exception("Failed to create directory: $path");
-      }
-    }
-    return TRUE;
   }
 }
