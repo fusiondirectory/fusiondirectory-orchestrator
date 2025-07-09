@@ -3,6 +3,7 @@
 class Audit implements EndpointInterface
 {
   private TaskGateway $gateway;
+  private CoreUtils $utils;
 
   public function __construct (TaskGateway $gateway)
   {
@@ -55,17 +56,15 @@ class Audit implements EndpointInterface
     }
 
     // Recursive function to filter out empty arrays at any depth
-    $nonEmptyResults = $this->recursiveArrayFilter($result);
+    $nonEmptyResults = $this->utils->recursiveArrayFilter($result);
 
     if (!empty($nonEmptyResults)) {
       return $nonEmptyResults;
-    } else {
-      if ($auditType === 'syslog') {
-        return ['No audit entries requiring transformation'];
-      } else {
-        return ['No standard audit entries requiring removal'];
-      }
     }
+    if ($auditType === 'syslog') {
+      return ['No audit entries requiring transformation'];
+    }
+    return ['No standard audit entries requiring removal'];
   }
 
   /**
@@ -332,21 +331,6 @@ class Audit implements EndpointInterface
     $this->gateway->unsetCountKeys($audit);
 
     return $audit;
-  }
-
-   /**
-   * @param array $array
-   * @return array
-   * Note : Recursively filters out empty values and arrays at any depth.
-   */
-  public function recursiveArrayFilter (array $array): array
-  {
-    return array_filter($array, function ($item) {
-      if (is_array($item)) {
-          $item = $this->recursiveArrayFilter($item);
-      }
-      return !empty($item);
-    });
   }
 
   /**
