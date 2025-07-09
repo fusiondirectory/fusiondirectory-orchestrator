@@ -73,10 +73,10 @@ class Audit implements EndpointInterface
    * @return array
    * @throws Exception
    */
-    public function processAuditDeletion (array $auditSubTasks): array
-    {
-        return array_values(array_map(fn($task) => $this->processScheduledTask($task), array_filter($auditSubTasks, fn($task) => $this->gateway->statusAndScheduleCheck($task))));
-    }
+  public function processAuditDeletion (array $auditSubTasks): array
+  {
+     return array_values(array_map(fn($task) => $this->processScheduledTask($task), array_filter($auditSubTasks, fn($task) => $this->gateway->statusAndScheduleCheck($task))));
+  }
 
     /**
      * @param array $task
