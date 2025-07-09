@@ -8,6 +8,7 @@ class Audit implements EndpointInterface
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
+    $this->utils = new CoreUtils();
   }
 
   /**
