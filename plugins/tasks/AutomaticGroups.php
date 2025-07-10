@@ -298,14 +298,28 @@ class AutomaticGroups implements EndpointInterface
 
   private function getGroupMembers (string $groupDn): array
   {
-      $groupInfo = $this->gateway->getLdapTasks(
-          '(objectClass=groupOfNames)',
-          ['member'],
-          '',
-          $groupDn
-      );
-      $this->gateway->unsetCountKeys($groupInfo);
-      return $groupInfo[0]['member'] ?? [];
+    $groupInfo = $this->gateway->getLdapTasks(
+      '(objectClass=groupOfNames)',
+      ['member'],
+      '',
+      $groupDn
+    );
+    $this->gateway->unsetCountKeys($groupInfo);
+    return $groupInfo[0]['member'] ?? [];
+  }
+
+  private function updateLdap (string $groupDn, string $userDn, array $entry, string $message): bool
+  {
+    // Update the group in LDAP
+    try {
+      $result = ldap_modify($this->gateway->ds, $groupDn, $entry);
+      if (!$result) {
+        throw new Exception("Failed to $message $userDn to group $groupDn: " . ldap_error($this->gateway->ds));
+      }
+      return TRUE;
+    } catch (Exception $e) {
+      throw new Exception("Error {$message}ing member to group: " . $e->getMessage());
+    }
   }
 
   /**
@@ -330,16 +344,7 @@ class AutomaticGroups implements EndpointInterface
     $members[] = $userDn;
     $entry = ['member' => $members];
 
-    // Update the group in LDAP
-    try {
-      $result = ldap_modify($this->gateway->ds, $groupDn, $entry);
-      if (!$result) {
-        throw new Exception("Failed to add $userDn to group $groupDn: " . ldap_error($this->gateway->ds));
-      }
-      return TRUE;
-    } catch (Exception $e) {
-      throw new Exception("Error adding member to group: " . $e->getMessage());
-    }
+    return $this->updateLdap($groupDn, $userDn, $entry, "add");
   }
 
   /**
@@ -370,16 +375,7 @@ class AutomaticGroups implements EndpointInterface
 
     $entry = ['member' => $members];
 
-    // Update the group in LDAP
-    try {
-      $result = ldap_modify($this->gateway->ds, $groupDn, $entry);
-      if (!$result) {
-        throw new Exception("Failed to remove $userDn from group $groupDn: " . ldap_error($this->gateway->ds));
-      }
-      return TRUE;
-    } catch (Exception $e) {
-      throw new Exception("Error removing member from group: " . $e->getMessage());
-    }
+    return $this->updateLdap($groupDn, $userDn, $entry, "remove");
   }
 
   /**
