@@ -300,11 +300,9 @@ class AutomaticGroups implements EndpointInterface
 
     foreach ($userSupannState[0]['supannressourceetat'] as $value) {
       // Create the expected format for comparison
-      $expectedState = '';
-      if (!empty($subState)) {
-        $expectedState = '{' . $resource . '}' . $state . ':' . $subState;
-      } else {
         $expectedState = '{' . $resource . '}' . $state;
+      if (!empty($subState)) {
+        $expectedState = $expectedState . ':' . $subState;
       }
 
       if ($value === $expectedState) {
@@ -313,6 +311,18 @@ class AutomaticGroups implements EndpointInterface
     }
 
     return FALSE;
+  }
+
+  private function getGroupMembers (string $groupDn): array
+  {
+      $groupInfo = $this->gateway->getLdapTasks(
+          '(objectClass=groupOfNames)',
+          ['member'],
+          '',
+          $groupDn
+      );
+      $this->gateway->unsetCountKeys($groupInfo);
+      return $groupInfo[0]['member'] ?? [];
   }
 
   /**
@@ -326,15 +336,7 @@ class AutomaticGroups implements EndpointInterface
   private function addUserToGroup (string $userDn, string $groupDn): bool
   {
     // Get current group members
-    $groupInfo = $this->gateway->getLdapTasks(
-      '(objectClass=groupOfNames)',
-      ['member'],
-      '',
-      $groupDn
-    );
-
-    $this->gateway->unsetCountKeys($groupInfo);
-    $members = $groupInfo[0]['member'] ?? [];
+    $members = $this->getGroupMembers($groupDn);
 
     // If member is already in the group, nothing to do
     if (in_array($userDn, $members)) {
@@ -368,15 +370,7 @@ class AutomaticGroups implements EndpointInterface
   private function removeUserFromGroup (string $userDn, string $groupDn): bool
   {
     // Get current group members
-    $groupInfo = $this->gateway->getLdapTasks(
-      '(objectClass=groupOfNames)',
-      ['member'],
-      '',
-      $groupDn
-    );
-
-    $this->gateway->unsetCountKeys($groupInfo);
-    $members = $groupInfo[0]['member'] ?? [];
+    $members = $this->getGroupMembers($groupDn);
 
     // If member is not in the group, nothing to do
     if (!in_array($userDn, $members)) {
