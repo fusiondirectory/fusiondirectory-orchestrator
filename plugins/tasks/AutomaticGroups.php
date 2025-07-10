@@ -325,10 +325,10 @@ class AutomaticGroups implements EndpointInterface
     return $groupInfo[0]['member'] ?? [];
   }
 
-    /**
-     * @throws Exception
-     */
-    private function updateLdap (string $groupDn, string $userDn, array $entry, string $message): bool
+  /**
+   * @throws Exception
+  */
+  private function updateLdap (string $groupDn, string $userDn, array $entry, string $message): bool
   {
     // Update the group in LDAP
     try {
