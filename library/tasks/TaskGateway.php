@@ -144,7 +144,7 @@ class TaskGateway
     $result = [];
     $tasks  = $this->getLdapTasks(
       "(&(objectClass=fdTasks)(fdTasksRepeatable=TRUE))",
-      ["dn", "fdTasksRepeatableSchedule", "fdTasksLastExec", "fdTasksScheduleDate"]
+      ["dn", "fdTasksRepeatableSchedule", "fdTasksLastActivation", "fdTasksScheduleDate"]
     );
     // remove the count key from the arrays, keeping only DN.
     $this->unsetCountKeys($tasks);
@@ -166,12 +166,12 @@ class TaskGateway
         // First verification of the schedule of the task itself.
         if ($schedule <= $now) {
           // Case where the tasks were never run before but schedule is met, execute tasks.
-          if (empty($task['fdtaskslastexec'][0])) {
+          if (empty($task['fdtaskslastactivation'][0])) {
             $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
 
-            // Case where the tasks were once run, verification of the cyclic schedule and last exec.
+            // Case where the tasks were once run, verification of the cyclic schedule and last activation.
           } else if (!empty($task['fdtasksrepeatableschedule'][0])) {
-            $lastExec = new DateTime($task['fdtaskslastexec'][0]);
+            $lastExec = new DateTime($task['fdtaskslastactivation'][0]);
 
             // Efficient way to verify timelapse
             $interval = $now->diff($lastExec);
@@ -181,28 +181,28 @@ class TaskGateway
                 if ($interval->y >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
-                  $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
+                  $result[$task['dn']]['lastActivationFailed'] = 'This cyclic task has yet to reached its next activation cycle.';
                 }
                 break;
               case 'Monthly' :
                 if ($interval->m >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
-                  $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
+                  $result[$task['dn']]['lastActivationFailed'] = 'This cyclic task has yet to reached its next activation cycle.';
                 }
                 break;
               case 'Weekly' :
                 if ($interval->days >= 7) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
-                  $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
+                  $result[$task['dn']]['lastActivationFailed'] = 'This cyclic task has yet to reached its next activation cycle.';
                 }
                 break;
               case 'Daily' :
                 if ($interval->days >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
-                  $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
+                  $result[$task['dn']]['lastActivationFailed'] = 'This cyclic task has yet to reached its next activation cycle.';
                 }
                 break;
               case 'Hourly' :
@@ -211,14 +211,14 @@ class TaskGateway
                 if ($totalHours >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
                 } else {
-                  $result[$task['dn']]['lastExecFailed'] = 'This cyclic task has yet to reached its next execution cycle.';
+                  $result[$task['dn']]['lastActivationFailed'] = 'This cyclic task has yet to reached its next activation cycle.';
                 }
                 break;
             }
           }
           // Case where cyclic tasks where found but the schedule is no ready.
         } else {
-          $result[$task['dn']]['Status'] = 'This cyclic task has yet to reach its next execution cycle.';
+          $result[$task['dn']]['Status'] = 'This cyclic task has yet to reach its next activation cycle.';
         }
       }
     } else {
