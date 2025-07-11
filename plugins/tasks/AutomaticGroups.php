@@ -117,20 +117,13 @@ class AutomaticGroups implements EndpointInterface
                   // If one match then quit
                   break;
                 }
-
               }
             }
-
-            // If we found a match, add the user to the group
-              $resultMessage = $this->manageGroup($shouldAddToGroup, $userDn, $targetGroup);
-
-              // If no pattern, just check the user state directly
           } else {
             $userSupannState = $this->getUserSupannState($userDn);
             $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resource, $state, $subState);
-
-            $resultMessage = $this->manageGroup($shouldAddToGroup, $userDn, $targetGroup);
           }
+          $resultMessage = $this->manageGroup($shouldAddToGroup, $userDn, $targetGroup);
         }
 
         // Update task status
