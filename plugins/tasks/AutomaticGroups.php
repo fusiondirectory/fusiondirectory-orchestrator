@@ -122,27 +122,14 @@ class AutomaticGroups implements EndpointInterface
             }
 
             // If we found a match, add the user to the group
-            if ($shouldAddToGroup) {
-              $this->addUserToGroup($userDn, $targetGroup);
-              $resultMessage[] = "User $userDn successfully added to group $targetGroup";
-            } else { // If no match found, remove the user from the group although it might not be in it.
-              $this->removeUserFromGroup($userDn, $targetGroup);
-              $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
-            }
+              $resultMessage = $this->manageGroup($shouldAddToGroup, $userDn, $targetGroup);
 
-            // If no pattern, just check the user state directly
+              // If no pattern, just check the user state directly
           } else {
             $userSupannState = $this->getUserSupannState($userDn);
             $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resource, $state, $subState);
 
-            // Add/remove user from group based on criteria
-            if ($shouldAddToGroup) {
-              $this->addUserToGroup($userDn, $targetGroup);
-              $resultMessage[] = "User $userDn successfully added to group $targetGroup";
-            } else {
-              $this->removeUserFromGroup($userDn, $targetGroup);
-              $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
-            }
+            $resultMessage = $this->manageGroup($shouldAddToGroup, $userDn, $targetGroup);
           }
         }
 
@@ -156,6 +143,18 @@ class AutomaticGroups implements EndpointInterface
     }
 
     return $result;
+  }
+
+  private function manageGroup (bool $shouldAddToGroup, string $userDn, string $targetGroup)
+  {
+      if ($shouldAddToGroup) {
+          $this->addUserToGroup($userDn, $targetGroup);
+          $resultMessage[] = "User $userDn successfully added to group $targetGroup";
+      } else {
+          $this->removeUserFromGroup($userDn, $targetGroup);
+          $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
+      }
+      return $resultMessage;
   }
 
   /**
