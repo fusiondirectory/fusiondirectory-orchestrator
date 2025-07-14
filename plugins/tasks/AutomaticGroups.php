@@ -140,14 +140,14 @@ class AutomaticGroups implements EndpointInterface
 
   private function manageGroup (bool $shouldAddToGroup, string $userDn, string $targetGroup)
   {
-      if ($shouldAddToGroup) {
-          $this->addUserToGroup($userDn, $targetGroup);
-          $resultMessage[] = "User $userDn successfully added to group $targetGroup";
-      } else {
-          $this->removeUserFromGroup($userDn, $targetGroup);
-          $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
-      }
-      return $resultMessage;
+    if ($shouldAddToGroup) {
+      $this->addUserToGroup($userDn, $targetGroup);
+      $resultMessage[] = "User $userDn successfully added to group $targetGroup";
+    } else {
+      $this->removeUserFromGroup($userDn, $targetGroup);
+      $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
+    }
+    return $resultMessage;
   }
 
   /**
@@ -321,7 +321,7 @@ class AutomaticGroups implements EndpointInterface
     }
   }
 
-  private function getFailedMessage(string $userDn, string $message, string $groupDn): string
+  private function getFailedMessage (string $userDn, string $message, string $groupDn): string
   {
       return match ($message) {
           'create' => "Failed to create dynamic group: ",
@@ -330,14 +330,14 @@ class AutomaticGroups implements EndpointInterface
       };
   }
 
-    private function getErrorMessage(string $message): string
-    {
-        return match ($message) {
-            'create' => "Error creating dynamic group: ",
-            'add' => "Error adding member to group: ",
-            default => "Error removing member to group: ",
-        };
-    }
+  private function getErrorMessage (string $message): string
+  {
+    return match ($message) {
+      'create' => "Error creating dynamic group: ",
+      'add' => "Error adding member to group: ",
+      default => "Error removing member to group: ",
+    };
+  }
 
   /**
    * Add user to LDAP group
