@@ -3,10 +3,12 @@
 class Extractor implements EndpointInterface
 {
   private TaskGateway $gateway;
+  private CoreUtils $utils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
+    $this->utils = new CoreUtils();
   }
 
   /**
@@ -93,7 +95,7 @@ class Extractor implements EndpointInterface
         }
 
         // Create directory if it doesn't exist
-        $this->ensureDirectoryExists($path);
+        $this->utils->ensureDirectoryExists($path);
 
         // Get main task CN for filename
         $mainTaskCn = $this->getMainTaskCn($mainTaskDn);
@@ -283,22 +285,6 @@ class Extractor implements EndpointInterface
     // Process and return user data
     $this->gateway->unsetCountKeys($userData);
     return $userData;
-  }
-
-  /**
-   * @param string $path
-   * @return bool
-   * @throws Exception
-   * Note: Create directory if it doesn't exist.
-   */
-  private function ensureDirectoryExists (string $path): bool
-  {
-    if (!is_dir($path)) {
-      if (!mkdir($path, 0755, TRUE)) {
-        throw new Exception("Failed to create directory: $path");
-      }
-    }
-    return TRUE;
   }
 
   /**
