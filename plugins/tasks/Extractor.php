@@ -170,36 +170,34 @@ class Extractor implements EndpointInterface
             ]];
 
             if (empty($sender) || empty($recipients)) {
-                $finalMessage = "Batch extraction successful to $filename. Email not sent: sender or recipient missing.";
+              $finalMessage = "Batch extraction successful to $filename. Email not sent: sender or recipient missing.";
               if (!empty($errors)) {
                   $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
               }
-                $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
-                $result[$task['dn']]['result'] = $finalMessage;
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
             } else {
                 // Send mail using MailLib
                 $mailSentResult = $this->mailUtils->sendMail($sender, NULL, $recipients,
                     $body, $signature, $subject, $receipt, $attachments);
 
               if ($mailSentResult[0] == "SUCCESS") {
-                  $finalMessage = "Batch extraction successful to $filename. Email sent to recipients.";
+                $finalMessage = "Batch extraction successful to $filename. Email sent to recipients.";
                 if (!empty($errors)) {
                     $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
                 }
-                  $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-                  $result[$task['dn']]['result'] = $finalMessage;
+                $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
               } else {
-                  $errorMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
-                  $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $errorMessage);
-                  $result[$task['dn']]['result'] = $errorMessage;
+                  $finalMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
+                  $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
               }
             }
+            $result[$task['dn']]['result'] = $finalMessage;
             // --- EMAIL LOGIC END ---
         } else {
-            $errorMessage = "Failed to write batch data to $filename.";
+            $finalMessage = "Failed to write batch data to $filename.";
             // Update the status to error ('1')
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $errorMessage);
-            $result[$task['dn']]['result'] = $errorMessage;
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+            $result[$task['dn']]['result'] = $finalMessage;
             continue;
         }
 
