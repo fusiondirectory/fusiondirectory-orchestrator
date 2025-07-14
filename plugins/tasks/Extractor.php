@@ -4,11 +4,13 @@ class Extractor implements EndpointInterface
 {
   private TaskGateway $gateway;
   private CoreUtils $utils;
+  private MailUtils $mailUtils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
     $this->utils = new CoreUtils();
+    $this->mailUtils = new MailUtils();
   }
 
   /**
@@ -176,17 +178,8 @@ class Extractor implements EndpointInterface
                 $result[$task['dn']]['result'] = $finalMessage;
             } else {
                 // Send mail using MailLib
-                $mail_controller = new \FusionDirectory\Mail\MailLib(
-                    $sender,
-                    NULL,
-                    $recipients,
-                    $body,
-                    $signature,
-                    $subject,
-                    $receipt,
-                    $attachments
-                );
-                $mailSentResult = $mail_controller->sendMail();
+                $mailSentResult = $this->mailUtils->sendMail($sender, NULL, $recipients,
+                    $body, $signature, $subject, $receipt, $attachments);
 
               if ($mailSentResult[0] == "SUCCESS") {
                   $finalMessage = "Batch extraction successful to $filename. Email sent to recipients.";
