@@ -157,40 +157,7 @@ class Extractor implements EndpointInterface
             $recipients = $mainTaskDetails[0]['fdextractorlistofrecipientsmails'] ?? [];
             $this->gateway->unsetCountKeys($recipients);
 
-            // Compose mail subject/body
-            $subject    = "FusionDirectory Extractor - Export file";
-            $body       = "Your requested extract is attached.\n\nFile: $filename";
-            $signature  = NULL;
-            $receipt    = NULL;
-
-            // Prepare attachment
-            $attachments = [[
-                'cn' => basename($filename),
-                'content' => file_get_contents($filename)
-            ]];
-
-            if (empty($sender) || empty($recipients)) {
-              $finalMessage = "Batch extraction successful to $filename. Email not sent: sender or recipient missing.";
-              if (!empty($errors)) {
-                  $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
-              }
-              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
-            } else {
-                // Send mail using MailLib
-                $mailSentResult = $this->mailUtils->sendMail($sender, NULL, $recipients,
-                    $body, $signature, $subject, $receipt, $attachments);
-
-              if ($mailSentResult[0] == "SUCCESS") {
-                $finalMessage = "Batch extraction successful to $filename. Email sent to recipients.";
-                if (!empty($errors)) {
-                    $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
-                }
-                $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-              } else {
-                  $finalMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
-                  $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
-              }
-            }
+            $finalMessage = $this->getFinalMessage($filename, $task, $recipients, $sender);
             $result[$task['dn']]['result'] = $finalMessage;
             // --- EMAIL LOGIC END ---
         } else {
@@ -213,6 +180,41 @@ class Extractor implements EndpointInterface
     }
 
     return $result;
+  }
+
+  private function getFinalMessage (string $filename, array $task, array $recipients, $sender): string
+  {
+      $subject    = "FusionDirectory Extractor - Export file";
+      $body       = "Your requested extract is attached.\n\nFile: $filename";
+      // Prepare attachment
+      $attachments = [[
+          'cn' => basename($filename),
+          'content' => file_get_contents($filename)
+      ]];
+
+      if (empty($sender) || empty($recipients)) {
+          $finalMessage = "Batch extraction successful to $filename. Email not sent: sender or recipient missing.";
+          if (!empty($errors)) {
+              $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
+          }
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+      } else {
+          // Send mail using MailLib
+          $mailSentResult = $this->mailUtils->sendMail($sender, NULL, $recipients,
+              $body, NULL, $subject, NULL, $attachments);
+
+          if ($mailSentResult[0] == "SUCCESS") {
+              $finalMessage = "Batch extraction successful to $filename. Email sent to recipients.";
+              if (!empty($errors)) {
+                  $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
+              }
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          } else {
+              $finalMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+          }
+      }
+      return $finalMessage;
   }
 
   /**
