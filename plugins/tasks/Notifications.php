@@ -302,10 +302,7 @@ class Notifications implements EndpointInterface
   {
     $result = [];
     // Re-use of the same mail processing template logic
-    $fdTasksConf    = $this->gateway->getLdapTasks(
-      "(objectClass=fdTasksConf)",
-      ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
-    );
+    $fdTasksConf    = $this->mailUtils->getMailObjectConfiguration($this->gateway);
     $maxMailsConfig = $this->mailUtils->returnMaximumMailToBeSend($fdTasksConf);
 
     /*
