@@ -5,11 +5,13 @@ class Reminder implements EndpointInterface
 
   private TaskGateway $gateway;
   private ReminderTokenUtils $reminderTokenUtils;
+  private MailUtils $mailUtils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
     $this->reminderTokenUtils = new ReminderTokenUtils();
+    $this->mailUtils = new MailUtils();
   }
 
   /**
@@ -71,7 +73,7 @@ class Reminder implements EndpointInterface
         $this->gateway->unsetCountKeys($remindersMainTask);
 
         // Retrieve email attribute for the monitored members requiring reminding.
-        $mailOfTheReminded = $this->getEmailFromReminded($task['fdtasksgranulardn'][0]);
+        $mailOfTheReminded = $this->getEmailFromReminder($task['fdtasksgranulardn'][0]);
 
         // Generate the mail form with all mail controller requirements
         $mailTemplateForm = $this->generateMainTaskMailTemplate($remindersMainTask, $mailOfTheReminded);
@@ -224,7 +226,7 @@ class Reminder implements EndpointInterface
    * @return string
    * Note : return the mail attribute from gosaMail objectclass.
    */
-  private function getEmailFromReminded (string $dn): string
+  private function getEmailFromReminder (string $dn): string
   {
     // in case the DN do not have an email set. - Return string FALSE.
     $result = "FALSE";
@@ -340,12 +342,10 @@ class Reminder implements EndpointInterface
   {
     // Result will contain the supann resource matching.
     $result = '';
-
+    $monitoredSupannState = '{' . $reminderSupann['resource'][0] . '}' . $reminderSupann['state'][0];
     //Construct the reminder Supann Resource State as string
     if (!empty($reminderSupann['subState'][0])) {
-      $monitoredSupannState = '{' . $reminderSupann['resource'][0] . '}' . $reminderSupann['state'][0] . ':' . $reminderSupann['subState'][0];
-    } else {
-      $monitoredSupannState = '{' . $reminderSupann['resource'][0] . '}' . $reminderSupann['state'][0];
+       $monitoredSupannState = $monitoredSupannState. ':' . $reminderSupann['subState'][0];
     }
 
     if (!empty($dnSupann['supannressourceetat'])) {
@@ -482,18 +482,14 @@ class Reminder implements EndpointInterface
           }
           $numberOfRecipients = count($mailDetails['mail']['recipients']);
 
-          $mail_controller = new \FusionDirectory\Mail\MailLib(
-            $mailDetails['mail']['setFrom'],
-            NULL,
-            $mailDetails['mail']['recipients'],
-            $mailDetails['mail']['body'],
-            $mailDetails['mail']['signature'],
-            $mailDetails['mail']['subject'],
-            $mailDetails['mail']['receipt'],
-            NULL
-          );
-
-          $mailSentResult = $mail_controller->sendMail();
+          $mailSentResult = $this->mailUtils->sendMail($mailDetails['mail']['setFrom'],
+              NULL,
+              $mailDetails['mail']['recipients'],
+              $mailDetails['mail']['body'],
+              $mailDetails['mail']['signature'],
+              $mailDetails['mail']['subject'],
+              $mailDetails['mail']['receipt'],
+              NULL);
           // Here we incremented as well the counter of spam to the backend.
           $result[] = $this->processMailResponseAndUpdateTasks($mailSentResult, $reminder, $fdTasksConf);
 
@@ -547,5 +543,4 @@ class Reminder implements EndpointInterface
 
     return $result;
   }
-
 }
