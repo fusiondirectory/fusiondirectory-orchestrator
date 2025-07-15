@@ -60,7 +60,7 @@ class LifeCycle implements EndpointInterface
     return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
       'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
       'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate',
-      'fdTasksLifeCycleRegexPattern', 'fdTasksLifeCycleEnableAccountClosure'],
+      'fdTasksLifeCycleRegexPattern', 'fdTasksLifeCycleEnableAccountClosure', 'fdTasksRepeatableSchedule'],
                                         '', $taskDN);
   }
 
@@ -223,8 +223,14 @@ class LifeCycle implements EndpointInterface
       // If the tasks must be treated - status and scheduled - process the sub-tasks
       if ($this->gateway->statusAndScheduleCheck($task)) {
 
+        // Get the main task DN
+        $mainTaskDn = $task['fdtasksgranularmaster'][0];
+
         // Simply retrieve the lifeCycle behavior from the main related tasks
-        $lifeCycleBehavior = $this->getLifeCycleBehaviorFromMainTask($task['fdtasksgranularmaster'][0]);
+        $lifeCycleBehavior = $this->getLifeCycleBehaviorFromMainTask($mainTaskDn);
+
+        // Get the repeatable schedule from the main task
+        $repeatableSchedule = $lifeCycleBehavior[0]['fdtasksrepeatableschedule'][0] ?? NULL;
 
         // Simply retrieve the current supannStatus of the user DN related to the task at hand
         $currentUserLifeCycle = $this->getUserSupannHistory($task['fdtasksgranulardn'][0]);
@@ -238,23 +244,23 @@ class LifeCycle implements EndpointInterface
 
           if ($lifeCycleResult === "ACCOUNT_CLOSURE_APPLIED") {
             $result[$task['dn']]['results'] = json_encode("Account closure processed successfully for " . $task['fdtasksgranulardn'][0]);
-            // Status of the task must be updated to success
-            $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            // Status of the subtask must be updated to success
+            $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
             // Here the user is refresh in order to activate methods based on supann Status changes.
             $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
           } else if ($lifeCycleResult === "NO_MATCHING_RESOURCES") {
             $result[$task['dn']]['results'] = json_encode("No matching resources found for " . $task['fdtasksgranulardn'][0] . " - nothing to process");
             // The task is still considered "complete" as we checked what we needed to
-            $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
           } else if ($lifeCycleResult === "NO_CLOSURE_NEEDED") {
             $result[$task['dn']]['results'] = json_encode("Account closure not needed for " . $task['fdtasksgranulardn'][0] . " - user has active resources");
             // The task is still considered "complete" as we checked what we needed to
-            $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
           } else {
             // In case the modification failed
             $result[$task['dn']]['results'] = json_encode("Error processing account closure for " . $task['fdtasksgranulardn'][0] . " - " . $lifeCycleResult);
             // Update of the task status error message
-            $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult);
+            $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult, $mainTaskDn, $repeatableSchedule);
           }
         } else {
           // Compare both the required schedule and the current user status - returning TRUE if modification is required
@@ -265,14 +271,14 @@ class LifeCycle implements EndpointInterface
             if ($lifeCycleResult === TRUE) {
               $result[$task['dn']]['results'] = json_encode("Account states have been successfully modified for " . $task['fdtasksgranulardn'][0]);
               // Status of the task must be updated to success
-              $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+              $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
               // Here the user is refresh in order to activate methods based on supann Status changes.
               $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
             } else {
               // In case the modification failed
               $result[$task['dn']]['results'] = json_encode("Error updating " . $task['fdtasksgranulardn'][0] . " - " . $lifeCycleResult);
               // Update of the task status error message
-              $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult);
+              $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult, $mainTaskDn, $repeatableSchedule);
             }
           } else {
             // Remove the subtask as it is not required to update it nor to process it.

@@ -49,6 +49,21 @@ class Mail implements EndpointInterface
   }
 
   /**
+   * @param string $mainTaskDn
+   * @return array
+   * Note: Fetch main task configuration data including repeatableSchedule
+   */
+  private function getMailTaskMainTask (string $mainTaskDn): array
+  {
+    return $this->gateway->getLdapTasks(
+      "(objectClass=fdTasks)",
+      ["fdTasksRepeatableSchedule"],
+      "",
+      $mainTaskDn
+    );
+  }
+
+  /**
    * @param array $tasks
    * @return array
    * @throws Exception
@@ -69,6 +84,13 @@ class Mail implements EndpointInterface
 
         // verify status before processing (to be checked with schedule as well).
         if ($mail["fdtasksgranularstatus"][0] == 1 && $this->gateway->verifySchedule($mail["fdtasksgranularschedule"][0])) {
+
+          // Get the main task DN
+          $mainTaskDn = $mail['fdtasksgranularmaster'][0];
+
+          // Retrieve data from the main task including the repeatable schedule
+          $mainTaskConfig = $this->getMailTaskMainTask($mainTaskDn);
+          $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
 
           // Search for the related attached mail object.
           $mailInfos   = $this->retrieveMailTemplateInfos($mail["fdtasksgranularref"][0]);
@@ -133,12 +155,12 @@ class Mail implements EndpointInterface
           if ($mailSentResult[0] == "SUCCESS") {
 
             // The third arguments "2" is the status code of success for mail as of now 18/11/22
-            $result[$mail["dn"]]['statusUpdate']       = $this->gateway->updateTaskStatus($mail["dn"], $mail["cn"][0], "2");
+            $result[$mail["dn"]]['statusUpdate']       = $this->gateway->updateTaskStatus($mail["dn"], $mail["cn"][0], "2", $mainTaskDn, $repeatableSchedule);
             $result[$mail["dn"]]['mailStatus']         = 'mail : ' . $mail["dn"] . ' was successfully sent';
             $result[$mail["dn"]]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($fdTasksConf[0]["dn"]);
 
           } else {
-            $result[$mail["dn"]]['statusUpdate'] = $this->gateway->updateTaskStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0]);
+            $result[$mail["dn"]]['statusUpdate'] = $this->gateway->updateTaskStatus($mail["dn"], $mail["cn"][0], $mailSentResult[0], $mainTaskDn, $repeatableSchedule);
             $result[$mail["dn"]]['Error']        = $mailSentResult;
           }
 

@@ -65,8 +65,13 @@ class Notifications implements EndpointInterface
       if ($this->gateway->statusAndScheduleCheck($task)) {
 
         // Retrieve data from the main task
-        $notificationsMainTask     = $this->getNotificationsMainTask($task['fdtasksgranularmaster'][0]);
-        $notificationsMainTaskName = $task['fdtasksgranularmaster'][0];
+        $mainTaskDn = $task['fdtasksgranularmaster'][0];
+
+        $notificationsMainTask     = $this->getNotificationsMainTask($mainTaskDn);
+        $notificationsMainTaskName = $mainTaskDn;
+
+        // Get the repeatable schedule from the main task
+        $repeatableSchedule = $notificationsMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
 
         // Generate the mail form with all mail controller requirements
         $mailTemplateForm = $this->generateMainTaskMailTemplate($notificationsMainTask);
@@ -203,9 +208,10 @@ class Notifications implements EndpointInterface
   public function getNotificationsMainTask (string $mainTaskDn): array
   {
     // Retrieve data from the main task
-    return $this->gateway->getLdapTasks('(objectClass=fdTasksNotifications)', ['fdTasksNotificationsListOfRecipientsMails',
+    return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksNotificationsListOfRecipientsMails',
       'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksNotificationsEmailSender',
-      'fdTasksNotificationsSubState', 'fdTasksNotificationsState', 'fdTasksNotificationsResource'],
+      'fdTasksNotificationsSubState', 'fdTasksNotificationsState', 'fdTasksNotificationsResource',
+      'fdTasksRepeatableSchedule'],
                                         '', $mainTaskDn);
   }
 
@@ -357,6 +363,24 @@ class Notifications implements EndpointInterface
   protected function processMailResponseAndUpdateTasks (array $serverResults, array $subTask, array $mailTaskBackend): array
   {
     $result = [];
+
+    // Get mainTaskDn from the first subtask if available
+    $mainTaskDn         = NULL;
+    $repeatableSchedule = NULL;
+
+    // Try to get the main task DN and repeatable schedule from the details
+    if (!empty($subTask['subTask']) && is_array($subTask['subTask'])) {
+      foreach ($subTask['subTask'] as $details) {
+        if (isset($details['fdtasksgranularmaster'][0])) {
+          $tempMainTaskDn = $details['fdtasksgranularmaster'][0];
+          $mainTaskConfig = $this->getNotificationsMainTask($tempMainTaskDn);
+          $mainTaskDn = $tempMainTaskDn;
+          $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+          break;
+        }
+      }
+    }
+
     if ($serverResults[0] == "SUCCESS") {
       foreach ($subTask['subTask'] as $subTask => $details) {
 
@@ -366,7 +390,7 @@ class Notifications implements EndpointInterface
         $dn = $details['dn'];
 
         // Update task status for the current $dn
-        $result[$dn]['statusUpdate']       = $this->gateway->updateTaskStatus($dn, $cn, "2");
+        $result[$dn]['statusUpdate']       = $this->gateway->updateTaskStatus($dn, $cn, "2", $mainTaskDn, $repeatableSchedule);
         $result[$dn]['mailStatus']         = 'Notification was successfully sent';
         $result[$dn]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($mailTaskBackend[0]["dn"]);
       }
@@ -378,7 +402,7 @@ class Notifications implements EndpointInterface
         // DN of the main task
         $dn = $details['dn'];
 
-        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $serverResults[0]);
+        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $serverResults[0], $mainTaskDn, $repeatableSchedule);
         $result[$dn]['mailStatus']   = $serverResults;
       }
     }
