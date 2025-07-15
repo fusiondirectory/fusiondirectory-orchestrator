@@ -309,7 +309,7 @@ class Notifications implements EndpointInterface
     $maxMailsConfig = $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
 
     /*
-      Increment var starts a zero and added values will be the humber or recipients per main tasks, as one mail is
+      Increment var starts a zero and added values will be the number or recipients per main tasks, as one mail is
       sent per main task.
     */
     $maxMailsIncrement = 0;
