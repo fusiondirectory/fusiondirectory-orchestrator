@@ -5,11 +5,13 @@ class Notifications implements EndpointInterface
 
   private TaskGateway $gateway;
   private CoreUtils $coreUtils;
+  private MailUtils $mailUtils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
     $this->coreUtils = new CoreUtils();
+    $this->mailUtils = new MailUtils();
   }
 
   /**
@@ -175,25 +177,17 @@ class Notifications implements EndpointInterface
    */
   private function verifySupannState (array $supannResource, array $auditedAttrs): bool
   {
-    $result = FALSE;
+    $monitoredSupannState = '{' . $supannResource['resource'][0] . '}' . $supannResource['state'][0];
 
     //Construct Supann Resource State as string
     if (!empty($supannResource['subState'][0])) {
-      $monitoredSupannState = '{' . $supannResource['resource'][0] . '}' . $supannResource['state'][0] . ':' . $supannResource['subState'][0];
-    } else {
-      $monitoredSupannState = '{' . $supannResource['resource'][0] . '}' . $supannResource['state'][0];
+      $monitoredSupannState = $monitoredSupannState . ':' . $supannResource['subState'][0];
     }
 
     // Get all the values only of a multidimensional array.
     $auditedValues = $this->coreUtils->getArrayValuesRecursive($auditedAttrs);
 
-    if (in_array($monitoredSupannState, $auditedValues)) {
-      $result = TRUE;
-    } else {
-      $result = FALSE;
-    }
-
-    return $result;
+    return in_array($monitoredSupannState, $auditedValues);
   }
 
   /**
@@ -323,18 +317,14 @@ class Notifications implements EndpointInterface
     foreach ($notifications as $data) {
       $numberOfRecipients = count($data['mailForm']['recipients']);
 
-      $mail_controller = new \FusionDirectory\Mail\MailLib(
-        $data['mailForm']['setFrom'],
-        NULL,
-        $data['mailForm']['recipients'],
-        $data['mailForm']['body'],
-        $data['mailForm']['signature'],
-        $data['mailForm']['subject'],
-        $data['mailForm']['receipt'],
-        NULL
-      );
-
-      $mailSentResult = $mail_controller->sendMail();
+      $mailSentResult = $this->mailUtils->sendMail($data['mailForm']['setFrom'],
+          NULL,
+          $data['mailForm']['recipients'],
+          $data['mailForm']['body'],
+          $data['mailForm']['signature'],
+          $data['mailForm']['subject'],
+          $data['mailForm']['receipt'],
+          NULL);
       $result[]       = $this->processMailResponseAndUpdateTasks($mailSentResult, $data, $fdTasksConf);
 
       // Verification anti-spam max mails to be sent and quit loop if matched.
@@ -385,5 +375,4 @@ class Notifications implements EndpointInterface
 
     return $result;
   }
-
 }
