@@ -114,6 +114,10 @@ class Audit implements EndpointInterface
 
     foreach ($syslogAuditSubTasks as $task) {
       try {
+        // Initialize variables to avoid undefined variable errors
+        $mainTaskDn         = NULL;
+        $repeatableSchedule = NULL;
+
         // If the task must be treated - status and scheduled - process the sub-tasks
         if ($this->gateway->statusAndScheduleCheck($task)) {
           // Retrieve data from the main task

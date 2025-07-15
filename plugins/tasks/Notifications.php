@@ -363,6 +363,24 @@ class Notifications implements EndpointInterface
   protected function processMailResponseAndUpdateTasks (array $serverResults, array $subTask, array $mailTaskBackend): array
   {
     $result = [];
+
+    // Get mainTaskDn from the first subtask if available
+    $mainTaskDn         = NULL;
+    $repeatableSchedule = NULL;
+
+    // Try to get the main task DN and repeatable schedule from the details
+    if (!empty($subTask['subTask']) && is_array($subTask['subTask'])) {
+      foreach ($subTask['subTask'] as $details) {
+        if (isset($details['fdtasksgranularmaster'][0])) {
+          $tempMainTaskDn = $details['fdtasksgranularmaster'][0];
+          $mainTaskConfig = $this->getNotificationsMainTask($tempMainTaskDn);
+          $mainTaskDn = $tempMainTaskDn;
+          $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+          break;
+        }
+      }
+    }
+
     if ($serverResults[0] == "SUCCESS") {
       foreach ($subTask['subTask'] as $subTask => $details) {
 

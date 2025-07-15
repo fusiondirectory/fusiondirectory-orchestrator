@@ -68,6 +68,10 @@ class AutomaticGroups implements EndpointInterface
 
     foreach ($automaticGroupsTasks as $task) {
       try {
+        // Initialize variables to avoid undefined variable errors
+        $mainTaskDn         = NULL;
+        $repeatableSchedule = NULL;
+
         // Check if task should be processed (status and schedule)
         if (!$this->gateway->statusAndScheduleCheck($task)) {
           continue;
@@ -179,6 +183,10 @@ class AutomaticGroups implements EndpointInterface
 
     foreach ($dynamicGroupTasks as $task) {
       try {
+        // Initialize variables to avoid undefined variable errors
+        $mainTaskDn         = NULL;
+        $repeatableSchedule = NULL;
+
         // Check if task should be processed (status and schedule)
         if (!$this->gateway->statusAndScheduleCheck($task)) {
           continue;
