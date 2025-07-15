@@ -302,13 +302,26 @@ class TaskGateway
       $ldap_entry["cn"] = $cn;
     }
 
+    // Get current timestamp in the correct format
+    $currentTime = date("Y-m-d H:i:s");
+
     // Status subject to change
-    $ldap_entry["fdTasksGranularStatus"] = $status;
-    $ldap_entry["fdTasksGranularLastExec"] = date("Y-m-d H:i:s");
+    $ldap_entry["fdTasksGranularStatus"]   = $status;
+    $ldap_entry["fdTasksGranularLastExec"] = $currentTime;
 
     // Add status to LDAP
     try {
       $result = ldap_modify($this->ds, $dn, $ldap_entry); // bool returned
+
+      // Now update the main task's fdTasksLastExec
+      if ($result) {
+        // Get the subtask details to find the main task DN
+        $subtask = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(cn=" . $cn . "))", ["fdTasksGranularMaster"]);
+        if (!empty($subtask) && isset($subtask[0]['fdtasksgranularmaster'][0])) {
+          // Call updateMainTaskLastExec with the master task DN and current time
+          $this->updateMainTaskLastExec($subtask[0]['fdtasksgranularmaster'][0], $currentTime);
+        }
+      }
     } catch (Exception $e) {
       $result = json_encode(["Ldap Error" => "$e"]); // string returned
     }
@@ -345,6 +358,25 @@ class TaskGateway
       $result = ldap_modify($this->ds, $dn, $ldap_entry);
     } catch (Exception $e) {
 
+      $result = json_encode(["Ldap Error" => "$e"]);
+    }
+    return $result;
+  }
+
+  /**
+   * @param string $mainTaskDn
+   * @param string $timestamp
+   * @return bool|string
+   * Note: Update the attribute fdTasksLastExec of the main task when a subtask is processed
+   */
+  public function updateMainTaskLastExec (string $mainTaskDn, string $timestamp)
+  {
+    $ldap_entry["fdTasksLastExec"] = $timestamp;
+
+    // Add data to LDAP
+    try {
+      $result = ldap_modify($this->ds, $mainTaskDn, $ldap_entry);
+    } catch (Exception $e) {
       $result = json_encode(["Ldap Error" => "$e"]);
     }
     return $result;
