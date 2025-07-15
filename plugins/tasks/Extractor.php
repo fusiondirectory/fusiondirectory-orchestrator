@@ -60,6 +60,10 @@ class Extractor implements EndpointInterface
 
     foreach ($extractTasks as $task) {
       try {
+        // Initialize variables to avoid undefined variable errors
+        $mainTaskDn         = NULL;
+        $repeatableSchedule = NULL;
+
         // Use TaskGateway's status and schedule check correctly
         // This will check if status is 1 (ready) AND scheduled time is reached
         if (!$this->gateway->statusAndScheduleCheck($task)) {
