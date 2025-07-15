@@ -349,30 +349,25 @@ class Notifications implements EndpointInterface
     $result = [];
     if ($serverResults[0] == "SUCCESS") {
       foreach ($subTask['subTask'] as $subTask => $details) {
-
-        // CN of the main task
-        $cn = $subTask;
         // DN of the main task
         $dn = $details['dn'];
 
-        // Update task status for the current $dn
-        $result[$dn]['statusUpdate']       = $this->gateway->updateTaskStatus($dn, $cn, "2");
-        $result[$dn]['mailStatus']         = 'Notification was successfully sent';
+        $result = $this->updateResult($subTask, $dn, "2", 'Notification was successfully sent');
         $result[$dn]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($mailTaskBackend[0]["dn"]);
       }
     } else {
       foreach ($subTask['subTask'] as $subTask => $details) {
-
-        // CN of the main task
-        $cn = $subTask;
-        // DN of the main task
-        $dn = $details['dn'];
-
-        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $serverResults[0]);
-        $result[$dn]['mailStatus']   = $serverResults;
+        $result = $this->updateResult($subTask, $details['dn'], $serverResults[0], $serverResults);
       }
     }
 
     return $result;
+  }
+
+  private function updateResult (string $cn, string $dn, string $code, $message): array
+  {
+      $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $code);
+      $result[$dn]['mailStatus']   = $message;
+      return $result;
   }
 }
