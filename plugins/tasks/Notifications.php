@@ -306,7 +306,7 @@ class Notifications implements EndpointInterface
       "(objectClass=fdTasksConf)",
       ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
     );
-    $maxMailsConfig = $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
+    $maxMailsConfig = $this->mailUtils->returnMaximumMailToBeSend($fdTasksConf);
 
     /*
       Increment var starts a zero and added values will be the number or recipients per main tasks, as one mail is
