@@ -79,6 +79,9 @@ class Extractor implements EndpointInterface
         $mainTaskDn = $task['fdtasksgranularmaster'][0];
         $mainTaskConfig = $this->getExtractMainTaskConfig($mainTaskDn);
 
+        // Get the repeatable schedule from the main task
+        $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+
         // Process fdExtractorTaskListOfDN attribute
         $userDnListRaw = $mainTaskConfig[0]['fdextractortasklistofdn'] ?? [];
         $userDnList = [];
@@ -91,7 +94,7 @@ class Extractor implements EndpointInterface
         }
 
         if (empty($userDnList)) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
             $result[$task['dn']]['result'] = "No user DNs to process.";
             continue;
         }
@@ -170,7 +173,7 @@ class Extractor implements EndpointInterface
 
       } catch (Exception $e) {
         $result[$task['dn']]['result'] = "Error processing extractor task: " . $e->getMessage();
-        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
+        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
       }
     }
 
@@ -225,12 +228,13 @@ class Extractor implements EndpointInterface
   private function getExtractMainTaskConfig (string $mainTaskDn): array
   {
     return $this->gateway->getLdapTasks(
-      '(objectClass=fdExtractorTasks)',
+      '(objectClass=*)',
       [
         'fdExtractorTaskFormat',
         'cn',
         'fdExtractorTaskListOfDN',
-        'fdExtractorTaskAttributes' // <-- Ensure this is included!
+        'fdExtractorTaskAttributes',
+        'fdTasksRepeatableSchedule'
       ],
       '',
       $mainTaskDn

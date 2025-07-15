@@ -43,8 +43,13 @@ class Archive implements EndpointInterface
             continue;
         }
 
-        // Retrieve the desired supann status from the main task
-        $desiredSupannStatus = $this->getArchiveTaskBehaviorFromMainTask($task['fdtasksgranularmaster'][0]);
+        // Get the main task DN
+        $mainTaskDn = $task['fdtasksgranularmaster'][0];
+
+        // Retrieve the main task configuration
+        $mainTaskConfig = $this->getArchiveTaskBehaviorFromMainTask($mainTaskDn);
+        $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+        $desiredSupannStatus = $mainTaskConfig;
 
         // Retrieve the current supann status of the user
         $currentSupannStatus = $this->getUserSupannAccountStatus($task['fdtasksgranulardn'][0]);
@@ -65,13 +70,13 @@ class Archive implements EndpointInterface
         // Check if the HTTP status code is 204
         if ($webServiceCall->getHttpStatusCode() === 204) {
             $result[$task['dn']]['result'] = "User " . $task['fdtasksgranulardn'][0] . " successfully archived.";
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
         } else {
             throw new Exception("Unexpected HTTP status code: " . $webServiceCall->getHttpStatusCode());
         }
       } catch (Exception $e) {
             $result[$task['dn']]['result'] = "Error archiving user: " . $e->getMessage();
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
       }
     }
 
@@ -116,13 +121,13 @@ class Archive implements EndpointInterface
     /**
      * @param string $taskDN
      * @return array
-     * Note: Retrieve the desired supann status from the main task attributes.
+     * Note: Retrieve the desired supann status and repeatable schedule from the main task attributes.
      */
   private function getArchiveTaskBehaviorFromMainTask (string $taskDN): array
   {
       return $this->gateway->getLdapTasks(
           '(objectClass=*)',
-          ['fdArchiveTaskResource', 'fdArchiveTaskState', 'fdArchiveTaskSubState'],
+          ['fdArchiveTaskResource', 'fdArchiveTaskState', 'fdArchiveTaskSubState', 'fdTasksRepeatableSchedule'],
           '',
           $taskDN
       );
