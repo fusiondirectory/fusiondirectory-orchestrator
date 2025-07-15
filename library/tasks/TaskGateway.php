@@ -171,10 +171,10 @@ class TaskGateway
 
             // Case where the tasks were once run, verification of the cyclic schedule and last activation.
           } else if (!empty($task['fdtasksrepeatableschedule'][0])) {
-            $lastExec = new DateTime($task['fdtaskslastactivation'][0]);
+            $lastActivation = new DateTime($task['fdtaskslastactivation'][0]);
 
             // Efficient way to verify timelapse
-            $interval = $now->diff($lastExec);
+            $interval = $now->diff($lastActivation);
 
             switch ($task['fdtasksrepeatableschedule'][0]) {
               case 'Yearly' :
@@ -304,6 +304,7 @@ class TaskGateway
 
     // Status subject to change
     $ldap_entry["fdTasksGranularStatus"] = $status;
+    $ldap_entry["fdTasksGranularLastExec"] = date("Y-m-d H:i:s");
 
     // Add status to LDAP
     try {
