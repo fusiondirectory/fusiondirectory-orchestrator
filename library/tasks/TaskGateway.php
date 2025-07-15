@@ -292,10 +292,12 @@ class TaskGateway
    * @param string $dn
    * @param string $cn
    * @param string $status
+   * @param string|null $mainTaskDn
+   * @param string|null $repeatableSchedule
    * @return bool|string
    * Note : Update the status of the tasks.
    */
-  public function updateTaskStatus (string $dn, string $cn, string $status)
+  public function updateTaskStatus (string $dn, string $cn, string $status, string $mainTaskDn = NULL, string $repeatableSchedule = NULL)
   {
     // prepare data
     if (!empty($dn)) {
@@ -309,17 +311,29 @@ class TaskGateway
     $ldap_entry["fdTasksGranularStatus"]   = $status;
     $ldap_entry["fdTasksGranularLastExec"] = $currentTime;
 
+    // Calculate the next execution time if repeatable schedule is provided
+    if (!empty($repeatableSchedule)) {
+      $nextExecTime = $this->calculateNextExecutionTime($repeatableSchedule, $currentTime);
+      if ($nextExecTime !== NULL) {
+        $ldap_entry["fdTasksGranularNextExec"] = $nextExecTime;
+      }
+    }
+
     // Add status to LDAP
     try {
       $result = ldap_modify($this->ds, $dn, $ldap_entry); // bool returned
 
       // Now update the main task's fdTasksLastExec
       if ($result) {
-        // Get the subtask details to find the main task DN
-        $subtask = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(cn=" . $cn . "))", ["fdTasksGranularMaster"]);
-        if (!empty($subtask) && isset($subtask[0]['fdtasksgranularmaster'][0])) {
-          // Call updateMainTaskLastExec with the master task DN and current time
-          $this->updateMainTaskLastExec($subtask[0]['fdtasksgranularmaster'][0], $currentTime);
+        if ($mainTaskDn) {
+          // Use the provided main task DN directly
+          $this->updateMainTaskLastExec($mainTaskDn, $currentTime);
+        } else {
+          // Fallback to LDAP lookup if main task DN not provided
+          $subtask = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(cn=" . $cn . "))", ["fdTasksGranularMaster"]);
+          if (!empty($subtask) && isset($subtask[0]['fdtasksgranularmaster'][0])) {
+            $this->updateMainTaskLastExec($subtask[0]['fdtasksgranularmaster'][0], $currentTime);
+          }
         }
       }
     } catch (Exception $e) {
@@ -380,5 +394,41 @@ class TaskGateway
       $result = json_encode(["Ldap Error" => "$e"]);
     }
     return $result;
+  }
+
+  /**
+   * @param string $repeatableSchedule
+   * @param string $currentTime
+   * @return string|null
+   * Note: Calculate the next execution time based on the repeatable schedule
+   */
+  private function calculateNextExecutionTime (string $repeatableSchedule, string $currentTime): ?string
+  {
+    $currentDateTime = new DateTime($currentTime);
+    $nextExecutionTime = clone $currentDateTime;
+
+    // Calculate next execution time based on repeatable schedule
+    switch ($repeatableSchedule) {
+      case 'Yearly':
+        $nextExecutionTime->modify('+1 year');
+        break;
+      case 'Monthly':
+        $nextExecutionTime->modify('+1 month');
+        break;
+      case 'Weekly':
+        $nextExecutionTime->modify('+1 week');
+        break;
+      case 'Daily':
+        $nextExecutionTime->modify('+1 day');
+        break;
+      case 'Hourly':
+        $nextExecutionTime->modify('+1 hour');
+        break;
+      default:
+        return NULL; // Invalid schedule type
+    }
+
+    // Return the next execution time in the same format as currentTime
+    return $nextExecutionTime->format('Y-m-d H:i:s');
   }
 }
