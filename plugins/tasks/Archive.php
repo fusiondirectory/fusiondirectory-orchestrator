@@ -38,6 +38,10 @@ class Archive implements EndpointInterface
 
     foreach ($archiveTasks as $task) {
       try {
+        // Initialize variables to avoid undefined variable errors
+        $mainTaskDn         = NULL;
+        $repeatableSchedule = NULL;
+
         if (!$this->gateway->statusAndScheduleCheck($task)) {
             // Skip this task if it does not meet the status and schedule criteria
             continue;
