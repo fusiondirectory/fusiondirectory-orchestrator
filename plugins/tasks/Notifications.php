@@ -5,13 +5,11 @@ class Notifications implements EndpointInterface
 
   private TaskGateway $gateway;
   private CoreUtils $coreUtils;
-  private MailUtils $mailUtils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
     $this->coreUtils = new CoreUtils();
-    $this->mailUtils = new MailUtils();
   }
 
   /**
@@ -67,8 +65,13 @@ class Notifications implements EndpointInterface
       if ($this->gateway->statusAndScheduleCheck($task)) {
 
         // Retrieve data from the main task
-        $notificationsMainTask     = $this->getNotificationsMainTask($task['fdtasksgranularmaster'][0]);
-        $notificationsMainTaskName = $task['fdtasksgranularmaster'][0];
+        $mainTaskDn = $task['fdtasksgranularmaster'][0];
+
+        $notificationsMainTask     = $this->getNotificationsMainTask($mainTaskDn);
+        $notificationsMainTaskName = $mainTaskDn;
+
+        // Get the repeatable schedule from the main task
+        $repeatableSchedule = $notificationsMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
 
         // Generate the mail form with all mail controller requirements
         $mailTemplateForm = $this->generateMainTaskMailTemplate($notificationsMainTask);
@@ -177,17 +180,25 @@ class Notifications implements EndpointInterface
    */
   private function verifySupannState (array $supannResource, array $auditedAttrs): bool
   {
-    $monitoredSupannState = '{' . $supannResource['resource'][0] . '}' . $supannResource['state'][0];
+    $result = FALSE;
 
     //Construct Supann Resource State as string
     if (!empty($supannResource['subState'][0])) {
-      $monitoredSupannState = $monitoredSupannState . ':' . $supannResource['subState'][0];
+      $monitoredSupannState = '{' . $supannResource['resource'][0] . '}' . $supannResource['state'][0] . ':' . $supannResource['subState'][0];
+    } else {
+      $monitoredSupannState = '{' . $supannResource['resource'][0] . '}' . $supannResource['state'][0];
     }
 
     // Get all the values only of a multidimensional array.
     $auditedValues = $this->coreUtils->getArrayValuesRecursive($auditedAttrs);
 
-    return in_array($monitoredSupannState, $auditedValues);
+    if (in_array($monitoredSupannState, $auditedValues)) {
+      $result = TRUE;
+    } else {
+      $result = FALSE;
+    }
+
+    return $result;
   }
 
   /**
@@ -197,9 +208,10 @@ class Notifications implements EndpointInterface
   public function getNotificationsMainTask (string $mainTaskDn): array
   {
     // Retrieve data from the main task
-    return $this->gateway->getLdapTasks('(objectClass=fdTasksNotifications)', ['fdTasksNotificationsListOfRecipientsMails',
+    return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksNotificationsListOfRecipientsMails',
       'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksNotificationsEmailSender',
-      'fdTasksNotificationsSubState', 'fdTasksNotificationsState', 'fdTasksNotificationsResource'],
+      'fdTasksNotificationsSubState', 'fdTasksNotificationsState', 'fdTasksNotificationsResource',
+      'fdTasksRepeatableSchedule'],
                                         '', $mainTaskDn);
   }
 
@@ -302,11 +314,14 @@ class Notifications implements EndpointInterface
   {
     $result = [];
     // Re-use of the same mail processing template logic
-    $fdTasksConf    = $this->mailUtils->getMailObjectConfiguration($this->gateway);
-    $maxMailsConfig = $this->mailUtils->returnMaximumMailToBeSend($fdTasksConf);
+    $fdTasksConf    = $this->gateway->getLdapTasks(
+      "(objectClass=fdTasksConf)",
+      ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
+    );
+    $maxMailsConfig = $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
 
     /*
-      Increment var starts a zero and added values will be the number or recipients per main tasks, as one mail is
+      Increment var starts a zero and added values will be the humber or recipients per main tasks, as one mail is
       sent per main task.
     */
     $maxMailsIncrement = 0;
@@ -314,14 +329,18 @@ class Notifications implements EndpointInterface
     foreach ($notifications as $data) {
       $numberOfRecipients = count($data['mailForm']['recipients']);
 
-      $mailSentResult = $this->mailUtils->sendMail($data['mailForm']['setFrom'],
-          NULL,
-          $data['mailForm']['recipients'],
-          $data['mailForm']['body'],
-          $data['mailForm']['signature'],
-          $data['mailForm']['subject'],
-          $data['mailForm']['receipt'],
-          NULL);
+      $mail_controller = new \FusionDirectory\Mail\MailLib(
+        $data['mailForm']['setFrom'],
+        NULL,
+        $data['mailForm']['recipients'],
+        $data['mailForm']['body'],
+        $data['mailForm']['signature'],
+        $data['mailForm']['subject'],
+        $data['mailForm']['receipt'],
+        NULL
+      );
+
+      $mailSentResult = $mail_controller->sendMail();
       $result[]       = $this->processMailResponseAndUpdateTasks($mailSentResult, $data, $fdTasksConf);
 
       // Verification anti-spam max mails to be sent and quit loop if matched.
@@ -346,25 +365,31 @@ class Notifications implements EndpointInterface
     $result = [];
     if ($serverResults[0] == "SUCCESS") {
       foreach ($subTask['subTask'] as $subTask => $details) {
+
+        // CN of the main task
+        $cn = $subTask;
         // DN of the main task
         $dn = $details['dn'];
 
-        $result = $this->updateResult($subTask, $dn, "2", 'Notification was successfully sent');
+        // Update task status for the current $dn
+        $result[$dn]['statusUpdate']       = $this->gateway->updateTaskStatus($dn, $cn, "2", $mainTaskDn, $repeatableSchedule);
+        $result[$dn]['mailStatus']         = 'Notification was successfully sent';
         $result[$dn]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($mailTaskBackend[0]["dn"]);
       }
     } else {
       foreach ($subTask['subTask'] as $subTask => $details) {
-        $result = $this->updateResult($subTask, $details['dn'], $serverResults[0], $serverResults);
+
+        // CN of the main task
+        $cn = $subTask;
+        // DN of the main task
+        $dn = $details['dn'];
+
+        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $serverResults[0], $mainTaskDn, $repeatableSchedule);
+        $result[$dn]['mailStatus']   = $serverResults;
       }
     }
 
     return $result;
   }
 
-  private function updateResult (string $cn, string $dn, string $code, $message): array
-  {
-      $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $code);
-      $result[$dn]['mailStatus']   = $message;
-      return $result;
-  }
 }
