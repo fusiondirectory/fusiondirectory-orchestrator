@@ -66,9 +66,14 @@ class Reminder implements EndpointInterface
 
         // Retrieve data from the main task
         $remindersMainTaskName = $task['fdtasksgranularmaster'][0]; //dn
+        // Get the main task DN
+        $mainTaskDn = $remindersMainTaskName;
         $remindersMainTask     = $this->getRemindersMainTask($remindersMainTaskName);
         // remove the count keys
         $this->gateway->unsetCountKeys($remindersMainTask);
+
+        // Get the repeatable schedule from the main task
+        $repeatableSchedule = $remindersMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
 
         // Retrieve email attribute for the monitored members requiring reminding.
         $mailOfTheReminded = $this->getEmailFromReminded($task['fdtasksgranulardn'][0]);
@@ -93,6 +98,8 @@ class Reminder implements EndpointInterface
             // Require to be set for updating the status of the task later on and sent the email.
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+            // Store repeatable schedule for later use in processMailResponseAndUpdateTasks
+            $reminders[$remindersMainTaskName]['repeatableSchedule'] = $repeatableSchedule;
             // Recipient email form
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $mailTemplateForm;
 
@@ -109,6 +116,8 @@ class Reminder implements EndpointInterface
             // Require to be set for updating the status of the task later on and sent the email.
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+            // Store repeatable schedule for later use in processMailResponseAndUpdateTasks
+            $reminders[$remindersMainTaskName]['repeatableSchedule'] = $repeatableSchedule;
 
             // Create timeStamp expiration for token
             $tokenExpire = $this->reminderTokenUtils->getTokenExpiration($task['fdtasksgranularhelper'][0],
@@ -136,6 +145,8 @@ class Reminder implements EndpointInterface
             // Require to be set for updating the status of the task later on and sent the email.
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+            // Store repeatable schedule for later use in processMailResponseAndUpdateTasks
+            $reminders[$remindersMainTaskName]['repeatableSchedule'] = $repeatableSchedule;
 
             // Create timeStamp expiration for token
             $tokenExpire = $this->reminderTokenUtils->getTokenExpiration($task['fdtasksgranularhelper'][0],
@@ -400,11 +411,12 @@ class Reminder implements EndpointInterface
   public function getRemindersMainTask (string $mainTaskDn): array
   {
     // Retrieve data from the main Reminder task
-    return $this->gateway->getLdapTasks(                                                                                                              '(objectClass=fdTasksReminder)', ['fdTasksReminderListOfRecipientsMails',
+    return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksReminderListOfRecipientsMails',
       'fdTasksReminderResource', 'fdTasksReminderState', 'fdTasksReminderPosix', 'fdTasksReminderMailTemplate',
       'fdTasksReminderSupannNewEndDate', 'fdTasksReminderRecipientsMembers', 'fdTasksReminderEmailSender',
       'fdTasksReminderAccountProlongation', 'fdTasksReminderMembers', 'fdTasksReminderNextResource',
-      'fdTasksReminderNextState', 'fdTasksReminderNextSubState', 'fdTasksReminderSubState', 'fdTasksReminderFirstCall', 'fdTasksReminderSecondCall'], '', $mainTaskDn);
+      'fdTasksReminderNextState', 'fdTasksReminderNextSubState', 'fdTasksReminderSubState', 'fdTasksReminderFirstCall', 'fdTasksReminderSecondCall',
+      'fdTasksRepeatableSchedule'], '', $mainTaskDn);
   }
 
   /**
@@ -514,11 +526,18 @@ class Reminder implements EndpointInterface
    * @param array $subTask
    * @param array $mailTaskBackend
    * @return array
-   * Note :
+   * Note : Process the mail response and update the task status with the main task DN and repeatable schedule
    */
   protected function processMailResponseAndUpdateTasks (array $serverResults, array $subTask, array $mailTaskBackend): array
   {
     $result = [];
+    // Extract the main task DN from the array key in $subTask
+    // The key in $subTask is the mainTaskDn (remindersMainTaskName)
+    $mainTaskDn = key($subTask);
+
+    // Get the repeatable schedule that we previously stored in the reminders array
+    $repeatableSchedule = isset($subTask[$mainTaskDn]['repeatableSchedule']) ? $subTask[$mainTaskDn]['repeatableSchedule'] : NULL;
+
     if ($serverResults[0] == "SUCCESS") {
       foreach ($subTask['subTask'] as $subTask => $details) {
 
@@ -527,8 +546,8 @@ class Reminder implements EndpointInterface
         // DN of the main task
         $dn = $details['dn'];
 
-        // Update task status for the current $dn
-        $result[$dn]['statusUpdate']       = $this->gateway->updateTaskStatus($dn, $cn, "2");
+        // Update task status for the current $dn with mainTaskDn and repeatableSchedule
+        $result[$dn]['statusUpdate']       = $this->gateway->updateTaskStatus($dn, $cn, "2", $mainTaskDn, $repeatableSchedule);
         $result[$dn]['mailStatus']         = 'reminder was successfully sent';
         $result[$dn]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($mailTaskBackend[0]["dn"]);
       }
@@ -540,7 +559,7 @@ class Reminder implements EndpointInterface
         // DN of the main task
         $dn = $details['dn'];
 
-        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $serverResults[0]);
+        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $serverResults[0], $mainTaskDn, $repeatableSchedule);
         $result[$dn]['mailStatus']   = $serverResults;
       }
     }
