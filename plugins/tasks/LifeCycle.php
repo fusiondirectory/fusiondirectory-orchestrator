@@ -238,7 +238,7 @@ class LifeCycle implements EndpointInterface
 
           if ($lifeCycleResult === "ACCOUNT_CLOSURE_APPLIED") {
             $result[$task['dn']]['results'] = json_encode("Account closure processed successfully for " . $task['fdtasksgranulardn'][0]);
-            // Status of the task must be updated to success
+            // Status of the subtask must be updated to success
             $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
             // Here the user is refresh in order to activate methods based on supann Status changes.
             $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
