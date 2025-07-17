@@ -520,7 +520,6 @@ class Reminder implements EndpointInterface
 
   /**
    * @param array $serverResults
-   * @param array $subTask
    * @param array $mailTaskBackend
    * @return array
    * Note : Process the mail response and update the task status with the main task DN and repeatable schedule
