@@ -480,18 +480,19 @@ class Reminder implements EndpointInterface
     */
     $maxMailsIncrement = 0;
 
-    // Each reminders
-    foreach ($reminders as $reminder) {
-      // Each main task reminder
-      foreach ($reminder as $reminderItem) {
-        // Each subTask reminder
-        foreach ($reminderItem as $mailDetails) {
+    // Each reminders (main tasks)
+    foreach ($reminders as $mainTaskDn => $reminder) {
+      // Get the repeatable schedule for this main task
+      $repeatableSchedule = $reminder['repeatableSchedule'] ?? NULL;
+
+      // Each subTask reminder
+      foreach ($reminder['subTask'] as $subTaskCn => $mailDetails) {
 
           // It is not impossible that only one recipient exist, therefore it won't be an array.
-          if (!is_array($mailDetails['mail']['recipients'])) {
-            // Simply transform the string into an array
-            $mailDetails['mail']['recipients'] = [$mailDetails['mail']['recipients']];
-          }
+        if (!is_array($mailDetails['mail']['recipients'])) {
+          // Simply transform the string into an array
+          $mailDetails['mail']['recipients'] = [$mailDetails['mail']['recipients']];
+        }
           $numberOfRecipients = count($mailDetails['mail']['recipients']);
 
           $mail_controller = new \FusionDirectory\Mail\MailLib(
@@ -506,17 +507,25 @@ class Reminder implements EndpointInterface
           );
 
           $mailSentResult = $mail_controller->sendMail();
+
+          // Create a simplified structure to pass to processMailResponseAndUpdateTasks
+          $taskInfo = [
+            'mainTaskDn' => $mainTaskDn,
+            'repeatableSchedule' => $repeatableSchedule,
+            'subTask' => [$subTaskCn => $mailDetails]
+          ];
+
           // Here we incremented as well the counter of spam to the backend.
-          $result[] = $this->processMailResponseAndUpdateTasks($mailSentResult, $reminder, $fdTasksConf);
+          $result[] = $this->processMailResponseAndUpdateTasks($mailSentResult, $taskInfo, $fdTasksConf);
 
           // Verification anti-spam max mails to be sent and quit loop if matched.
           $maxMailsIncrement += $numberOfRecipients;
           if ($maxMailsIncrement == $maxMailsConfig) {
             break;
           }
-        }
       }
     }
+
 
     return $result;
   }
@@ -528,18 +537,15 @@ class Reminder implements EndpointInterface
    * @return array
    * Note : Process the mail response and update the task status with the main task DN and repeatable schedule
    */
-  protected function processMailResponseAndUpdateTasks (array $serverResults, array $subTask, array $mailTaskBackend): array
+  protected function processMailResponseAndUpdateTasks (array $serverResults, array $taskInfo, array $mailTaskBackend): array
   {
     $result = [];
-    // Extract the main task DN from the array key in $subTask
-    // The key in $subTask is the mainTaskDn (remindersMainTaskName)
-    $mainTaskDn = key($subTask);
-
-    // Get the repeatable schedule that we previously stored in the reminders array
-    $repeatableSchedule = isset($subTask[$mainTaskDn]['repeatableSchedule']) ? $subTask[$mainTaskDn]['repeatableSchedule'] : NULL;
+    // Use the mainTaskDn and repeatableSchedule directly from the taskInfo
+    $mainTaskDn         = $taskInfo['mainTaskDn'];
+    $repeatableSchedule = $taskInfo['repeatableSchedule'];
 
     if ($serverResults[0] == "SUCCESS") {
-      foreach ($subTask['subTask'] as $subTask => $details) {
+      foreach ($taskInfo['subTask'] as $subTask => $details) {
 
         // CN of the main task
         $cn = $subTask;
@@ -552,7 +558,7 @@ class Reminder implements EndpointInterface
         $result[$dn]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($mailTaskBackend[0]["dn"]);
       }
     } else {
-      foreach ($subTask['subTask'] as $subTask => $details) {
+      foreach ($taskInfo['subTask'] as $subTask => $details) {
 
         // CN of the main task
         $cn = $subTask;
