@@ -5,13 +5,11 @@ class Reminder implements EndpointInterface
 
   private TaskGateway $gateway;
   private ReminderTokenUtils $reminderTokenUtils;
-  private MailUtils $mailUtils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
     $this->reminderTokenUtils = new ReminderTokenUtils();
-    $this->mailUtils = new MailUtils();
   }
 
   /**
@@ -78,7 +76,7 @@ class Reminder implements EndpointInterface
         $repeatableSchedule = $remindersMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
 
         // Retrieve email attribute for the monitored members requiring reminding.
-        $mailOfTheReminded = $this->getEmailFromReminder($task['fdtasksgranulardn'][0]);
+        $mailOfTheReminded = $this->getEmailFromReminded($task['fdtasksgranulardn'][0]);
 
         // Generate the mail form with all mail controller requirements
         $mailTemplateForm = $this->generateMainTaskMailTemplate($remindersMainTask, $mailOfTheReminded);
@@ -237,7 +235,7 @@ class Reminder implements EndpointInterface
    * @return string
    * Note : return the mail attribute from gosaMail objectclass.
    */
-  private function getEmailFromReminder (string $dn): string
+  private function getEmailFromReminded (string $dn): string
   {
     // in case the DN do not have an email set. - Return string FALSE.
     $result = "FALSE";
@@ -352,11 +350,13 @@ class Reminder implements EndpointInterface
   private function verifySupannState (array $reminderSupann, array $dnSupann): string
   {
     // Result will contain the supann resource matching.
-    $result               = '';
-    $monitoredSupannState = '{' . $reminderSupann['resource'][0] . '}' . $reminderSupann['state'][0];
+    $result = '';
+
     //Construct the reminder Supann Resource State as string
     if (!empty($reminderSupann['subState'][0])) {
-       $monitoredSupannState = $monitoredSupannState. ':' . $reminderSupann['subState'][0];
+      $monitoredSupannState = '{' . $reminderSupann['resource'][0] . '}' . $reminderSupann['state'][0] . ':' . $reminderSupann['subState'][0];
+    } else {
+      $monitoredSupannState = '{' . $reminderSupann['resource'][0] . '}' . $reminderSupann['state'][0];
     }
 
     if (!empty($dnSupann['supannressourceetat'])) {
@@ -468,7 +468,10 @@ class Reminder implements EndpointInterface
   {
     $result = [];
     // Re-use of the same mail processing template logic
-    $fdTasksConf    = $this->mailUtils->getMailObjectConfiguration($this->gateway);
+    $fdTasksConf    = $this->gateway->getLdapTasks(
+      "(objectClass=fdTasksConf)",
+      ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
+    );
     $maxMailsConfig = $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
 
     /*
@@ -477,39 +480,52 @@ class Reminder implements EndpointInterface
     */
     $maxMailsIncrement = 0;
 
-    // Each reminders
-    foreach ($reminders as $reminder) {
-      // Each main task reminder
-      foreach ($reminder as $reminderItem) {
-        // Each subTask reminder
-        foreach ($reminderItem as $mailDetails) {
+    // Each reminders (main tasks)
+    foreach ($reminders as $mainTaskDn => $reminder) {
+      // Get the repeatable schedule for this main task
+      $repeatableSchedule = $reminder['repeatableSchedule'] ?? NULL;
+
+      // Each subTask reminder
+      foreach ($reminder['subTask'] as $subTaskCn => $mailDetails) {
 
           // It is not impossible that only one recipient exist, therefore it won't be an array.
-          if (!is_array($mailDetails['mail']['recipients'])) {
-            // Simply transform the string into an array
-            $mailDetails['mail']['recipients'] = [$mailDetails['mail']['recipients']];
-          }
+        if (!is_array($mailDetails['mail']['recipients'])) {
+          // Simply transform the string into an array
+          $mailDetails['mail']['recipients'] = [$mailDetails['mail']['recipients']];
+        }
           $numberOfRecipients = count($mailDetails['mail']['recipients']);
 
-          $mailSentResult = $this->mailUtils->sendMail($mailDetails['mail']['setFrom'],
-              NULL,
-              $mailDetails['mail']['recipients'],
-              $mailDetails['mail']['body'],
-              $mailDetails['mail']['signature'],
-              $mailDetails['mail']['subject'],
-              $mailDetails['mail']['receipt'],
-              NULL);
+          $mail_controller = new \FusionDirectory\Mail\MailLib(
+            $mailDetails['mail']['setFrom'],
+            NULL,
+            $mailDetails['mail']['recipients'],
+            $mailDetails['mail']['body'],
+            $mailDetails['mail']['signature'],
+            $mailDetails['mail']['subject'],
+            $mailDetails['mail']['receipt'],
+            NULL
+          );
+
+          $mailSentResult = $mail_controller->sendMail();
+
+          // Create a simplified structure to pass to processMailResponseAndUpdateTasks
+          $taskInfo = [
+            'mainTaskDn' => $mainTaskDn,
+            'repeatableSchedule' => $repeatableSchedule,
+            'subTask' => [$subTaskCn => $mailDetails]
+          ];
+
           // Here we incremented as well the counter of spam to the backend.
-          $result[] = $this->processMailResponseAndUpdateTasks($mailSentResult, $reminder, $fdTasksConf);
+          $result[] = $this->processMailResponseAndUpdateTasks($mailSentResult, $taskInfo, $fdTasksConf);
 
           // Verification anti-spam max mails to be sent and quit loop if matched.
           $maxMailsIncrement += $numberOfRecipients;
           if ($maxMailsIncrement == $maxMailsConfig) {
             break;
           }
-        }
       }
     }
+
 
     return $result;
   }
@@ -521,18 +537,15 @@ class Reminder implements EndpointInterface
    * @return array
    * Note : Process the mail response and update the task status with the main task DN and repeatable schedule
    */
-  protected function processMailResponseAndUpdateTasks (array $serverResults, array $subTask, array $mailTaskBackend): array
+  protected function processMailResponseAndUpdateTasks (array $serverResults, array $taskInfo, array $mailTaskBackend): array
   {
     $result = [];
-    // Extract the main task DN from the array key in $subTask
-    // The key in $subTask is the mainTaskDn (remindersMainTaskName)
-    $mainTaskDn = key($subTask);
-
-    // Get the repeatable schedule that we previously stored in the reminders array
-    $repeatableSchedule = isset($subTask[$mainTaskDn]['repeatableSchedule']) ? $subTask[$mainTaskDn]['repeatableSchedule'] : NULL;
+    // Use the mainTaskDn and repeatableSchedule directly from the taskInfo
+    $mainTaskDn         = $taskInfo['mainTaskDn'];
+    $repeatableSchedule = $taskInfo['repeatableSchedule'];
 
     if ($serverResults[0] == "SUCCESS") {
-      foreach ($subTask['subTask'] as $subTask => $details) {
+      foreach ($taskInfo['subTask'] as $subTask => $details) {
 
         // CN of the main task
         $cn = $subTask;
@@ -545,7 +558,7 @@ class Reminder implements EndpointInterface
         $result[$dn]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($mailTaskBackend[0]["dn"]);
       }
     } else {
-      foreach ($subTask['subTask'] as $subTask => $details) {
+      foreach ($taskInfo['subTask'] as $subTask => $details) {
 
         // CN of the main task
         $cn = $subTask;
@@ -559,4 +572,5 @@ class Reminder implements EndpointInterface
 
     return $result;
   }
+
 }
