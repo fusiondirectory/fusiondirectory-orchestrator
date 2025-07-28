@@ -495,18 +495,15 @@ class Reminder implements EndpointInterface
         }
           $numberOfRecipients = count($mailDetails['mail']['recipients']);
 
-          $mail_controller = new \FusionDirectory\Mail\MailLib(
-            $mailDetails['mail']['setFrom'],
-            NULL,
-            $mailDetails['mail']['recipients'],
-            $mailDetails['mail']['body'],
-            $mailDetails['mail']['signature'],
-            $mailDetails['mail']['subject'],
-            $mailDetails['mail']['receipt'],
-            NULL
-          );
-
-          $mailSentResult = $mail_controller->sendMail();
+          $mailSentResult = $this->mailUtils->sendMail(
+              $mailDetails['mail']['setFrom'],
+              NULL,
+              $mailDetails['mail']['recipients'],
+              $mailDetails['mail']['body'],
+              $mailDetails['mail']['signature'],
+              $mailDetails['mail']['subject'],
+              $mailDetails['mail']['receipt'],
+              NULL);
 
           // Create a simplified structure to pass to processMailResponseAndUpdateTasks
           $taskInfo = [
