@@ -341,7 +341,7 @@ class Reminder implements EndpointInterface
   private function verifySupannState (array $reminderSupann, array $dnSupann): string
   {
     // Result will contain the supann resource matching.
-    $result = '';
+    $result               = '';
     $monitoredSupannState = '{' . $reminderSupann['resource'][0] . '}' . $reminderSupann['state'][0];
     //Construct the reminder Supann Resource State as string
     if (!empty($reminderSupann['subState'][0])) {
