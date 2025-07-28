@@ -68,6 +68,10 @@ class AutomaticGroups implements EndpointInterface
 
     foreach ($automaticGroupsTasks as $task) {
       try {
+        // Initialize variables to avoid undefined variable errors
+        $mainTaskDn         = NULL;
+        $repeatableSchedule = NULL;
+
         // Check if task should be processed (status and schedule)
         if (!$this->gateway->statusAndScheduleCheck($task)) {
           continue;
@@ -80,7 +84,11 @@ class AutomaticGroups implements EndpointInterface
         }
 
         // Get main task configuration
-        $mainTaskConfig = $this->getAutomaticGroupsMainTask($task['fdtasksgranularmaster'][0]);
+        $mainTaskDn = $task['fdtasksgranularmaster'][0];
+        $mainTaskConfig = $this->getAutomaticGroupsMainTask($mainTaskDn);
+
+        // Get the repeatable schedule from the main task
+        $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
 
         // Get target group and resource/state criteria
         $targetGroup   = $mainTaskConfig[0]['fdtasksautomaticgroupsofname'][0] ?? NULL;
@@ -128,10 +136,10 @@ class AutomaticGroups implements EndpointInterface
 
         // Update task status
         $result[$task['dn']]['result'] = implode(PHP_EOL, $resultMessage);
-        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
       } catch (Exception $e) {
         $result[$task['dn']]['result'] = "Error processing task: " . $e->getMessage();
-        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
+        $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
       }
     }
 
@@ -167,13 +175,21 @@ class AutomaticGroups implements EndpointInterface
 
     foreach ($dynamicGroupTasks as $task) {
       try {
+        // Initialize variables to avoid undefined variable errors
+        $mainTaskDn         = NULL;
+        $repeatableSchedule = NULL;
+
         // Check if task should be processed (status and schedule)
         if (!$this->gateway->statusAndScheduleCheck($task)) {
           continue;
         }
 
         // Get main task configuration
-        $mainTaskConfig = $this->getAutomaticGroupsMainTask($task['fdtasksgranularmaster'][0]);
+        $mainTaskDn = $task['fdtasksgranularmaster'][0];
+        $mainTaskConfig = $this->getAutomaticGroupsMainTask($mainTaskDn);
+
+        // Get the repeatable schedule from the main task
+        $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
 
         // Get pre-computed values for dynamic group
         $dynamicURL    = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicurl'][0] ?? NULL;
@@ -204,10 +220,10 @@ class AutomaticGroups implements EndpointInterface
 
         // Update task status
         $result[$task['dn']]['result'] = implode(PHP_EOL, $resultMessage);
-        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
       } catch (Exception $e) {
         $result[$task['dn']]['result'] = "Error processing task: " . $e->getMessage();
-        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
+        $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
       }
     }
 
@@ -223,7 +239,7 @@ class AutomaticGroups implements EndpointInterface
   private function getAutomaticGroupsMainTask (string $mainTaskDn): array
   {
     return $this->gateway->getLdapTasks(
-      '(objectClass=fdTasksAutomaticGroups)',
+      '(objectClass=*)',
       [
         'fdTasksAutomaticGroupsOfName',
         'fdTasksAutomaticGroupsPreResource',
@@ -233,6 +249,7 @@ class AutomaticGroups implements EndpointInterface
         'fdTasksAutomaticGroupsDynamicURL',
         'fdTasksAutomaticGroupsDynamicName',
         'fdtasksautomaticgroupsregexpattern',
+        'fdTasksRepeatableSchedule',
       ],
       '',
       $mainTaskDn
@@ -321,29 +338,29 @@ class AutomaticGroups implements EndpointInterface
     }
   }
 
-  private function getFailedMessage(string $userDn, string $message, string $groupDn): string
+  private function getFailedMessage (string $userDn, string $message, string $groupDn): string
   {
-      switch ($message) {
-          case 'create':
-              return "Failed to create dynamic group: ";
-          case 'add':
-              return "Failed to add $userDn to group $groupDn: ";
-          default:
-              return "Failed to remove $userDn to group $groupDn: ";
-      }
+    switch ($message) {
+      case 'create':
+        return "Failed to create dynamic group: ";
+      case 'add':
+        return "Failed to add $userDn to group $groupDn: ";
+      default:
+        return "Failed to remove $userDn to group $groupDn: ";
+    }
   }
-  
-  private function getErrorMessage(string $message): string
+
+  private function getErrorMessage (string $message): string
   {
-      switch ($message) {
-          case 'create':
-              return "Error creating dynamic group: ";
-          case 'add':
-              return "Error adding member to group: ";
-          default:
-              return "Error removing member to group: ";
-      }
-  }  
+    switch ($message) {
+      case 'create':
+        return "Error creating dynamic group: ";
+      case 'add':
+        return "Error adding member to group: ";
+      default:
+        return "Error removing member to group: ";
+    }
+  }
 
   /**
    * Add user to LDAP group
