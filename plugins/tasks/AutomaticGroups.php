@@ -125,33 +125,13 @@ class AutomaticGroups implements EndpointInterface
                   // If one match then quit
                   break;
                 }
-
               }
             }
-
-            // If we found a match, add the user to the group
-            if ($shouldAddToGroup) {
-              $this->addUserToGroup($userDn, $targetGroup);
-              $resultMessage[] = "User $userDn successfully added to group $targetGroup";
-            } else { // If no match found, remove the user from the group although it might not be in it.
-              $this->removeUserFromGroup($userDn, $targetGroup);
-              $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
-            }
-
-            // If no pattern, just check the user state directly
           } else {
             $userSupannState = $this->getUserSupannState($userDn);
             $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resource, $state, $subState);
-
-            // Add/remove user from group based on criteria
-            if ($shouldAddToGroup) {
-              $this->addUserToGroup($userDn, $targetGroup);
-              $resultMessage[] = "User $userDn successfully added to group $targetGroup";
-            } else {
-              $this->removeUserFromGroup($userDn, $targetGroup);
-              $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
-            }
           }
+          $resultMessage = $this->manageGroup($shouldAddToGroup, $userDn, $targetGroup);
         }
 
         // Update task status
@@ -164,6 +144,18 @@ class AutomaticGroups implements EndpointInterface
     }
 
     return $result;
+  }
+
+  private function manageGroup (bool $shouldAddToGroup, string $userDn, string $targetGroup)
+  {
+    if ($shouldAddToGroup) {
+      $this->addUserToGroup($userDn, $targetGroup);
+      $resultMessage[] = "User $userDn successfully added to group $targetGroup";
+    } else {
+      $this->removeUserFromGroup($userDn, $targetGroup);
+      $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
+    }
+    return $resultMessage;
   }
 
   /**
@@ -300,11 +292,9 @@ class AutomaticGroups implements EndpointInterface
 
     foreach ($userSupannState[0]['supannressourceetat'] as $value) {
       // Create the expected format for comparison
-      $expectedState = '';
-      if (!empty($subState)) {
-        $expectedState = '{' . $resource . '}' . $state . ':' . $subState;
-      } else {
         $expectedState = '{' . $resource . '}' . $state;
+      if (!empty($subState)) {
+        $expectedState = $expectedState . ':' . $subState;
       }
 
       if ($value === $expectedState) {
@@ -313,6 +303,63 @@ class AutomaticGroups implements EndpointInterface
     }
 
     return FALSE;
+  }
+
+  private function getGroupMembers (string $groupDn): array
+  {
+    $groupInfo = $this->gateway->getLdapTasks(
+      '(objectClass=groupOfNames)',
+      ['member'],
+      '',
+      $groupDn
+    );
+    $this->gateway->unsetCountKeys($groupInfo);
+    return $groupInfo[0]['member'] ?? [];
+  }
+
+  /**
+   * @throws Exception
+  */
+  private function updateLdap (string $groupDn, array $entry, string $message, string $userDn = ''): bool
+  {
+    // Update the group in LDAP
+    try {
+      if ($message === "create") {
+          $result = ldap_add($this->gateway->ds, $groupDn, $entry);
+      } else {
+          $result = ldap_modify($this->gateway->ds, $groupDn, $entry);
+      }
+      if (!$result) {
+        throw new Exception($this->getFailedMessage($userDn, $message, $groupDn) . ldap_error($this->gateway->ds));
+      }
+      return TRUE;
+    } catch (Exception $e) {
+      throw new Exception($this->getErrorMessage($message) . $e->getMessage());
+    }
+  }
+
+  private function getFailedMessage (string $userDn, string $message, string $groupDn): string
+  {
+    switch ($message) {
+      case 'create':
+        return "Failed to create dynamic group: ";
+      case 'add':
+        return "Failed to add $userDn to group $groupDn: ";
+      default:
+        return "Failed to remove $userDn to group $groupDn: ";
+    }
+  }
+
+  private function getErrorMessage (string $message): string
+  {
+    switch ($message) {
+      case 'create':
+        return "Error creating dynamic group: ";
+      case 'add':
+        return "Error adding member to group: ";
+      default:
+        return "Error removing member to group: ";
+    }
   }
 
   /**
@@ -326,15 +373,7 @@ class AutomaticGroups implements EndpointInterface
   private function addUserToGroup (string $userDn, string $groupDn): bool
   {
     // Get current group members
-    $groupInfo = $this->gateway->getLdapTasks(
-      '(objectClass=groupOfNames)',
-      ['member'],
-      '',
-      $groupDn
-    );
-
-    $this->gateway->unsetCountKeys($groupInfo);
-    $members = $groupInfo[0]['member'] ?? [];
+    $members = $this->getGroupMembers($groupDn);
 
     // If member is already in the group, nothing to do
     if (in_array($userDn, $members)) {
@@ -345,16 +384,7 @@ class AutomaticGroups implements EndpointInterface
     $members[] = $userDn;
     $entry = ['member' => $members];
 
-    // Update the group in LDAP
-    try {
-      $result = ldap_modify($this->gateway->ds, $groupDn, $entry);
-      if (!$result) {
-        throw new Exception("Failed to add $userDn to group $groupDn: " . ldap_error($this->gateway->ds));
-      }
-      return TRUE;
-    } catch (Exception $e) {
-      throw new Exception("Error adding member to group: " . $e->getMessage());
-    }
+    return $this->updateLdap($groupDn, $entry, "add", $userDn);
   }
 
   /**
@@ -368,15 +398,7 @@ class AutomaticGroups implements EndpointInterface
   private function removeUserFromGroup (string $userDn, string $groupDn): bool
   {
     // Get current group members
-    $groupInfo = $this->gateway->getLdapTasks(
-      '(objectClass=groupOfNames)',
-      ['member'],
-      '',
-      $groupDn
-    );
-
-    $this->gateway->unsetCountKeys($groupInfo);
-    $members = $groupInfo[0]['member'] ?? [];
+    $members = $this->getGroupMembers($groupDn);
 
     // If member is not in the group, nothing to do
     if (!in_array($userDn, $members)) {
@@ -393,16 +415,7 @@ class AutomaticGroups implements EndpointInterface
 
     $entry = ['member' => $members];
 
-    // Update the group in LDAP
-    try {
-      $result = ldap_modify($this->gateway->ds, $groupDn, $entry);
-      if (!$result) {
-        throw new Exception("Failed to remove $userDn from group $groupDn: " . ldap_error($this->gateway->ds));
-      }
-      return TRUE;
-    } catch (Exception $e) {
-      throw new Exception("Error removing member from group: " . $e->getMessage());
-    }
+    return $this->updateLdap($groupDn, $entry, "remove", $userDn);
   }
 
   /**
@@ -446,15 +459,6 @@ class AutomaticGroups implements EndpointInterface
         'description' => $description
     ];
 
-    try {
-        // Create the dynamic group
-        $result = ldap_add($this->gateway->ds, $groupDN, $entry);
-      if (!$result) {
-          throw new Exception("Failed to create dynamic group: " . ldap_error($this->gateway->ds));
-      }
-        return TRUE;
-    } catch (Exception $e) {
-        throw new Exception("Error creating dynamic group: " . $e->getMessage());
-    }
+    return $this->updateLdap($groupDN, $entry, "create");
   }
 }
