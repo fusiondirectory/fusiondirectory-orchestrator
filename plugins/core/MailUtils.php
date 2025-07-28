@@ -31,4 +31,15 @@ class MailUtils
       ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
     );
   }
+
+  /**
+   * @param array $fdTasksConf
+   * @return int
+   * Note : Allows a safety check in case mail configuration backed within FD has been missed. (50).
+   */
+  public function returnMaximumMailToBeSend (array $fdTasksConf): int
+  {
+    // set the maximum mails to be sent to the configured value or 50 if not set.
+    return $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
+  }
 }
