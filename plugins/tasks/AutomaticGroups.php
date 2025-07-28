@@ -338,29 +338,29 @@ class AutomaticGroups implements EndpointInterface
     }
   }
 
-  private function getFailedMessage(string $userDn, string $message, string $groupDn): string
+  private function getFailedMessage (string $userDn, string $message, string $groupDn): string
   {
-      switch ($message) {
-          case 'create':
-              return "Failed to create dynamic group: ";
-          case 'add':
-              return "Failed to add $userDn to group $groupDn: ";
-          default:
-              return "Failed to remove $userDn to group $groupDn: ";
-      }
+    switch ($message) {
+      case 'create':
+        return "Failed to create dynamic group: ";
+      case 'add':
+        return "Failed to add $userDn to group $groupDn: ";
+      default:
+        return "Failed to remove $userDn to group $groupDn: ";
+    }
   }
-  
-  private function getErrorMessage(string $message): string
+
+  private function getErrorMessage (string $message): string
   {
-      switch ($message) {
-          case 'create':
-              return "Error creating dynamic group: ";
-          case 'add':
-              return "Error adding member to group: ";
-          default:
-              return "Error removing member to group: ";
-      }
-  }  
+    switch ($message) {
+      case 'create':
+        return "Error creating dynamic group: ";
+      case 'add':
+        return "Error adding member to group: ";
+      default:
+        return "Error removing member to group: ";
+    }
+  }
 
   /**
    * Add user to LDAP group
