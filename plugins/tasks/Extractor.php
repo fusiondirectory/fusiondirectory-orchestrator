@@ -3,10 +3,14 @@
 class Extractor implements EndpointInterface
 {
   private TaskGateway $gateway;
+  private CoreUtils $utils;
+  private MailUtils $mailUtils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
+    $this->utils = new CoreUtils();
+    $this->mailUtils = new MailUtils();
   }
 
   /**
@@ -100,7 +104,7 @@ class Extractor implements EndpointInterface
         }
 
         // Create directory if it doesn't exist
-        $this->ensureDirectoryExists($path);
+        $this->utils->ensureDirectoryExists($path);
 
         // Get main task CN for filename
         $mainTaskCn = $this->getMainTaskCn($mainTaskDn);
@@ -160,58 +164,14 @@ class Extractor implements EndpointInterface
             $recipients = $mainTaskDetails[0]['fdextractorlistofrecipientsmails'] ?? [];
             $this->gateway->unsetCountKeys($recipients);
 
-            // Compose mail subject/body
-            $subject    = "FusionDirectory Extractor - Export file";
-            $body       = "Your requested extract is attached.\n\nFile: $filename";
-            $signature  = NULL;
-            $receipt    = NULL;
-
-            // Prepare attachment
-            $attachments = [[
-                'cn' => basename($filename),
-                'content' => file_get_contents($filename)
-            ]];
-
-            if (empty($sender) || empty($recipients)) {
-                $finalMessage = "Batch extraction successful to $filename. Email not sent: sender or recipient missing.";
-              if (!empty($errors)) {
-                  $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
-              }
-                $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
-                $result[$task['dn']]['result'] = $finalMessage;
-            } else {
-                // Send mail using MailLib
-                $mail_controller = new \FusionDirectory\Mail\MailLib(
-                    $sender,
-                    NULL,
-                    $recipients,
-                    $body,
-                    $signature,
-                    $subject,
-                    $receipt,
-                    $attachments
-                );
-                $mailSentResult = $mail_controller->sendMail();
-
-              if ($mailSentResult[0] == "SUCCESS") {
-                  $finalMessage = "Batch extraction successful to $filename. Email sent to recipients.";
-                if (!empty($errors)) {
-                    $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
-                }
-                  $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-                  $result[$task['dn']]['result'] = $finalMessage;
-              } else {
-                  $errorMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
-                  $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $errorMessage);
-                  $result[$task['dn']]['result'] = $errorMessage;
-              }
-            }
+            $finalMessage = $this->getFinalMessage($filename, $task, $recipients, $sender, $errors);
+            $result[$task['dn']]['result'] = $finalMessage;
             // --- EMAIL LOGIC END ---
         } else {
-            $errorMessage = "Failed to write batch data to $filename.";
+            $finalMessage = "Failed to write batch data to $filename.";
             // Update the status to error ('1')
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $errorMessage);
-            $result[$task['dn']]['result'] = $errorMessage;
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+            $result[$task['dn']]['result'] = $finalMessage;
             continue;
         }
 
@@ -227,6 +187,41 @@ class Extractor implements EndpointInterface
     }
 
     return $result;
+  }
+
+  private function getFinalMessage (string $filename, array $task, array $recipients, $sender, array $errors): string
+  {
+      $subject    = "FusionDirectory Extractor - Export file";
+      $body       = "Your requested extract is attached.\n\nFile: $filename";
+      // Prepare attachment
+      $attachments = [[
+          'cn' => basename($filename),
+          'content' => file_get_contents($filename)
+      ]];
+
+      if (empty($sender) || empty($recipients)) {
+        $finalMessage = "Batch extraction successful to $filename. Email not sent: sender or recipient missing.";
+        if (!empty($errors)) {
+              $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
+        }
+        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+      } else {
+          // Send mail using MailLib
+        $mailSentResult = $this->mailUtils->sendMail($sender, NULL, $recipients,
+              $body, NULL, $subject, NULL, $attachments);
+
+        if ($mailSentResult[0] == "SUCCESS") {
+          $finalMessage = "Batch extraction successful to $filename. Email sent to recipients.";
+          if (!empty($errors)) {
+                  $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
+          }
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+        } else {
+          $finalMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+        }
+      }
+      return $finalMessage;
   }
 
   /**
@@ -291,22 +286,6 @@ class Extractor implements EndpointInterface
     // Process and return user data
     $this->gateway->unsetCountKeys($userData);
     return $userData;
-  }
-
-  /**
-   * @param string $path
-   * @return bool
-   * @throws Exception
-   * Note: Create directory if it doesn't exist.
-   */
-  private function ensureDirectoryExists (string $path): bool
-  {
-    if (!is_dir($path)) {
-      if (!mkdir($path, 0755, TRUE)) {
-        throw new Exception("Failed to create directory: $path");
-      }
-    }
-    return TRUE;
   }
 
   /**
