@@ -482,7 +482,8 @@ class Reminder implements EndpointInterface
           }
           $numberOfRecipients = count($mailDetails['mail']['recipients']);
 
-          $mailSentResult = $this->mailUtils->sendMail($mailDetails['mail']['setFrom'],
+          $mailSentResult = $this->mailUtils->sendMail(
+              $mailDetails['mail']['setFrom'],
               NULL,
               $mailDetails['mail']['recipients'],
               $mailDetails['mail']['body'],
