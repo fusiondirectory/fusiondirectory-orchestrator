@@ -192,12 +192,12 @@ class Audit implements EndpointInterface
               // Extract date parts from LDAP format
               $dateStr = $entry['fdauditdatetime'][0];
               if (preg_match('/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/', $dateStr, $matches)) {
-                $year   = $matches[1];
-                $month  = $matches[2];
-                $day  = $matches[3];
-                $hour   = $matches[4];
-                $min  = $matches[5];
-                $sec  = $matches[6];
+                $year  = $matches[1];
+                $month = $matches[2];
+                $day   = $matches[3];
+                $hour  = $matches[4];
+                $min   = $matches[5];
+                $sec   = $matches[6];
 
                 // Create a datetime object in UTC first, then convert to local timezone
                 $dt = new DateTime("$year-$month-$day $hour:$min:$sec", new DateTimeZone('UTC'));
