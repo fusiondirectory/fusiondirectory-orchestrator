@@ -41,7 +41,7 @@ class Ldap
      * @return array
      * Note : A generic method allowing to search in LDAP.
      */
-  public function searchInLdap ($ds, string $filter = '', array $attrs = [], string $dn = NULL): array
+  public function searchInLdap (#[PhpVersionAware(['8.1' => 'LDAP\Connection'], default: 'resource')] $ds, string $filter = '', array $attrs = [], string $dn = NULL): array
   {
       $result = [];
 
