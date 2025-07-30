@@ -3,10 +3,12 @@
 class Audit implements EndpointInterface
 {
   private TaskGateway $gateway;
+  private CoreUtils $utils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
+    $this->utils = new CoreUtils();
   }
 
   /**
@@ -55,17 +57,15 @@ class Audit implements EndpointInterface
     }
 
     // Recursive function to filter out empty arrays at any depth
-    $nonEmptyResults = $this->recursiveArrayFilter($result);
+    $nonEmptyResults = $this->utils->recursiveArrayFilter($result);
 
     if (!empty($nonEmptyResults)) {
       return $nonEmptyResults;
-    } else {
-      if ($auditType === 'syslog') {
-        return ['No audit entries requiring transformation'];
-      } else {
-        return ['No standard audit entries requiring removal'];
-      }
     }
+    if ($auditType === 'syslog') {
+      return ['No audit entries requiring transformation'];
+    }
+    return ['No standard audit entries requiring removal'];
   }
 
   /**
@@ -75,29 +75,29 @@ class Audit implements EndpointInterface
    */
   public function processAuditDeletion (array $auditSubTasks): array
   {
-    $result = [];
+    return array_values(array_map(
+      function ($task) {
+        return $this->processScheduledTask($task);
+      },
+      array_filter($auditSubTasks, function ($task) {
+        return $this->gateway->statusAndScheduleCheck($task);
+      })
+    ));
+  }
 
-    foreach ($auditSubTasks as $task) {
-
-      // If the tasks must be treated - status and scheduled - process the sub-tasks
-      if ($this->gateway->statusAndScheduleCheck($task)) {
-
-        // Get the main task DN
-        $mainTaskDn = $task['fdtasksgranularmaster'][0];
-
-        // Retrieve data from the main task.
-        $auditMainTask = $this->getAuditMainTask($mainTaskDn);
-        // Simply get the days to retain audit.
-        $auditRetention = $auditMainTask[0]['fdaudittasksretention'][0];
-        // Get the repeatable schedule from the main task
-        $repeatableSchedule = $auditMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
-
-        // Verification of all audit and their potential removal based on retention days passed, also update subtasks.
-        $result[] = $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0], $mainTaskDn, $repeatableSchedule);
-      }
-    }
-
-    return $result;
+  /**
+   * @param array $task
+   * @return array
+   * @throws Exception
+   */
+  private function processScheduledTask (array $task): array
+  {
+    // Retrieve data from the main task.
+    $auditMainTask  = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
+    // Simply get the days to retain audit.
+    $auditRetention = $auditMainTask[0]['fdaudittasksretention'][0];
+    // Verification of all audit and their potential removal based on retention days passed, also update subtasks.
+    return $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0]);
   }
 
   /**
@@ -110,24 +110,17 @@ class Audit implements EndpointInterface
     $result = [];
 
     $path = '/var/log/fusiondirectory/';
-    $this->ensureDirectoryExists($path);
+    $this->utils->ensureDirectoryExists($path);
 
     foreach ($syslogAuditSubTasks as $task) {
       try {
-        // Initialize variables to avoid undefined variable errors
-        $mainTaskDn         = NULL;
-        $repeatableSchedule = NULL;
-
         // If the task must be treated - status and scheduled - process the sub-tasks
         if ($this->gateway->statusAndScheduleCheck($task)) {
           // Retrieve data from the main task
-          $mainTaskDn = $task['fdtasksgranularmaster'][0];
 
-          $auditMainTask = $this->getAuditMainTask($mainTaskDn);
+          $auditMainTask = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
           // Get the prefix from the main task configuration (default to 'fd_syslog' if not set)
           $prefix = $auditMainTask[0]['fdauditsyslogprefix'][0] ?? 'fd_syslog';
-          // Get the repeatable schedule from the main task
-          $repeatableSchedule = $auditMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
 
           // Get the most recent audit timestamp that was already processed
           $lastProcessedTime = NULL;
@@ -135,16 +128,16 @@ class Audit implements EndpointInterface
           // Check if we have a state file recording last processed time (with prefix)
           $stateFile = $path . $prefix . '-last-processed.txt';
           if (file_exists($stateFile)) {
-              $fileContent = trim(file_get_contents($stateFile));
+            $fileContent = trim(file_get_contents($stateFile));
             if (!empty($fileContent)) {
-                $lastProcessedTime = $fileContent;
+              $lastProcessedTime = $fileContent;
             }
           }
 
           // Only process entries newer than last processed
           $filter = '(objectClass=fdAuditEvent)';
           if ($lastProcessedTime !== NULL) {
-              $filter = "(&(objectClass=fdAuditEvent)(fdauditdatetime>=$lastProcessedTime))";
+            $filter = "(&(objectClass=fdAuditEvent)(fdauditdatetime>=$lastProcessedTime))";
           }
 
           // Get only new audit entries
@@ -153,7 +146,7 @@ class Audit implements EndpointInterface
 
           // Check if there are no audit entries
           if (count($auditEntries) === 0) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
             $result[] = ["dn" => $task['dn'], "message" => "No audit entries found to transform"];
             continue;
           }
@@ -199,12 +192,12 @@ class Audit implements EndpointInterface
               // Extract date parts from LDAP format
               $dateStr = $entry['fdauditdatetime'][0];
               if (preg_match('/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/', $dateStr, $matches)) {
-                $year   = $matches[1];
-                $month  = $matches[2];
-                $day    = $matches[3];
-                $hour   = $matches[4];
-                $min    = $matches[5];
-                $sec    = $matches[6];
+                $year  = $matches[1];
+                $month = $matches[2];
+                $day   = $matches[3];
+                $hour  = $matches[4];
+                $min   = $matches[5];
+                $sec   = $matches[6];
 
                 // Create a datetime object in UTC first, then convert to local timezone
                 $dt = new DateTime("$year-$month-$day $hour:$min:$sec", new DateTimeZone('UTC'));
@@ -217,52 +210,7 @@ class Audit implements EndpointInterface
               $timestamp = date('M d H:i:s');
             }
 
-            // Get hostname (use IP if available, otherwise use system hostname)
-            $hostname = isset($entry['fdauditauthorip'][0]) ?
-                       $entry['fdauditauthorip'][0] : gethostname();
-
-            // Get user information (use DN if available)
-            $user = isset($entry['fdauditauthordn'][0]) ?
-                   $entry['fdauditauthordn'][0] : 'unknown';
-
-            // Get action
-            $action = isset($entry['fdauditaction'][0]) ?
-                     $entry['fdauditaction'][0] : 'unknown';
-
-            // Get object type and object
-            $objectType = isset($entry['fdauditobjecttype'][0]) ?
-                         $entry['fdauditobjecttype'][0] : '';
-
-            $object = isset($entry['fdauditobject'][0]) ?
-                     $entry['fdauditobject'][0] : '';
-
-            // Get result
-            $auditResult = isset($entry['fdauditresult'][0]) ?
-                         $entry['fdauditresult'][0] : '';
-
-            // Format the syslog message
-            // <priority>timestamp hostname tag: message
-            $syslogMessage = "<local4.info>$timestamp $hostname FusionDirectory-Audit: ";
-            $syslogMessage .= "id=\"" . $auditId . "\" ";
-            $syslogMessage .= "user=\"$user\" ";
-            $syslogMessage .= "action=\"$action\" ";
-
-            if (!empty($objectType)) {
-              $syslogMessage .= "objectType=\"$objectType\" ";
-            }
-
-            if (!empty($object)) {
-              $syslogMessage .= "object=\"$object\" ";
-            }
-
-            if (!empty($auditResult)) {
-              $syslogMessage .= "result=\"$auditResult\" ";
-            }
-
-            // Add attributes if available (contains changes made)
-            if (isset($entry['fdauditattributes'][0])) {
-              $syslogMessage .= "changes=\"" . $entry['fdauditattributes'][0] . "\" ";
-            }
+            $syslogMessage = $this->createSyslogMessage($entry, $timestamp, $auditId);
 
             // Write the message to the file
             fwrite($handle, $syslogMessage . PHP_EOL);
@@ -290,7 +238,7 @@ class Audit implements EndpointInterface
           }
 
           // Update task status
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
 
           // Include information about skipped entries in the result message
           $resultMsg = "Successfully transformed $count audit entries to syslog format in $filename";
@@ -301,7 +249,7 @@ class Audit implements EndpointInterface
           $result[] = ["dn" => $task['dn'], "message" => $resultMsg];
         }
       } catch (Exception $e) {
-        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
+        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
         $result[] = ["dn" => $task['dn'], "message" => "Error transforming audit entries: " . $e->getMessage()];
       }
     }
@@ -316,26 +264,26 @@ class Audit implements EndpointInterface
    */
   public function getAuditMainTask (string $mainTaskDn): array
   {
-    // Retrieve data from the main task, including the repeatable schedule
-    return $this->gateway->getLdapTasks('(objectClass=*)', ['fdAuditTasksRetention', 'fdAuditSyslogPrefix', 'fdTasksRepeatableSchedule'], '', $mainTaskDn);
+    // Retrieve data from the main task
+    return $this->gateway->getLdapTasks('(objectClass=fdAuditTasks)', ['fdAuditTasksRetention', 'fdAuditSyslogPrefix'], '', $mainTaskDn);
   }
 
   /**
-   * @param $auditRetention
+   * @param int $auditRetention
    * @return array
    * Note : This will return a validation of audit log suppression
    * @throws Exception
    */
-  public function checkAuditPassedRetention ($auditRetention, $subTaskDN, $subTaskCN, $mainTaskDn = NULL, $repeatableSchedule = NULL): array
+  public function checkAuditPassedRetention (int $auditRetention, $subTaskDN, $subTaskCN): array
   {
-    $auditLib = new FusionDirectory\Audit\AuditLib($auditRetention, $this->returnLdapAuditEntries(), $this->gateway, $subTaskDN, $subTaskCN, $mainTaskDn, $repeatableSchedule);
+    $auditLib = new FusionDirectory\Audit\AuditLib($auditRetention, $this->returnLdapAuditEntries(), $this->gateway, $subTaskDN, $subTaskCN);
     return $auditLib->checkAuditPassedRetentionOrchestrator();
   }
 
   /**
    * @return array
    * NOTE : simply return the list of audit entries existing in LDAP
-    */
+   */
   public function returnLdapAuditEntries () : array
   {
     // Search in LDAP for audit entries (All entries ! This can be pretty heavy.
@@ -346,34 +294,49 @@ class Audit implements EndpointInterface
     return $audit;
   }
 
-   /**
-   * @param array $array
-   * @return array
-   * Note : Recursively filters out empty values and arrays at any depth.
-   */
-  public function recursiveArrayFilter (array $array): array
+  private function createSyslogMessage (array $entry, string $timestamp, string $auditId)
   {
-    return array_filter($array, function ($item) {
-      if (is_array($item)) {
-          $item = $this->recursiveArrayFilter($item);
-      }
-      return !empty($item);
-    });
-  }
+    // Get hostname (use IP if available, otherwise use system hostname)
+    $hostname = $entry['fdauditauthorip'][0] ?? gethostname();
 
-  /**
-   * @param string $path
-   * @return bool
-   * @throws Exception
-   * Note: Create directory if it doesn't exist.
-   */
-  private function ensureDirectoryExists (string $path): bool
-  {
-    if (!is_dir($path)) {
-      if (!mkdir($path, 0755, TRUE)) {
-        throw new Exception("Failed to create directory: $path");
-      }
+    // Get user information (use DN if available)
+    $user = $entry['fdauditauthordn'][0] ?? 'unknown';
+
+    // Get action
+    $action = $entry['fdauditaction'][0] ?? 'unknown';
+
+    // Get object type and object
+    $objectType = $entry['fdauditobjecttype'][0] ?? '';
+
+    $object = $entry['fdauditobject'][0] ?? '';
+
+    // Get result
+    $auditResult = $entry['fdauditresult'][0] ?? '';
+
+    // Format the syslog message
+    // <priority>timestamp hostname tag: message
+    $syslogMessage = "<local4.info>$timestamp $hostname FusionDirectory-Audit: ";
+    $syslogMessage .= "id=\"" . $auditId . "\" ";
+    $syslogMessage .= "user=\"$user\" ";
+    $syslogMessage .= "action=\"$action\" ";
+
+    if (!empty($objectType)) {
+      $syslogMessage .= "objectType=\"$objectType\" ";
     }
-    return TRUE;
+
+    if (!empty($object)) {
+      $syslogMessage .= "object=\"$object\" ";
+    }
+
+    if (!empty($auditResult)) {
+      $syslogMessage .= "result=\"$auditResult\" ";
+    }
+
+    // Add attributes if available (contains changes made)
+    if (isset($entry['fdauditattributes'][0])) {
+      $syslogMessage .= "changes=\"" . $entry['fdauditattributes'][0] . "\" ";
+    }
+
+    return $syslogMessage;
   }
 }
