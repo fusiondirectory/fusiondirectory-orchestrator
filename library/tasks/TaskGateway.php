@@ -347,7 +347,7 @@ class TaskGateway
    * @param string|NULL $objectType
    * @return array|string[]|void
    */
-  public function getObjectTypeTask (string|NULL $objectType)
+  public function getObjectTypeTask (string $objectType)
   {
     $task = $this->getTask($objectType);
     if (!$task) {
