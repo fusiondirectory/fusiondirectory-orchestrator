@@ -344,7 +344,7 @@ class TaskGateway
   }
 
   /**
-   * @param string|NULL $objectType
+   * @param string $objectType
    * @return array|string[]|void
    */
   public function getObjectTypeTask (string $objectType)
