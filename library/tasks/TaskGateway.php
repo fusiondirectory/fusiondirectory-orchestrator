@@ -80,11 +80,11 @@ class TaskGateway
   }
 
   /**
-   * @param $array
+   * @param array $array
    * @return void
    * Simple take an array as referenced and loop to remove all key having count
    */
-  public function unsetCountKeys (&$array)
+  public function unsetCountKeys (array &$array)
   {
     foreach ($array as $key => &$value) {
       if (is_array($value)) {
@@ -344,10 +344,10 @@ class TaskGateway
   }
 
   /**
-   * @param $objectType
+   * @param string|NULL $objectType
    * @return array|string[]|void
    */
-  public function getObjectTypeTask ($objectType)
+  public function getObjectTypeTask (string|NULL $objectType)
   {
     $task = $this->getTask($objectType);
     if (!$task) {
