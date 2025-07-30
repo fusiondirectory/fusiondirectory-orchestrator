@@ -28,12 +28,12 @@ class TaskController
   /**
    * @param string $method
    * @param string|null $objectType
-   * @param $jsonBody
+   * @param array|NULL $jsonBody
    * @return void
    * @throws Exception
    * NOTE : objectType is actually the task type.
    */
-  public function processRequest (string $method, ?string $objectType, $jsonBody = NULL): void
+  public function processRequest (string $method, ?string $objectType, array $jsonBody = NULL): void
   {
     // Allow result to be nullable.
     $result = NULL;

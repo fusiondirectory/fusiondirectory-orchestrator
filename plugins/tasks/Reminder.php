@@ -179,12 +179,12 @@ class Reminder implements EndpointInterface
   }
 
   /**
-   * @param $dn
-   * @param $days
+   * @param string $dn
+   * @param int $days
    * @return bool
    * Note : Compare the date of today and the shadowExpire epoch to see if expiration is soon to happen.
    */
-  private function posixAboutToExpire ($dn, $days) : bool
+  private function posixAboutToExpire (string $dn, int $days) : bool
   {
     $result = FALSE;
 
@@ -211,11 +211,11 @@ class Reminder implements EndpointInterface
   }
 
   /**
-   * @param $dn
+   * @param string $dn
    * @return string
    * Note : Simply retrieve shadowExpire attribute for the DN specified.
    */
-  private function retrieveUserPosix ($dn) : string
+  private function retrieveUserPosix (string $dn) : string
   {
     $result = '';
     $userPosix = $this->gateway->getLdapTasks('(objectClass=shadowAccount)', ['shadowExpire'],
@@ -255,9 +255,11 @@ class Reminder implements EndpointInterface
   }
 
   /**
-   * @param $task
+   * @param string $dn
+   * @param array $monitoredResources
+   * @param int $days
    * @return bool
-   * Note : Verify the account status of the DN with the requirements of main tasks.
+   *  Note : Verify the account status of the DN with the requirements of main tasks.
    */
   private function supannAboutToExpire (string $dn, array $monitoredResources, int $days): bool
   {
@@ -287,11 +289,11 @@ class Reminder implements EndpointInterface
   }
 
   /**
-   * @param $dn
+   * @param string $dn
    * @return array
    * Note : Simply return supann resource array from the specific passed DN.
    */
-  private function retrieveSupannResources ($dn): array
+  private function retrieveSupannResources (string $dn): array
   {
     $supannResources = [];
     $supannResources = $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate', 'supannRessourceEtat'],
