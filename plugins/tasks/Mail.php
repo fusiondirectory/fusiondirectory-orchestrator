@@ -114,9 +114,9 @@ class Mail implements EndpointInterface
 
           $attachments = [];
           foreach ($mailAttachments as $file) {
-            $fileInfo['cn']    = $file['cn'][0];
+            $fileInfo['cn']      = $file['cn'][0];
             $fileInfo['content'] = $file['fdmailattachmentscontent'][0];
-            $attachments[]     = $fileInfo;
+            $attachments[]       = $fileInfo;
           }
 
           $mailSentResult = $this->mailUtils->sendMail($setFrom, $setBCC, $recipients, $body, $signature, $subject, $receipt, $attachments);
