@@ -34,7 +34,7 @@ class Ldap
   }
 
     /**
-     * @param $ds LDAP connection resource
+     * @param resource $ds
      * @param string $filter
      * @param array $attrs
      * @param string|NULL $dn
