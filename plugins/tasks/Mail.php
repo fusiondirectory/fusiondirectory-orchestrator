@@ -86,7 +86,7 @@ class Mail implements EndpointInterface
         if ($this->gateway->statusAndScheduleCheck($task)) {
 
           // Get the main task DN
-          $mainTaskDn = $mail['fdtasksgranularmaster'][0];
+          $mainTaskDn = $task['fdtasksgranularmaster'][0];
 
           // Retrieve data from the main task including the repeatable schedule
           $mainTaskConfig = $this->getMailTaskMainTask($mainTaskDn);
@@ -102,13 +102,13 @@ class Mail implements EndpointInterface
           $this->gateway->unsetCountKeys($mailInfos);
           $mailAttachments = array_values($mailInfos);
 
-          $setFrom  = $task["fdtasksgranularmailfrom"][0];
-          $setBCC   = $task["fdtasksgranularmailbcc"][0] ?? NULL;
+          $setFrom    = $task["fdtasksgranularmailfrom"][0];
+          $setBCC     = $task["fdtasksgranularmailbcc"][0] ?? NULL;
           $recipients = $task["fdtasksgranularmail"];
-          $body     = $mailContent["fdmailtemplatebody"][0];
+          $body       = $mailContent["fdmailtemplatebody"][0];
           $signature  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
-          $subject  = $mailContent["fdmailtemplatesubject"][0];
-          $receipt  = $mailContent["fdmailtemplatereadreceipt"][0];
+          $subject    = $mailContent["fdmailtemplatesubject"][0];
+          $receipt    = $mailContent["fdmailtemplatereadreceipt"][0];
 
           $body = $this->replaceMacros($recipients, $body);
 
@@ -183,12 +183,12 @@ class Mail implements EndpointInterface
    */
   public function verifySpamProtection (array $fdTasksConf): bool
   {
-    $lastExec   = $fdTasksConf[0]["fdtasksconflastexectime"][0] ?? NULL;
+    $lastExec     = $fdTasksConf[0]["fdtasksconflastexectime"][0] ?? NULL;
     $spamInterval = $fdTasksConf[0]["fdtasksconfintervalemails"][0] ?? NULL;
 
     // Multiplication is required to have the seconds
     $spamInterval = $spamInterval * 60;
-    $antispam   = $lastExec + $spamInterval;
+    $antispam     = $lastExec + $spamInterval;
     if ($antispam <= time()) {
       return TRUE;
     }
