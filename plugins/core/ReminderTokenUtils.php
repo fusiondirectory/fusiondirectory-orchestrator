@@ -111,11 +111,11 @@ class ReminderTokenUtils
   }
 
   /**
-   * @param $userTokenDN
+   * @param string $userTokenDN
    * @return void
    * Note : Simply remove the token for specific user DN
    */
-  private function removeUserToken ($userTokenDN, TaskGateway $gateway): void
+  private function removeUserToken (string $userTokenDN, TaskGateway $gateway): void
   {
     // Add token to LDAP for specific UID
     try {

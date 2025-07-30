@@ -65,11 +65,11 @@ class LifeCycle implements EndpointInterface
   }
 
   /**
-   * @param $userDN
+   * @param string $userDN
    * @return array
    * Note : simply return the current values of supannRessourceEtatDate of the specified user.
    */
-  private function getUserSupannHistory ($userDN): array
+  private function getUserSupannHistory (string $userDN): array
   {
     return $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate'],
                                         '', $userDN);

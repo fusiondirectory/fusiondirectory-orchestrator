@@ -46,11 +46,11 @@ class CoreUtils
   }
 
   /**
-   * @param $array
+   * @param array $array
    * @return array
    * Note : simply return all values of a multi-dimensional array.
    */
-  public function getArrayValuesRecursive ($array)
+  public function getArrayValuesRecursive (array $array)
   {
     return array_reduce($array, function ($carry, $value) {
       return array_merge($carry, is_array($value) ? $this->getArrayValuesRecursive($value) : [$value]);

@@ -276,12 +276,12 @@ class Audit implements EndpointInterface
   }
 
   /**
-   * @param $auditRetention
+   * @param int $auditRetention
    * @return array
    * Note : This will return a validation of audit log suppression
    * @throws Exception
    */
-  public function checkAuditPassedRetention ($auditRetention, $subTaskDN, $subTaskCN, $mainTaskDn = NULL, $repeatableSchedule = NULL): array
+  public function checkAuditPassedRetention (int $auditRetention, $subTaskDN, $subTaskCN, $mainTaskDn = NULL, $repeatableSchedule = NULL): array
   {
     $auditLib = new FusionDirectory\Audit\AuditLib($auditRetention, $this->returnLdapAuditEntries(), $this->gateway, $subTaskDN, $subTaskCN, $mainTaskDn, $repeatableSchedule);
     return $auditLib->checkAuditPassedRetentionOrchestrator();
