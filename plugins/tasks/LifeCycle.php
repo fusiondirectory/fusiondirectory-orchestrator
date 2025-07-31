@@ -4,10 +4,12 @@
 class LifeCycle implements EndpointInterface
 {
   private TaskGateway $gateway;
+  private CoreUtils $coreUtils;
 
   function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
+    $this->coreUtils = new CoreUtils();
   }
 
   /**
@@ -62,17 +64,6 @@ class LifeCycle implements EndpointInterface
       'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate',
       'fdTasksLifeCycleRegexPattern', 'fdTasksLifeCycleEnableAccountClosure', 'fdTasksRepeatableSchedule'],
                                         '', $taskDN);
-  }
-
-  /**
-   * @param string $userDN
-   * @return array
-   * Note : simply return the current values of supannRessourceEtatDate of the specified user.
-   */
-  private function getUserSupannHistory (string $userDN): array
-  {
-    return $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate'],
-                                        '', $userDN);
   }
 
   /**
@@ -233,7 +224,7 @@ class LifeCycle implements EndpointInterface
         $repeatableSchedule = $lifeCycleBehavior[0]['fdtasksrepeatableschedule'][0] ?? NULL;
 
         // Simply retrieve the current supannStatus of the user DN related to the task at hand
-        $currentUserLifeCycle = $this->getUserSupannHistory($task['fdtasksgranulardn'][0]);
+        $currentUserLifeCycle = $this->coreUtils->getUserSupannAccountStatus($task['fdtasksgranulardn'][0], $this->gateway);
 
         // Check if we should process account closure or normal lifecycle changes
         $isAccountClosureEnabled = $this->shouldProcessAccountClosure($lifeCycleBehavior, $currentUserLifeCycle);
