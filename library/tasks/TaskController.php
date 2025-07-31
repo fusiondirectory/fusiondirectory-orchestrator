@@ -70,6 +70,7 @@ class TaskController
         case "PATCH":
           switch ($objectType) {
             case 'removeSubTasks':
+              // When sub-task status is 2 (completed) or 3 (nothing to be processed)
               $result = $this->gateway->removeCompletedTasks();
               break;
             case 'activateCyclicTasks':

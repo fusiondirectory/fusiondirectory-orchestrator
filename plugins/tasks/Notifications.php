@@ -110,9 +110,21 @@ class Notifications implements EndpointInterface
           // Overwrite array notifications with complementing mail form body with uid and related attributes.
           $notifications = $this->completeNotificationsBody($notifications, $notificationsMainTaskName);
 
-        } else { // Simply remove the subTask has no notifications are required
-          $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
-          $result[$task['dn']]['Status']  = 'No matching audited attributes with monitored attributes, safely removed!';
+        } else { // Simply update the sub-task with status 3 (nothing to be processed).
+          // Get the main task DN and repeatable schedule
+          $mainTaskDn = $task['fdtasksgranularmaster'][0];
+          $notificationsMainTask = $this->getNotificationsMainTask($mainTaskDn);
+          $repeatableSchedule = $notificationsMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+
+          // Update task status to 3 (nothing to process) instead of removing it
+          $result[$task['dn']]['Status'] = $this->gateway->updateTaskStatus(
+            $task['dn'],
+            $task['cn'][0],
+            '3',
+            $mainTaskDn,
+            $repeatableSchedule
+          );
+          $result[$task['dn']]['Message'] = 'No matching audited attributes with monitored attributes, nothing to process!';
         }
       }
     }

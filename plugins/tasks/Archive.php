@@ -62,9 +62,9 @@ class Archive implements EndpointInterface
 
         // Check if the current supann status matches the desired status
         if (!$this->isSupannStatusMatching($desiredSupannStatus, $currentSupannStatus)) {
-            // The task does not meet the criteria for archiving and can therefore be suppressed
+            // The task does not meet the criteria for archiving - reporting nothing to be processed.
             $result[$task['dn']]['result'] = "User does not meet the criteria for archiving.";
-            $this->gateway->removeSubTask($task['dn']);
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '3', $mainTaskDn, $repeatableSchedule);
             continue;
         }
 
