@@ -295,7 +295,6 @@ class Reminder implements EndpointInterface
    */
   private function retrieveSupannResources (string $dn): array
   {
-    $supannResources = [];
     $supannResources = $this->gateway->getLdapTasks('(objectClass=supannPerson)', ['supannRessourceEtatDate', 'supannRessourceEtat'],
       '', $dn);
     // Simply remove key "count"

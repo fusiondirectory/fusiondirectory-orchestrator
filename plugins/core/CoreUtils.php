@@ -72,4 +72,19 @@ class CoreUtils
     }
     return TRUE;
   }
+
+  /**
+   * Retrieve the supannAccountStatus of a user
+   * @param string $userDn
+   * @return array
+   */
+  public function getUserSupannAccountStatus (string $userDn, TaskGateway $gateway): array
+  {
+    return $gateway->getLdapTasks(
+      '(objectClass=supannPerson)',
+      ['supannRessourceEtatDate'],
+      '',
+      $userDn
+    );
+  }
 }

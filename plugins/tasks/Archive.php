@@ -5,10 +5,12 @@ use FusionDirectory\Rest\WebServiceCall;
 class Archive implements EndpointInterface
 {
   private TaskGateway $gateway;
+  private CoreUtils $coreUtils;
 
   public function __construct (TaskGateway $gateway)
   {
       $this->gateway = $gateway;
+      $this->coreUtils = new CoreUtils();
   }
 
     /**
@@ -56,7 +58,7 @@ class Archive implements EndpointInterface
         $desiredSupannStatus = $mainTaskConfig;
 
         // Retrieve the current supann status of the user
-        $currentSupannStatus = $this->getUserSupannAccountStatus($task['fdtasksgranulardn'][0]);
+        $currentSupannStatus = $this->coreUtils->getUserSupannAccountStatus($task['fdtasksgranulardn'][0], $this->gateway);
 
         // Check if the current supann status matches the desired status
         if (!$this->isSupannStatusMatching($desiredSupannStatus, $currentSupannStatus)) {
@@ -105,21 +107,6 @@ class Archive implements EndpointInterface
   public function processEndPointDelete (array $data = NULL): array
   {
       return [];
-  }
-
-    /**
-     * Retrieve the supannAccountStatus of a user
-     * @param string $userDn
-     * @return array
-     */
-  private function getUserSupannAccountStatus (string $userDn): array
-  {
-      return $this->gateway->getLdapTasks(
-          '(objectClass=supannPerson)',
-          ['supannRessourceEtatDate'],
-          '',
-          $userDn
-      );
   }
 
     /**

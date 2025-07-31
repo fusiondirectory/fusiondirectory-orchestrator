@@ -205,8 +205,7 @@ class Notifications implements EndpointInterface
     return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksNotificationsListOfRecipientsMails',
       'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksNotificationsEmailSender',
       'fdTasksNotificationsSubState', 'fdTasksNotificationsState', 'fdTasksNotificationsResource',
-      'fdTasksRepeatableSchedule'],
-                                        '', $mainTaskDn);
+      'fdTasksRepeatableSchedule'], '', $mainTaskDn);
   }
 
   /**
