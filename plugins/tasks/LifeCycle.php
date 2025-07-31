@@ -272,10 +272,10 @@ class LifeCycle implements EndpointInterface
               $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult, $mainTaskDn, $repeatableSchedule);
             }
           } else {
-            // Remove the subtask as it is not required to update it nor to process it.
-            $result[$task['dn']]['results'] = 'Sub-task removed for : ' . $task['fdtasksgranulardn'][0] . ' with result : '
-              . $this->gateway->removeSubTask($task['dn']);
-            $result[$task['dn']]['statusUpdate'] = 'No updates required, sub-task will be removed.';
+            // Update the subtask with status 3 (nothing to be processed).
+            $result[$task['dn']]['results'] = 'Sub-task status updated for : ' . $task['fdtasksgranulardn'][0] . ' with result : '
+              . $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '3', $mainTaskDn, $repeatableSchedule);
+            $result[$task['dn']]['statusUpdate'] = 'No updates required, nothing to be processed for';
           }
         }
 

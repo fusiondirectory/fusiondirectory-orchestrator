@@ -88,9 +88,15 @@ class Reminder implements EndpointInterface
 
         // Case where no supann are monitored nor prolongation desired. (Useless subTask).
         if ($monitoredResources['resource'][0] === 'NONE' && $monitoredResources['prolongation'] === 'FALSE') {
-          // Removal subtask
-          $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
-          $result[$task['dn']]['Status']  = 'No reminder triggers were found, therefore removing the sub-task!';
+          // Update subtask status to 3 (nothing to process) instead of removing it
+          $result[$task['dn']]['Status'] = $this->gateway->updateTaskStatus(
+            $task['dn'],
+            $task['cn'][0],
+            '3',
+            $mainTaskDn,
+            $repeatableSchedule
+          );
+          $result[$task['dn']]['Message'] = 'No reminder triggers were found, nothing to process!';
         }
 
         // Case where supann is set monitored but no prolongation desired.
@@ -106,9 +112,15 @@ class Reminder implements EndpointInterface
             $reminders[$remindersMainTaskName]['subTask'][$task['cn'][0]]['mail'] = $mailTemplateForm;
 
           } else {
-            // Not about to expire, delete subTask
-            $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
-            $result[$task['dn']]['Status']  = 'No reminder triggers were found, therefore removing the sub-task!';
+            // Not about to expire, update status to 3 (nothing to process)
+            $result[$task['dn']]['Status'] = $this->gateway->updateTaskStatus(
+              $task['dn'],
+              $task['cn'][0],
+              '3',
+              $mainTaskDn,
+              $repeatableSchedule
+            );
+            $result[$task['dn']]['Message'] = 'Account not about to expire, nothing to process!';
           }
         }
 
@@ -134,9 +146,15 @@ class Reminder implements EndpointInterface
 
 
           } else {
-            // Not about to expire, delete subTask
-            $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
-            $result[$task['dn']]['Status']  = 'No reminder triggers were found, therefore removing the sub-task!';
+            // Not about to expire, update status to 3 (nothing to process)
+            $result[$task['dn']]['Status'] = $this->gateway->updateTaskStatus(
+              $task['dn'],
+              $task['cn'][0],
+              '3',
+              $mainTaskDn,
+              $repeatableSchedule
+            );
+            $result[$task['dn']]['Message'] = 'Account not about to expire, nothing to process!';
           }
         }
 
@@ -163,9 +181,15 @@ class Reminder implements EndpointInterface
 
 
           } else {
-            // Not about to expire, delete subTask
-            $result[$task['dn']]['Removed'] = $this->gateway->removeSubTask($task['dn']);
-            $result[$task['dn']]['Status']  = 'No reminder triggers were found, therefore removing the sub-task!';
+            // Not about to expire, update status to 3 (nothing to process)
+            $result[$task['dn']]['Status'] = $this->gateway->updateTaskStatus(
+              $task['dn'],
+              $task['cn'][0],
+              '3',
+              $mainTaskDn,
+              $repeatableSchedule
+            );
+            $result[$task['dn']]['Message'] = 'Posix account not about to expire, nothing to process!';
           }
         }
       }
