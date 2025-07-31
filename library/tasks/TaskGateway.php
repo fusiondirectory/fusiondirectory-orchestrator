@@ -113,13 +113,13 @@ class TaskGateway
 
   /**
    * @return array
-   * Note Search for all sub-tasks having status equals to 2 (completed).
+   * Note Search for all sub-tasks having status equals to 2 (completed) or 3 (nothing to process).
    */
   public function removeCompletedTasks (): array
   {
     $result            = [];
     $subTasksCompleted = $this->getLdapTasks(
-      "(&(objectClass=fdTasksGranular)(fdTasksGranularStatus=2))",
+      "(&(objectClass=fdTasksGranular)(|(fdTasksGranularStatus=2)(fdTasksGranularStatus=3)))",
       ["dn"]
     );
     // remove the count key from the arrays, keeping only DN.
@@ -129,7 +129,7 @@ class TaskGateway
         $result[$subTasks['dn']]['result'] = $this->removeSubTask($subTasks['dn']);
       }
     } else {
-      $result[] = 'No completed sub-tasks were removed.';
+      $result[] = 'No completed or nothing-to-process sub-tasks were removed.';
     }
 
     return $result;
