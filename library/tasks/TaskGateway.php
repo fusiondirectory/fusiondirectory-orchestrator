@@ -328,11 +328,17 @@ class TaskGateway
         if ($mainTaskDn) {
           // Use the provided main task DN directly
           $this->updateMainTaskLastExec($mainTaskDn, $currentTime);
+          if (isset($ldap_entry["fdTasksGranularNextExec"])) {
+            $this->updateMainTaskNextExec($mainTaskDn, $ldap_entry["fdTasksGranularNextExec"]);
+          }
         } else {
           // Fallback to LDAP lookup if main task DN not provided
           $subtask = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(cn=" . $cn . "))", ["fdTasksGranularMaster"]);
           if (!empty($subtask) && isset($subtask[0]['fdtasksgranularmaster'][0])) {
             $this->updateMainTaskLastExec($subtask[0]['fdtasksgranularmaster'][0], $currentTime);
+            if (isset($ldap_entry["fdTasksGranularNextExec"])) {
+              $this->updateMainTaskNextExec($subtask[0]['fdtasksgranularmaster'][0], $ldap_entry["fdTasksGranularNextExec"]);
+            }
           }
         }
       }
@@ -386,6 +392,25 @@ class TaskGateway
   public function updateMainTaskLastExec (string $mainTaskDn, string $timestamp)
   {
     $ldap_entry["fdTasksLastExec"] = $timestamp;
+
+    // Add data to LDAP
+    try {
+      $result = ldap_modify($this->ds, $mainTaskDn, $ldap_entry);
+    } catch (Exception $e) {
+      $result = json_encode(["Ldap Error" => "$e"]);
+    }
+    return $result;
+  }
+
+  /**
+   * @param string $mainTaskDn
+   * @param string $timestamp
+   * @return bool|string
+   * Note: Update the attribute fdTasksNextExec of the main task when a subtask is processed
+   */
+  public function updateMainTaskNextExec (string $mainTaskDn, string $timestamp)
+  {
+    $ldap_entry["fdTasksNextExec"] = $timestamp;
 
     // Add data to LDAP
     try {
