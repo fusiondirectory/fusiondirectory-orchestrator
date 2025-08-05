@@ -332,7 +332,7 @@ class TaskGateway
             $this->updateMainTaskNextExec($mainTaskDn, $ldap_entry["fdTasksGranularNextExec"]);
           }
         } else {
-          // Fallback to LDAP lookup if main task DN not provided
+          // Fallback to LDAP lookup if main task DN not provided (Case of Audit E.g)
           $subtask = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(cn=" . $cn . "))", ["fdTasksGranularMaster"]);
           if (!empty($subtask) && isset($subtask[0]['fdtasksgranularmaster'][0])) {
             $this->updateMainTaskLastExec($subtask[0]['fdtasksgranularmaster'][0], $currentTime);
