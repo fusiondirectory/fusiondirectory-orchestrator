@@ -266,9 +266,8 @@ class LifeCycle implements EndpointInterface
               // Here the user is refresh in order to activate methods based on supann Status changes.
               $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
             } else {
-              // In case the modification failed
+              // In case the modification failed (e.g., post-state target missing), fail the subtask
               $result[$task['dn']]['results'] = json_encode("Error updating " . $task['fdtasksgranulardn'][0] . " - " . $lifeCycleResult);
-              // Update of the task status error message
               $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult, $mainTaskDn, $repeatableSchedule);
             }
           } else {
@@ -399,6 +398,8 @@ class LifeCycle implements EndpointInterface
 
     $updatedStateHistory    = $userStateHistory; // Work on a copy
     $modificationsMadeCount = 0;
+    // Track whether any user resource matches the post target (static name or regex)
+    $foundPostTarget = FALSE;
 
     for ($i = 0; $i < count($userStateHistory); $i++) {
       $currentUserResourceString = $userStateHistory[$i];
@@ -408,6 +409,17 @@ class LifeCycle implements EndpointInterface
       $userOriginalRawState         = $matches[2] ?? '';
       $userOriginalRawSubState      = $matches[3] ?? '';
       $userOriginalPeriodEndDateStr = $matches[5] ?? '';
+
+      // Mark if this entry matches the post target
+      if ($postResourceIsRegex) {
+        if ($regexPattern && !empty($userOriginalResourceName) && @preg_match('/' . $regexPattern . '/', $userOriginalResourceName)) {
+          $foundPostTarget = TRUE;
+        }
+      } else {
+        if ($userOriginalResourceName === $taskPostResourceRaw) {
+          $foundPostTarget = TRUE;
+        }
+      }
 
       // Determine if the current user resource was a "pre-match"
       $isPreMatchedAndExpired = FALSE;
@@ -481,7 +493,12 @@ class LifeCycle implements EndpointInterface
     }
 
     if ($modificationsMadeCount === 0) {
-      return TRUE; // No effective changes to save, or no targets met update criteria.
+      // If no modifications were made and no post targets exist on the user
+      if ($foundPostTarget === FALSE) {
+        $targetDesc = $postResourceIsRegex ? ("pattern '" . ($regexPattern ?? '') . "'") : ("resource '" . $taskPostResourceRaw . "'");
+        return "Post-state target " . $targetDesc . " not found on user profile";
+      }
+      return TRUE; // No effective changes to save, but post target exists (e.g., date preconditions not met)
     }
 
     $ldapEntry = ['supannRessourceEtatDate' => $updatedStateHistory];
