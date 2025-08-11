@@ -269,7 +269,7 @@ class LifeCycle implements EndpointInterface
               // In case the modification failed (e.g., post-state target missing), fail the subtask
               $result[$task['dn']]['results'] = json_encode("Error updating " . $task['fdtasksgranulardn'][0] . " - " . $lifeCycleResult);
               // Update the subtask status to failed (1)
-              $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '1', $mainTaskDn, $repeatableSchedule);
+              $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult, $mainTaskDn, $repeatableSchedule);
             }
           } else {
             // Update the subtask with status 3 (nothing to be processed).
@@ -494,7 +494,7 @@ class LifeCycle implements EndpointInterface
     }
 
     if ($modificationsMadeCount === 0) {
-      // If no modifications were made and no post targets exist on the user, fail with a clear message
+      // If no modifications were made and no post targets exist on the user
       if ($foundPostTarget === FALSE) {
         $targetDesc = $postResourceIsRegex ? ("pattern '" . ($regexPattern ?? '') . "'") : ("resource '" . $taskPostResourceRaw . "'");
         return "Post-state target " . $targetDesc . " not found on user profile";
