@@ -300,7 +300,7 @@ class Audit implements EndpointInterface
     $hostname = $entry['fdauditauthorip'][0] ?? gethostname();
 
     // Get user information (use DN if available)
-    $user = $entry['fdauditauthordn'][0] ?? 'unknown';
+    $author = $entry['fdauditauthordn'][0] ?? 'unknown';
 
     // Get action
     $action = $entry['fdauditaction'][0] ?? 'unknown';
@@ -317,7 +317,7 @@ class Audit implements EndpointInterface
     // <priority>timestamp hostname tag: message
     $syslogMessage = "<local4.info>$timestamp $hostname FusionDirectory-Audit: ";
     $syslogMessage .= "id=\"" . $auditId . "\" ";
-    $syslogMessage .= "user=\"$user\" ";
+    $syslogMessage .= "author=\"$author\" ";
     $syslogMessage .= "action=\"$action\" ";
 
     if (!empty($objectType)) {
