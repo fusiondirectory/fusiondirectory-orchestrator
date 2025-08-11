@@ -268,7 +268,6 @@ class LifeCycle implements EndpointInterface
             } else {
               // In case the modification failed (e.g., post-state target missing), fail the subtask
               $result[$task['dn']]['results'] = json_encode("Error updating " . $task['fdtasksgranulardn'][0] . " - " . $lifeCycleResult);
-              // Update the subtask status to failed (1)
               $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $lifeCycleResult, $mainTaskDn, $repeatableSchedule);
             }
           } else {
