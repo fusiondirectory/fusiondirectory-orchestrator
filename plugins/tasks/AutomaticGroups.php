@@ -161,14 +161,14 @@ class AutomaticGroups implements EndpointInterface
 
     if ($shouldAddToGroup) {
       if (in_array($userDn, $members, TRUE)) {
-        $resultMessage[] = "User $userDn already present in group $targetGroup";
+        $resultMessage[] = "User $userDn already present in group $targetGroup - no need to add";
       } else {
         $this->addUserToGroup($userDn, $targetGroup);
         $resultMessage[] = "User $userDn successfully added to group $targetGroup";
       }
     } else {
       if (!in_array($userDn, $members, TRUE)) {
-        $resultMessage[] = "User $userDn not present in group $targetGroup - nothing to do";
+        $resultMessage[] = "User $userDn not present in group $targetGroup - no need to remove";
       } else {
         $this->removeUserFromGroup($userDn, $targetGroup);
         $resultMessage[] = "User $userDn removed from group $targetGroup";
