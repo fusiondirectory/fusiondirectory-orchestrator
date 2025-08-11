@@ -146,15 +146,35 @@ class AutomaticGroups implements EndpointInterface
     return $result;
   }
 
+  /**
+   * Manage group membership based on the criteria
+   *
+   * @param bool $shouldAddToGroup
+   * @param string $userDn
+   * @param string $targetGroup
+   * @return array
+   */
   private function manageGroup (bool $shouldAddToGroup, string $userDn, string $targetGroup)
   {
+    $resultMessage = [];
+    $members = $this->getGroupMembers($targetGroup);
+
     if ($shouldAddToGroup) {
-      $this->addUserToGroup($userDn, $targetGroup);
-      $resultMessage[] = "User $userDn successfully added to group $targetGroup";
+      if (in_array($userDn, $members, TRUE)) {
+        $resultMessage[] = "User $userDn already present in group $targetGroup";
+      } else {
+        $this->addUserToGroup($userDn, $targetGroup);
+        $resultMessage[] = "User $userDn successfully added to group $targetGroup";
+      }
     } else {
-      $this->removeUserFromGroup($userDn, $targetGroup);
-      $resultMessage[] = "User $userDn doesn't meet criteria - removed from group $targetGroup";
+      if (!in_array($userDn, $members, TRUE)) {
+        $resultMessage[] = "User $userDn not present in group $targetGroup - nothing to do";
+      } else {
+        $this->removeUserFromGroup($userDn, $targetGroup);
+        $resultMessage[] = "User $userDn removed from group $targetGroup";
+      }
     }
+
     return $resultMessage;
   }
 
@@ -325,9 +345,13 @@ class AutomaticGroups implements EndpointInterface
     // Update the group in LDAP
     try {
       if ($message === "create") {
-          $result = ldap_add($this->gateway->ds, $groupDn, $entry);
+        $result = ldap_add($this->gateway->ds, $groupDn, $entry);
+      } elseif ($message === "remove") {
+        // Delete the provided member value(s)
+        $result = ldap_mod_del($this->gateway->ds, $groupDn, $entry);
       } else {
-          $result = ldap_modify($this->gateway->ds, $groupDn, $entry);
+        // Default to modify (e.g., add or replace members list)
+        $result = ldap_modify($this->gateway->ds, $groupDn, $entry);
       }
       if (!$result) {
         throw new Exception($this->getFailedMessage($userDn, $message, $groupDn) . ldap_error($this->gateway->ds));
@@ -405,15 +429,8 @@ class AutomaticGroups implements EndpointInterface
       return TRUE;
     }
 
-    // Remove member from the group
-    $members = array_diff($members, [$userDn]);
-
-    // Groups must have at least one member, so check if this would empty the group
-    if (empty($members)) {
-      return TRUE; // Do nothing if it would empty the group
-    }
-
-    $entry = ['member' => $members];
+    // Remove only the specific member value; allow the group to be empty afterward
+    $entry = ['member' => [$userDn]];
 
     return $this->updateLdap($groupDn, $entry, "remove", $userDn);
   }
