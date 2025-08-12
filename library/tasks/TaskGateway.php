@@ -181,31 +181,26 @@ class TaskGateway
               case 'Yearly' :
                 if ($interval->y >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
-                } else { /* no-op */
                 }
                 break;
               case 'Monthly' :
                 if ($interval->m >= 1 || $interval->y >= 1) { // handle year change too
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
-                } else { /* no-op */
                 }
                 break;
               case 'Weekly' :
                 if ($interval->days >= 7) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
-                } else { /* no-op */
                 }
                 break;
               case 'Daily' :
                 if ($interval->days >= 1 || $interval->m >= 1 || $interval->y >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
-                } else { /* no-op */
                 }
                 break;
               case 'Hourly' :
                 if ($interval->h >= 1 || $interval->days >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
-                } else { /* no-op */
                 }
                 break;
               default:
