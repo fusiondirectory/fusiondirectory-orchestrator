@@ -176,42 +176,43 @@ class TaskGateway
             // Efficient way to verify timelapse
             $interval = $now->diff($lastActivation);
 
-            switch ($task['fdtasksrepeatableschedule'][0]) {
+            $scheduleStr = $task['fdtasksrepeatableschedule'][0];
+            switch ($scheduleStr) {
               case 'Yearly' :
                 if ($interval->y >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
-                } else {
-                  $result[$task['dn']]['lastActivationFailed'] = 'This cyclic task has yet to reached its next activation cycle.';
                 }
                 break;
               case 'Monthly' :
-                if ($interval->m >= 1) {
+                if ($interval->m >= 1 || $interval->y >= 1) { // handle year change too
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
-                } else {
-                  $result[$task['dn']]['lastActivationFailed'] = 'This cyclic task has yet to reached its next activation cycle.';
                 }
                 break;
               case 'Weekly' :
                 if ($interval->days >= 7) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
-                } else {
-                  $result[$task['dn']]['lastActivationFailed'] = 'This cyclic task has yet to reached its next activation cycle.';
                 }
                 break;
               case 'Daily' :
-                if ($interval->days >= 1) {
+                if ($interval->days >= 1 || $interval->m >= 1 || $interval->y >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
-                } else {
-                  $result[$task['dn']]['lastActivationFailed'] = 'This cyclic task has yet to reached its next activation cycle.';
                 }
                 break;
               case 'Hourly' :
-                // When checking for hourly schedules, consider both the days and hours
-                $totalHours = $interval->days * 24 + $interval->h;
-                if ($totalHours >= 1) {
+                if ($interval->h >= 1 || $interval->days >= 1) {
                   $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
-                } else {
-                  $result[$task['dn']]['lastActivationFailed'] = 'This cyclic task has yet to reached its next activation cycle.';
+                }
+                break;
+              default:
+                // Support minute-based schedule: "Minutes:NN" where NN in 00..59
+                if (strpos($scheduleStr, 'Minutes:') === 0) {
+                  $minutes = $this->parseMinuteSchedule($scheduleStr);
+                  if ($minutes !== NULL) {
+                    $totalMinutes = ($interval->days * 24 * 60) + ($interval->h * 60) + $interval->i;
+                    if ($totalMinutes >= $minutes) {
+                      $result[$task['dn']]['result'] = $webservice->activateCyclicTasks($task['dn']);
+                    }
+                  }
                 }
                 break;
             }
@@ -277,7 +278,7 @@ class TaskGateway
       $info = ldap_get_entries($this->ds, $sr);
     } catch (Exception $e) {
       // build array for return response
-      $result = [json_encode(["Ldap Error" => "$e"])]; // string returned
+      $result = [json_encode(["Ldap Error" => "$e"] )]; // string returned
     }
 
     // Verify if the above ldap search succeeded.
@@ -450,10 +451,35 @@ class TaskGateway
         $nextExecutionTime->modify('+1 hour');
         break;
       default:
-        return NULL; // Invalid schedule type
+        // Support minute-based schedule: "Minutes:NN"
+        if (strpos($repeatableSchedule, 'Minutes:') === 0) {
+          $minutes = $this->parseMinuteSchedule($repeatableSchedule);
+          if ($minutes !== NULL) {
+            $nextExecutionTime->modify("+{$minutes} minutes");
+          } else {
+            return NULL; // Invalid schedule type
+          }
+        } else {
+          return NULL; // Invalid schedule type
+        }
     }
 
     // Return the next execution time in the same format as currentTime
     return $nextExecutionTime->format('Y-m-d H:i:s');
+  }
+
+  /**
+   * @param string $scheduleStr
+   * @return int|null Number of minutes, or null if invalid
+   */
+  private function parseMinuteSchedule (string $scheduleStr): ?int
+  {
+    if (preg_match('/^Minutes:(\d{2})$/', $scheduleStr, $m)) {
+      $val = intval($m[1], 10);
+      if ($val >= 0 && $val <= 59) {
+        return $val === 0 ? 0 : $val; // allow 0, means no wait (run immediately if due)
+      }
+    }
+    return NULL;
   }
 }
