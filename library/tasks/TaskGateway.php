@@ -485,10 +485,11 @@ class TaskGateway
   }
 
   /**
-   * If a task name is provided, only subtasks with fdTasksGranularMaster=<DN-of-main-task> are considered.
-   * Otherwise, the operation applies to all subtasks.
    * @param string|null
    * @return array
+   * 
+   * If a task name is provided, only subtasks with fdTasksGranularMaster=<DN-of-main-task> are considered.
+   * Otherwise, the operation applies to all subtasks.
    */
   public function restartFailedSubtasks (?string $taskName = NULL): array
   {
@@ -525,7 +526,8 @@ class TaskGateway
     }
 
     foreach ($subtasks as $entry) {
-      if (empty($entry['dn'])) { continue; }
+      if (empty($entry['dn'])) { continue;
+      }
       $dn = $entry['dn'];
       $cn = $entry['cn'][0] ?? basename($dn);
 
