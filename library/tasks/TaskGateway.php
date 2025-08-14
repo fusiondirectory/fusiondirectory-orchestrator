@@ -484,13 +484,7 @@ class TaskGateway
     return NULL;
   }
 
-  /**
-   * @param string|null
-   * @return array
-   * 
-   * If a task name is provided, only subtasks with fdTasksGranularMaster=<DN-of-main-task> are considered.
-   * Otherwise, the operation applies to all subtasks.
-   */
+  // All the logic of restarting failed subtasks. Setting the subtask status back to '1' (scheduled).
   public function restartFailedSubtasks (?string $taskName = NULL): array
   {
     $result = [
