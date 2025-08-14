@@ -76,6 +76,14 @@ class TaskController
             case 'activateCyclicTasks':
               $result = $this->gateway->activateCyclicTasks();
               break;
+            case 'restartFailedTasks':
+              // Optional JSON body: { "taskName": "<name>" }
+              $taskName = NULL;
+              if (!empty($jsonBody) && is_array($jsonBody) && array_key_exists('taskName', $jsonBody)) {
+                $taskName = $jsonBody['taskName'];
+              }
+              $result = $this->gateway->restartFailedSubtasks($taskName);
+              break;
             case $objectType:
               if (class_exists($objectType)) {
                 $endpoint = new $objectType($this->gateway);

@@ -45,6 +45,7 @@ class TaskGateway
 
       case "removeSubTasks":
       case "activateCyclicTasks":
+      case "restartFailedTasks":
         // No need to get any parent tasks here, but to note break logic - we will return an array.
         $list_tasks = ['Generic tasks execution'];
         break;
@@ -479,6 +480,92 @@ class TaskGateway
       if ($val >= 0 && $val <= 59) {
         return $val === 0 ? 0 : $val; // allow 0, means no wait (run immediately if due)
       }
+    }
+    return NULL;
+  }
+
+  /**
+   * If a task name is provided, only subtasks with fdTasksGranularMaster=<DN-of-main-task> are considered.
+   * Otherwise, the operation applies to all subtasks.
+   * @param string|null
+   * @return array
+   */
+  public function restartFailedSubtasks (?string $taskName = NULL): array
+  {
+    $result = [
+      'updated' => [],
+      'errors'  => []
+    ];
+
+    $filterParts = [
+      '(&(objectClass=fdTasksGranular)',
+      '(!(fdTasksGranularStatus=1))',
+      '(!(fdTasksGranularStatus=2))',
+      '(!(fdTasksGranularStatus=3))'
+    ];
+
+    // If a task name is passed, resolve its DN and add master filter
+    if (!empty($taskName)) {
+      $mainTaskDn = $this->resolveMainTaskDnByName($taskName);
+      if ($mainTaskDn === NULL) {
+        return ['errors' => ["Main task with cn '$taskName' not found"]];
+      }
+      $filterParts[] = '(fdTasksGranularMaster=' . $mainTaskDn . ')';
+    }
+
+    $filterParts[] = ')';
+    $filter = implode('', $filterParts);
+
+    // Retrieve failed subtasks with their DN and cn
+    $subtasks = $this->getLdapTasks($filter, ['dn', 'cn']);
+    $this->unsetCountKeys($subtasks);
+
+    if (empty($subtasks)) {
+      return ['message' => 'No failed subtasks found to restart.'];
+    }
+
+    foreach ($subtasks as $entry) {
+      if (empty($entry['dn'])) { continue; }
+      $dn = $entry['dn'];
+      $cn = $entry['cn'][0] ?? basename($dn);
+
+      $ldap_entry = [
+        'fdTasksGranularStatus'   => '1',
+      ];
+
+      try {
+        $ok = ldap_modify($this->ds, $dn, $ldap_entry);
+        if ($ok) {
+          $result['updated'][] = $dn;
+        } else {
+          $result['errors'][] = [ 'dn' => $dn, 'error' => 'ldap_modify returned false' ];
+        }
+      } catch (Exception $e) {
+        $result['errors'][] = [ 'dn' => $dn, 'error' => (string)$e ];
+      }
+    }
+
+    // Add a short count summary
+    $result['summary'] = [
+      'countUpdated' => count($result['updated']),
+      'countErrors'  => count($result['errors'])
+    ];
+
+    return $result;
+  }
+
+  /**
+   * Resolve the DN of a main task by its cn.
+   * @param string $name
+   * @return string|null
+   */
+  private function resolveMainTaskDnByName (string $name): ?string
+  {
+    $filter = '(&(objectClass=fdTasks)(cn=' . $name . '))';
+    $entries = $this->getLdapTasks($filter, ['dn']);
+    $this->unsetCountKeys($entries);
+    if (!empty($entries) && !empty($entries[0]['dn'])) {
+      return $entries[0]['dn'];
     }
     return NULL;
   }
