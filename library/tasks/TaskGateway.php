@@ -541,12 +541,6 @@ class TaskGateway
       }
     }
 
-    // Add a short count summary
-    $result['summary'] = [
-      'countUpdated' => count($result['updated']),
-      'countErrors'  => count($result['errors'])
-    ];
-
     return $result;
   }
 
