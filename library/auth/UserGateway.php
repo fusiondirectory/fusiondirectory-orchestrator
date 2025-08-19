@@ -3,11 +3,14 @@
 class UserGateway
 {
   private $ds;
+  private string $orchestratorTokenBranch;
+  private CoreUtils $utils;
 
   // Passed variable can be typed Ldap
   public function __construct ($ldap_connect)
   {
     $this->ds = $ldap_connect->getConnection();
+    $this->utils = new CoreUtils();
   }
 
   public function authenticateDSA (string $dsaLogin, string $password): bool

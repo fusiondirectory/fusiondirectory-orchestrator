@@ -5,6 +5,7 @@ class RefreshTokenGateway
   private $ds;
   private string $key;
   private ?array $user;
+  private CoreUtils $utils;
 
   // Ldap_connect could be of typed Ldap - enhancement.
   public function __construct ($ldap_connect, string $key, array $user = NULL)
@@ -12,6 +13,7 @@ class RefreshTokenGateway
     $this->ds   = $ldap_connect->getConnection();
     $this->key  = $key;
     $this->user = $user;
+    $this->utils = new CoreUtils();
   }
 
   public function create ($token, int $expiry): bool

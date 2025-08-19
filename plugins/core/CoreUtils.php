@@ -87,4 +87,32 @@ class CoreUtils
       $userDn
     );
   }
+
+  /**
+   * Wrapper around FusionDirectory Integrator helper to read all attributes under
+   * cn=config,ou=fusiondirectory,<baseDn>
+   *
+   * @param string $scope LDAP search scope: 'base'|'one'|'subtree'
+   * @return array Returns entries array or an error array on failure
+   */
+  public function getFDConfigAttributes (string $scope = 'subtree'): array
+  {
+    // Instantiate FusionDirectory Integrator Link for advanced LDAP helpers
+    try {
+      $fdLink = new \FusionDirectory\Ldap\Link($_ENV["LDAP_URI"]);
+      $fdLink->bind($_ENV["LDAP_BIND_DN"], $_ENV["LDAP_PASSWORD"]);
+    } catch (\Throwable $e) {
+      // Leave fdLink as NULL if initialization fails
+      fdLink = NULL;
+    }
+
+    if (fdLink === NULL) {
+      return ['error' => 'FD Link not initialized'];
+    }
+    try {
+      return \FusionDirectory\Ldap\Link::getFusionDirectoryConfigAttributes($fdLink, $_ENV["LDAP_BASE"], $scope);
+    } catch (\Throwable $e) {
+      return ['error' => (string)$e];
+    }
+  }
 }

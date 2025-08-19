@@ -49,9 +49,6 @@ $timezone = $ldap_connect->searchInLdap($ldap_connect->getConnection(),
 // Set default timezone retrieved.
 date_default_timezone_set($timezone[0]['fdtimezone'][0]);
 
-// Retrieve all user info based on the dsa common name (CN).
-$user_gateway = new UserGateway($ldap_connect);
-
 // Encode &  Decode +  b64 tokens
 $codec = new JWTCodec($_ENV["SECRET_KEY"]);
 
