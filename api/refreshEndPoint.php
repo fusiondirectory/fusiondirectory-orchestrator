@@ -31,11 +31,15 @@ try {
 $dsaCN = $payload["sub"];
 
 $ldap_connect = new Ldap($_ENV["LDAP_URI"], $_ENV["LDAP_BIND_DN"], $_ENV["LDAP_PASSWORD"]);
+$utils        = new CoreUtils();
 
-// Construct user info directly.
+$fdConfigAttributes        = $utils->getFDConfigAttributes();
+$orchestratorAccountBranch = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0];
+
+// Construct user info
 $user = [
   "cn" => $dsaCN,
-  "dn" => "cn=" . $dsaCN . "," . $_ENV["ORCHESTRATOR_ACCOUNT_BRANCH"]
+  "dn" => "cn=" . $dsaCN . "," . $orchestratorAccountBranch ."," . $_ENV["LDAP_BASE"]
 ];
 
 // Pass user info to the RefreshTokenGateway, only the cn and dn are used.

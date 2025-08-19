@@ -13,7 +13,7 @@ class TaskGateway
    */
   public $ds;
 
-  // Variable type can be LDAP : enhancement
+  // Variable type can be LDAP : enhancement (php8.2)
   public function __construct ($ldap_connect)
   {
     $this->ds = $ldap_connect->getConnection();
@@ -559,4 +559,5 @@ class TaskGateway
     }
     return NULL;
   }
+
 }
