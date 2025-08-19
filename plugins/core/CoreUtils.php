@@ -103,10 +103,10 @@ class CoreUtils
       $fdLink->bind($_ENV["LDAP_BIND_DN"], $_ENV["LDAP_PASSWORD"]);
     } catch (\Throwable $e) {
       // Leave fdLink as NULL if initialization fails
-      fdLink = NULL;
+      $fdLink = NULL;
     }
 
-    if (fdLink === NULL) {
+    if ($fdLink === NULL) {
       return ['error' => 'FD Link not initialized'];
     }
     try {

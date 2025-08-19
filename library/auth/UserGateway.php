@@ -15,10 +15,12 @@ class UserGateway
 
   public function authenticateDSA (string $dsaLogin, string $password): bool
   {
-    // Construct DN directly (adjust as needed for your LDAP structure)
-    $dn = "cn=$dsaLogin," . $_ENV["ORCHESTRATOR_ACCOUNT_BRANCH"];
-
+    $fdConfigAttributes        = $this->utils->getFDConfigAttributes();
+    $orchestratorAccountBranch = $fdConfigAttributes[0]['fdDSARDN'][0];
+   
+    $dn     = "cn=$dsaLogin," . $orchestratorAccountBranch . "," . $_ENV["LDAP_BASE"];
     $userDs = ldap_connect($_ENV["LDAP_URI"]);
+    
     ldap_set_option($userDs, LDAP_OPT_PROTOCOL_VERSION, 3);
     $bind = @ldap_bind($userDs, $dn, $password);
     ldap_unbind($userDs);
