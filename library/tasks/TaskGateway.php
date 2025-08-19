@@ -12,11 +12,23 @@ class TaskGateway
    * @var resource|null
    */
   public $ds;
+  
+  // Link instance from fusiondirectory-integrator
+  private ?\FusionDirectory\Ldap\Link $fdLink = NULL;
 
-  // Variable type can be LDAP : enhancement
+  // Variable type can be LDAP : enhancement (php8.2)
   public function __construct ($ldap_connect)
   {
     $this->ds = $ldap_connect->getConnection();
+
+    // Instantiate FusionDirectory Integrator Link for advanced LDAP helpers
+    try {
+      $this->fdLink = new \FusionDirectory\Ldap\Link($_ENV["LDAP_URI"]);
+      $this->fdLink->bind($_ENV["LDAP_BIND_DN"], $_ENV["LDAP_PASSWORD"]);
+    } catch (\Throwable $e) {
+      // Leave fdLink as NULL if initialization fails
+      $this->fdLink = NULL;
+    }
   }
 
   /**
@@ -558,5 +570,24 @@ class TaskGateway
       return $entries[0]['dn'];
     }
     return NULL;
+  }
+
+  /**
+   * Wrapper around FusionDirectory Integrator helper to read all attributes under
+   * cn=config,ou=fusiondirectory,<baseDn>
+   *
+   * @param string $scope LDAP search scope: 'base'|'one'|'subtree'
+   * @return array Returns entries array or an error array on failure
+   */
+  public function getFDConfigAttributes (string $scope = 'subtree'): array
+  {
+    if ($this->fdLink === NULL) {
+      return ['error' => 'FD Link not initialized'];
+    }
+    try {
+      return \FusionDirectory\Ldap\Link::getFusionDirectoryConfigAttributes($this->fdLink, $_ENV["LDAP_BASE"], $scope);
+    } catch (\Throwable $e) {
+      return ['error' => (string)$e];
+    }
   }
 }
