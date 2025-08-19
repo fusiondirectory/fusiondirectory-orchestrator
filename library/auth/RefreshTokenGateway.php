@@ -54,7 +54,10 @@ class RefreshTokenGateway
     $filter = "(|(fdRefreshToken=$hash*))";
     $attrs  = ["fdRefreshToken"];
 
-    $sr   = ldap_search($this->ds, $_ENV["ORCHESTRATOR_TOKEN_BRANCH"], $filter, $attrs);
+    $fdConfigAttributes  = $this->utils->getFDConfigAttributes();
+    $tokenBranch         = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0];
+
+    $sr   = ldap_search($this->ds, $tokenBranch . "," . $_ENV["LDAP_BASE"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
     if (!empty($info[0])) {
@@ -80,7 +83,10 @@ class RefreshTokenGateway
     $filter      = "(|(fdRefreshToken=$hash*))";
     $attrs       = ["fdRefreshToken"];
 
-    $sr   = ldap_search($this->ds, $_ENV["ORCHESTRATOR_TOKEN_BRANCH"], $filter, $attrs);
+    $fdConfigAttributes  = $this->utils->getFDConfigAttributes();
+    $tokenBranch         = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0];
+
+    $sr   = ldap_search($this->ds, $tokenBranch . ',' . $_ENV["LDAP_BASE"], $filter, $attrs);
     $info = ldap_get_entries($this->ds, $sr);
 
     if (is_array($info) && $info["count"] >= 1) {

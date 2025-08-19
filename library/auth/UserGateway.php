@@ -15,10 +15,10 @@ class UserGateway
 
   public function authenticateDSA (string $dsaLogin, string $password): bool
   {
-    $fdConfigAttributes        = $this->utils->getFDConfigAttributes();
-    $orchestratorAccountBranch = $fdConfigAttributes[0]['fdDSARDN'][0];
+    $fdConfigAttributes  = $this->utils->getFDConfigAttributes();
+    $dsaBranch           = $fdConfigAttributes[0]['fdDSARDN'][0];
 
-    $dn     = "cn=$dsaLogin," . $orchestratorAccountBranch . "," . $_ENV["LDAP_BASE"];
+    $dn     = "cn=$dsaLogin," . $dsaBranch . "," . $_ENV["LDAP_BASE"];
     $userDs = ldap_connect($_ENV["LDAP_URI"]);
 
     ldap_set_option($userDs, LDAP_OPT_PROTOCOL_VERSION, 3);
@@ -32,16 +32,19 @@ class UserGateway
   public function getDSAInfo (string $dsaLogin): array
   {
     $jwtCN  = $dsaLogin;
-    $baseDN = $_ENV["ORCHESTRATOR_TOKEN_BRANCH"];
+
+    $fdConfigAttributes  = $this->utils->getFDConfigAttributes();
+    $tokenBranch         = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0] . ',' . $_ENV["LDAP_BASE"];
+
     $filter = "(&(objectClass=fdJWT)(cn=$jwtCN))";
     $attrs  = ["cn", "dn"];
 
-    $sr = @ldap_search($this->ds, $baseDN, $filter, $attrs);
+    $sr = @ldap_search($this->ds, $tokenBranch, $filter, $attrs);
     if ($sr === FALSE) {
         // Search failed, construct DN for creation
         return [
             "cn" => $jwtCN,
-            "dn" => "cn=$jwtCN," . $baseDN
+            "dn" => "cn=$jwtCN," . $tokenBranch
         ];
     }
 
@@ -55,7 +58,7 @@ class UserGateway
     } else {
         return [
             "cn" => $jwtCN,
-            "dn" => "cn=$jwtCN," . $baseDN
+            "dn" => "cn=$jwtCN," . $tokenBranch
         ];
     }
   }
