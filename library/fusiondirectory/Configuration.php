@@ -27,7 +27,7 @@ class Configuration
   public function __construct ()
   {
   }
-  
+
   /**
    * Wrapper around FusionDirectory Integrator helper to read all attributes under
    * cn=config,ou=fusiondirectory,<baseDn>
