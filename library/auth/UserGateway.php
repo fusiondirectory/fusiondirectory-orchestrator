@@ -4,18 +4,18 @@ class UserGateway
 {
   private $ds;
   private string $orchestratorTokenBranch;
-  private CoreUtils $utils;
+  private Configuration $fdConfiguration;
 
   // Passed variable can be typed Ldap
   public function __construct ($ldap_connect)
   {
     $this->ds = $ldap_connect->getConnection();
-    $this->utils = new CoreUtils();
+    $this->fdConfiguration = new Configuration();
   }
 
   public function authenticateDSA (string $dsaLogin, string $password): bool
   {
-    $fdConfigAttributes  = $this->utils->getFDConfigAttributes();
+    $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
     $dsaBranch           = $fdConfigAttributes[0]['fdDSARDN'][0];
 
     $dn     = "cn=$dsaLogin," . $dsaBranch . "," . $_ENV["LDAP_BASE"];
@@ -33,7 +33,7 @@ class UserGateway
   {
     $jwtCN  = $dsaLogin;
 
-    $fdConfigAttributes  = $this->utils->getFDConfigAttributes();
+    $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
     $tokenBranch         = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0] . ',' . $_ENV["LDAP_BASE"];
 
     $filter = "(&(objectClass=fdJWT)(cn=$jwtCN))";
