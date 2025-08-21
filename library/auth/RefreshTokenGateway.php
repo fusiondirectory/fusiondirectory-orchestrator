@@ -5,15 +5,15 @@ class RefreshTokenGateway
   private $ds;
   private string $key;
   private ?array $user;
-  private CoreUtils $utils;
+  private Configuration $fdConfiguration;
 
   // Ldap_connect could be of typed Ldap - enhancement.
   public function __construct ($ldap_connect, string $key, array $user = NULL)
   {
-    $this->ds   = $ldap_connect->getConnection();
-    $this->key  = $key;
-    $this->user = $user;
-    $this->utils = new CoreUtils();
+    $this->ds              = $ldap_connect->getConnection();
+    $this->key             = $key;
+    $this->user            = $user;
+    $this->fdConfiguration = new Configuration();
   }
 
   public function create ($token, int $expiry): bool
@@ -54,7 +54,7 @@ class RefreshTokenGateway
     $filter = "(|(fdRefreshToken=$hash*))";
     $attrs  = ["fdRefreshToken"];
 
-    $fdConfigAttributes  = $this->utils->getFDConfigAttributes();
+    $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
     $tokenBranch         = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0];
 
     $sr   = ldap_search($this->ds, $tokenBranch . "," . $_ENV["LDAP_BASE"], $filter, $attrs);
@@ -83,7 +83,7 @@ class RefreshTokenGateway
     $filter      = "(|(fdRefreshToken=$hash*))";
     $attrs       = ["fdRefreshToken"];
 
-    $fdConfigAttributes  = $this->utils->getFDConfigAttributes();
+    $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
     $tokenBranch         = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0];
 
     $sr   = ldap_search($this->ds, $tokenBranch . ',' . $_ENV["LDAP_BASE"], $filter, $attrs);
