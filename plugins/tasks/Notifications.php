@@ -111,6 +111,12 @@ class Notifications implements EndpointInterface
           // Require to be set for updating the status of the task later on.
           $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
           $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+          // Persist main task DN for this notification batch (sustainable retrieval later)
+          $notifications[$notificationsMainTaskName]['mainTaskDn'] = $mainTaskDn;
+          // Persist repeatable schedule once at batch level if task is repeatable
+          if ($repeatableSchedule !== NULL) {
+            $notifications[$notificationsMainTaskName]['repeatableSchedule'] = $repeatableSchedule;
+          }
           $notifications[$notificationsMainTaskName]['mailForm']                       = $mailTemplateForm;
           // Overwrite array notifications with complementing mail form body with uid and related attributes.
           $notifications = $this->completeNotificationsBody($notifications, $notificationsMainTaskName);
@@ -361,47 +367,26 @@ class Notifications implements EndpointInterface
   {
     $result = [];
 
-    // Get mainTaskDn from the first subtask if available
-    $mainTaskDn         = NULL;
-    $repeatableSchedule = NULL;
+    // Direct retrieval of main task DN & stored repeatable schedule from aggregation phase
+    $mainTaskDn         = $subTask['mainTaskDn'] ?? NULL;
+    $repeatableSchedule = $subTask['repeatableSchedule'] ?? NULL;
 
-    // Try to get the main task DN and repeatable schedule from the details
-    if (!empty($subTask['subTask']) && is_array($subTask['subTask'])) {
-      foreach ($subTask['subTask'] as $details) {
-        if (isset($details['fdtasksgranularmaster'][0])) {
-          $tempMainTaskDn = $details['fdtasksgranularmaster'][0];
-          $mainTaskConfig = $this->getNotificationsMainTask($tempMainTaskDn);
-          $mainTaskDn = $tempMainTaskDn;
-          $repeatableFlag = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? NULL;
-          if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
-            $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
-          }
-          break;
-        }
-      }
-    }
+    // Removed runtime revalidation of repeatable flag/schedule for performance & simplicity per request
 
     if ($serverResults[0] == "SUCCESS") {
-      foreach ($subTask['subTask'] as $subTask => $details) {
-
-        // CN of the main task
-        $cn = $subTask;
-        // DN of the main task
+      foreach ($subTask['subTask'] as $subTaskCn => $details) {
+        $cn = $subTaskCn;
         $dn = $details['dn'];
-
-        // Update task status for the current $dn
-        $result = $this->updateResult($dn, $cn, "2", $mainTaskDn, $repeatableSchedule, 'Notification was successfully sent');
+        $update = $this->updateResult($dn, $cn, "2", $mainTaskDn, $repeatableSchedule, 'Notification was successfully sent');
+        $result = array_merge($result, $update);
         $result[$dn]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($mailTaskBackend[0]["dn"]);
       }
     } else {
-      foreach ($subTask['subTask'] as $subTask => $details) {
-
-        // CN of the main task
-        $cn = $subTask;
-        // DN of the main task
+      foreach ($subTask['subTask'] as $subTaskCn => $details) {
+        $cn = $subTaskCn;
         $dn = $details['dn'];
-
-        $result = $this->updateResult($dn, $cn, $serverResults[0], $mainTaskDn, $repeatableSchedule, $serverResults);
+        $update = $this->updateResult($dn, $cn, $serverResults[0], $mainTaskDn, $repeatableSchedule, $serverResults);
+        $result = array_merge($result, $update);
       }
     }
 
@@ -410,8 +395,16 @@ class Notifications implements EndpointInterface
 
   private function updateResult ($dn, $cn, $status, $mainTaskDn, $repeatableSchedule, $message)
   {
-      $result[$dn]['statusUpdate']       = $this->gateway->updateTaskStatus($dn, $cn, $status, $mainTaskDn, $repeatableSchedule);
-      $result[$dn]['mailStatus']         = $message;
+    if ($mainTaskDn !== NULL) {
+      if ($repeatableSchedule !== NULL) {
+        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $status, $mainTaskDn, $repeatableSchedule);
+      } else {
+        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $status, $mainTaskDn);
+      }
+    } else {
+      $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $status);
+    }
+      $result[$dn]['mailStatus'] = $message;
       return $result;
   }
 }
