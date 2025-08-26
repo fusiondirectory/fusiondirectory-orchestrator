@@ -76,7 +76,8 @@ class Reminder implements EndpointInterface
 
         // Determine repeatable schedule only if main task marked repeatable
         $repeatableSchedule = NULL;
-        $repeatableFlag = $remindersMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
+        $repeatableFlag     = $remindersMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
+
         if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
           $repeatableSchedule = $remindersMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
         }

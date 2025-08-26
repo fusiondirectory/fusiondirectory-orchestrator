@@ -101,11 +101,11 @@ class Extractor implements EndpointInterface
         }
 
         if (empty($userDnList)) {
-            if ($repeatableSchedule !== NULL) {
-              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
-            } else {
-              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-            }
+          if ($repeatableSchedule !== NULL) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+          } else {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          }
             $result[$task['dn']]['result'] = "No user DNs to process.";
             continue;
         }

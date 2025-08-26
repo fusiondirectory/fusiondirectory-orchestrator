@@ -74,7 +74,8 @@ class Notifications implements EndpointInterface
 
         // Gate repeatable schedule by flag
         $repeatableSchedule = NULL;
-        $repeatableFlag = $notificationsMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
+        $repeatableFlag     = $notificationsMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
+
         if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
           $repeatableSchedule = $notificationsMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
         }

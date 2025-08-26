@@ -92,7 +92,8 @@ class Mail implements EndpointInterface
           $mainTaskConfig = $this->getMailTaskMainTask($mainTaskDn);
           // Gate schedule usage by repeatable flag
           $repeatableSchedule = NULL;
-          $repeatableFlag = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? NULL;
+          $repeatableFlag     = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? NULL;
+
           if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
             $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
           }
