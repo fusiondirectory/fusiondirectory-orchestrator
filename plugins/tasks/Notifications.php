@@ -72,8 +72,13 @@ class Notifications implements EndpointInterface
         $notificationsMainTask     = $this->getNotificationsMainTask($mainTaskDn);
         $notificationsMainTaskName = $mainTaskDn;
 
-        // Get the repeatable schedule from the main task
-        $repeatableSchedule = $notificationsMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+        // Gate repeatable schedule by flag
+        $repeatableSchedule = NULL;
+        $repeatableFlag     = $notificationsMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
+
+        if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
+          $repeatableSchedule = $notificationsMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+        }
 
         // Generate the mail form with all mail controller requirements
         $mailTemplateForm = $this->generateMainTaskMailTemplate($notificationsMainTask);
@@ -111,12 +116,6 @@ class Notifications implements EndpointInterface
           $notifications = $this->completeNotificationsBody($notifications, $notificationsMainTaskName);
 
         } else { // Simply update the sub-task with status 3 (nothing to be processed).
-          // Get the main task DN and repeatable schedule
-          $mainTaskDn = $task['fdtasksgranularmaster'][0];
-          $notificationsMainTask = $this->getNotificationsMainTask($mainTaskDn);
-          $repeatableSchedule = $notificationsMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
-
-          // Update task status to 3 (nothing to process) instead of removing it
           $result[$task['dn']]['Status'] = $this->gateway->updateTaskStatus(
             $task['dn'],
             $task['cn'][0],
@@ -217,7 +216,7 @@ class Notifications implements EndpointInterface
     return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksNotificationsListOfRecipientsMails',
       'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksNotificationsEmailSender',
       'fdTasksNotificationsSubState', 'fdTasksNotificationsState', 'fdTasksNotificationsResource',
-      'fdTasksRepeatableSchedule'], '', $mainTaskDn);
+      'fdTasksRepeatableSchedule', 'fdTasksRepeatable'], '', $mainTaskDn);
   }
 
   /**
@@ -373,7 +372,10 @@ class Notifications implements EndpointInterface
           $tempMainTaskDn = $details['fdtasksgranularmaster'][0];
           $mainTaskConfig = $this->getNotificationsMainTask($tempMainTaskDn);
           $mainTaskDn = $tempMainTaskDn;
-          $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+          $repeatableFlag = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? NULL;
+          if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
+            $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+          }
           break;
         }
       }

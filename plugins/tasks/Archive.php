@@ -54,7 +54,9 @@ class Archive implements EndpointInterface
 
         // Retrieve the main task configuration
         $mainTaskConfig = $this->getArchiveTaskBehaviorFromMainTask($mainTaskDn);
-        $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+        $rawRepeatable = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? '';
+        $isTaskRepeatable = (strcasecmp($rawRepeatable, 'TRUE') === 0);
+        $repeatableSchedule = $isTaskRepeatable ? ($mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL) : NULL;
         $desiredSupannStatus = $mainTaskConfig;
 
         // Retrieve the current supann status of the user
@@ -118,7 +120,7 @@ class Archive implements EndpointInterface
   {
       return $this->gateway->getLdapTasks(
           '(objectClass=*)',
-          ['fdArchiveTaskResource', 'fdArchiveTaskState', 'fdArchiveTaskSubState', 'fdTasksRepeatableSchedule'],
+          ['fdArchiveTaskResource', 'fdArchiveTaskState', 'fdArchiveTaskSubState', 'fdTasksRepeatableSchedule', 'fdTasksRepeatable'],
           '',
           $taskDN
       );

@@ -62,7 +62,7 @@ class LifeCycle implements EndpointInterface
     return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
       'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
       'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate',
-      'fdTasksLifeCycleRegexPattern', 'fdTasksLifeCycleEnableAccountClosure', 'fdTasksRepeatableSchedule'],
+      'fdTasksLifeCycleRegexPattern', 'fdTasksLifeCycleEnableAccountClosure', 'fdTasksRepeatableSchedule', 'fdTasksRepeatable'],
                                         '', $taskDN);
   }
 
@@ -220,8 +220,13 @@ class LifeCycle implements EndpointInterface
         // Simply retrieve the lifeCycle behavior from the main related tasks
         $lifeCycleBehavior = $this->getLifeCycleBehaviorFromMainTask($mainTaskDn);
 
-        // Get the repeatable schedule from the main task
-        $repeatableSchedule = $lifeCycleBehavior[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+        // Determine repeatable schedule only if main task marked repeatable
+        $repeatableSchedule = NULL;
+        $repeatableFlag     = $lifeCycleBehavior[0]['fdtasksrepeatable'][0] ?? NULL;
+
+        if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
+          $repeatableSchedule = $lifeCycleBehavior[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+        }
 
         // Simply retrieve the current supannStatus of the user DN related to the task at hand
         $currentUserLifeCycle = $this->coreUtils->getUserSupannAccountStatus($task['fdtasksgranulardn'][0], $this->gateway);

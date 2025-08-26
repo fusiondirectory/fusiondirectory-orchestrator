@@ -83,8 +83,11 @@ class Extractor implements EndpointInterface
         $mainTaskDn = $task['fdtasksgranularmaster'][0];
         $mainTaskConfig = $this->getExtractMainTaskConfig($mainTaskDn);
 
-        // Get the repeatable schedule from the main task
-        $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+        // Determine if main task is marked repeatable; only then use schedule
+        $isRepeatableFlag = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? NULL; // may be TRUE/FALSE
+        if ($isRepeatableFlag !== NULL && strcasecmp($isRepeatableFlag, 'TRUE') === 0) {
+          $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+        }
 
         // Process fdExtractorTaskListOfDN attribute
         $userDnListRaw = $mainTaskConfig[0]['fdextractortasklistofdn'] ?? [];
@@ -98,7 +101,11 @@ class Extractor implements EndpointInterface
         }
 
         if (empty($userDnList)) {
+          if ($repeatableSchedule !== NULL) {
             $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+          } else {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          }
             $result[$task['dn']]['result'] = "No user DNs to process.";
             continue;
         }
@@ -176,8 +183,12 @@ class Extractor implements EndpointInterface
         }
 
       } catch (Exception $e) {
+        if ($repeatableSchedule !== NULL) {
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
+        } else {
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
+        }
         $result[$task['dn']]['result'] = "Error processing extractor task: " . $e->getMessage();
-        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
       }
     }
 
@@ -238,7 +249,8 @@ class Extractor implements EndpointInterface
         'cn',
         'fdExtractorTaskListOfDN',
         'fdExtractorTaskAttributes',
-        'fdTasksRepeatableSchedule'
+        'fdTasksRepeatableSchedule',
+        'fdTasksRepeatable'
       ],
       '',
       $mainTaskDn

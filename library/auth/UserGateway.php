@@ -4,13 +4,13 @@ class UserGateway
 {
   private $ds;
   private string $orchestratorTokenBranch;
-  private Configuration $fdConfiguration;
+  private Backend $fdConfiguration;
 
   // Passed variable can be typed Ldap
   public function __construct ($ldap_connect)
   {
     $this->ds = $ldap_connect->getConnection();
-    $this->fdConfiguration = new Configuration();
+    $this->fdConfiguration = new Backend();
   }
 
   public function authenticateDSA (string $dsaLogin, string $password): bool

@@ -74,8 +74,13 @@ class Reminder implements EndpointInterface
         // remove the count keys
         $this->gateway->unsetCountKeys($remindersMainTask);
 
-        // Get the repeatable schedule from the main task
-        $repeatableSchedule = $remindersMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+        // Determine repeatable schedule only if main task marked repeatable
+        $repeatableSchedule = NULL;
+        $repeatableFlag     = $remindersMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
+
+        if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
+          $repeatableSchedule = $remindersMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+        }
 
         // Retrieve email attribute for the monitored members requiring reminding.
         $mailOfTheReminded = $this->getEmailFromReminder($task['fdtasksgranulardn'][0]);
@@ -441,7 +446,7 @@ class Reminder implements EndpointInterface
       'fdTasksReminderSupannNewEndDate', 'fdTasksReminderRecipientsMembers', 'fdTasksReminderEmailSender',
       'fdTasksReminderAccountProlongation', 'fdTasksReminderMembers', 'fdTasksReminderNextResource',
       'fdTasksReminderNextState', 'fdTasksReminderNextSubState', 'fdTasksReminderSubState', 'fdTasksReminderFirstCall', 'fdTasksReminderSecondCall',
-      'fdTasksRepeatableSchedule'], '', $mainTaskDn);
+      'fdTasksRepeatableSchedule', 'fdTasksRepeatable'], '', $mainTaskDn);
   }
 
   /**
@@ -554,6 +559,7 @@ class Reminder implements EndpointInterface
 
   /**
    * @param array $serverResults
+   * @param array $taskInfo
    * @param array $mailTaskBackend
    * @return array
    * Note : Process the mail response and update the task status with the main task DN and repeatable schedule
@@ -561,36 +567,42 @@ class Reminder implements EndpointInterface
   protected function processMailResponseAndUpdateTasks (array $serverResults, array $taskInfo, array $mailTaskBackend): array
   {
     $result = [];
-    // Use the mainTaskDn and repeatableSchedule directly from the taskInfo
     $mainTaskDn         = $taskInfo['mainTaskDn'];
     $repeatableSchedule = $taskInfo['repeatableSchedule'];
 
+    // Re-validate repeatable flag on main task before using stored schedule
+    if ($repeatableSchedule !== NULL) {
+      $mainTaskConfig = $this->getRemindersMainTask($mainTaskDn);
+      $repeatableFlag = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? NULL;
+      if ($repeatableFlag === NULL || strcasecmp($repeatableFlag, 'TRUE') !== 0) {
+        $repeatableSchedule = NULL; // Do not apply schedule if flag not TRUE anymore
+      }
+    }
+
     if ($serverResults[0] == "SUCCESS") {
       foreach ($taskInfo['subTask'] as $subTask => $details) {
-
-        // CN of the main task
         $cn = $subTask;
-        // DN of the main task
         $dn = $details['dn'];
-
-        // Update task status for the current $dn with mainTaskDn and repeatableSchedule
-        $result[$dn]['statusUpdate']       = $this->gateway->updateTaskStatus($dn, $cn, "2", $mainTaskDn, $repeatableSchedule);
+        if ($repeatableSchedule !== NULL) {
+          $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, "2", $mainTaskDn, $repeatableSchedule);
+        } else {
+          $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, "2", $mainTaskDn);
+        }
         $result[$dn]['mailStatus']         = 'reminder was successfully sent';
         $result[$dn]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($mailTaskBackend[0]["dn"]);
       }
     } else {
       foreach ($taskInfo['subTask'] as $subTask => $details) {
-
-        // CN of the main task
         $cn = $subTask;
-        // DN of the main task
         $dn = $details['dn'];
-
-        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $serverResults[0], $mainTaskDn, $repeatableSchedule);
+        if ($repeatableSchedule !== NULL) {
+          $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $serverResults[0], $mainTaskDn, $repeatableSchedule);
+        } else {
+          $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $serverResults[0], $mainTaskDn);
+        }
         $result[$dn]['mailStatus']   = $serverResults;
       }
     }
-
     return $result;
   }
 }
