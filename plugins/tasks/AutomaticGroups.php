@@ -87,8 +87,10 @@ class AutomaticGroups implements EndpointInterface
         $mainTaskDn = $task['fdtasksgranularmaster'][0];
         $mainTaskConfig = $this->getAutomaticGroupsMainTask($mainTaskDn);
 
-        // Get the repeatable schedule from the main task
-        $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+        // Repeatable logic (only apply schedule if fdTasksRepeatable == TRUE)
+        $rawRepeatable = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? '';
+        $isTaskRepeatable = (strcasecmp($rawRepeatable, 'TRUE') === 0);
+        $repeatableSchedule = $isTaskRepeatable ? ($mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL) : NULL;
 
         // Get target group and resource/state criteria
         $targetGroup   = $mainTaskConfig[0]['fdtasksautomaticgroupsofname'][0] ?? NULL;
@@ -208,8 +210,10 @@ class AutomaticGroups implements EndpointInterface
         $mainTaskDn = $task['fdtasksgranularmaster'][0];
         $mainTaskConfig = $this->getAutomaticGroupsMainTask($mainTaskDn);
 
-        // Get the repeatable schedule from the main task
-        $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+        // Repeatable logic for dynamic group tasks
+        $rawRepeatable = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? '';
+        $isTaskRepeatable = (strcasecmp($rawRepeatable, 'TRUE') === 0);
+        $repeatableSchedule = $isTaskRepeatable ? ($mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL) : NULL;
 
         // Get pre-computed values for dynamic group
         $dynamicURL    = $mainTaskConfig[0]['fdtasksautomaticgroupsdynamicurl'][0] ?? NULL;
@@ -270,6 +274,7 @@ class AutomaticGroups implements EndpointInterface
         'fdTasksAutomaticGroupsDynamicName',
         'fdtasksautomaticgroupsregexpattern',
         'fdTasksRepeatableSchedule',
+        'fdTasksRepeatable',
       ],
       '',
       $mainTaskDn
