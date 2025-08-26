@@ -53,7 +53,7 @@ class Extractor implements EndpointInterface
   {
     $result = [];
     $extractTasks = $this->gateway->getObjectTypeTask('extract');
-    $processedAnyTask = FALSE; // Track if any task was actually processed
+    $processedAnyTask = FALSE; // Track if any task was actually processedy
 
     // Path is now expected in the JSON body ($data)
     $path = $data['path'] ?? '/srv/orchestrator/';
@@ -148,7 +148,14 @@ class Extractor implements EndpointInterface
           if (!empty($errors)) {
               $finalMessage .= " Errors: " . implode("; ", $errors);
           }
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+            // Treat as successful completion (no data) so next execution can be scheduled
+            if ($repeatableSchedule !== NULL) {
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+            } else if ($mainTaskDn !== NULL) {
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
+            } else {
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            }
             $result[$task['dn']]['result'] = $finalMessage;
             continue;
         }
@@ -171,7 +178,7 @@ class Extractor implements EndpointInterface
             $recipients = $mainTaskDetails[0]['fdextractorlistofrecipientsmails'] ?? [];
             $this->gateway->unsetCountKeys($recipients);
 
-            $finalMessage = $this->getFinalMessage($filename, $task, $recipients, $sender, $errors);
+            $finalMessage = $this->getFinalMessage($filename, $task, $recipients, $sender, $errors, $mainTaskDn, $repeatableSchedule);
             $result[$task['dn']]['result'] = $finalMessage;
             // --- EMAIL LOGIC END ---
         } else {
@@ -183,8 +190,10 @@ class Extractor implements EndpointInterface
         }
 
       } catch (Exception $e) {
-        if ($repeatableSchedule !== NULL) {
+        if ($repeatableSchedule !== NULL && isset($mainTaskDn)) {
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
+        } else if (isset($mainTaskDn)) {
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn);
         } else {
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
         }
@@ -200,7 +209,7 @@ class Extractor implements EndpointInterface
     return $result;
   }
 
-  private function getFinalMessage (string $filename, array $task, array $recipients, $sender, array $errors): string
+  private function getFinalMessage (string $filename, array $task, array $recipients, $sender, array $errors, $mainTaskDn, $repeatableSchedule): string
   {
       $subject    = "FusionDirectory Extractor - Export file";
       $body       = "Your requested extract is attached.\n\nFile: $filename";
@@ -215,7 +224,14 @@ class Extractor implements EndpointInterface
         if (!empty($errors)) {
               $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
         }
-        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+        // Success without email
+        if ($repeatableSchedule !== NULL) {
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+        } else if ($mainTaskDn !== NULL) {
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
+        } else {
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+        }
       } else {
           // Send mail using MailLib
         $mailSentResult = $this->mailUtils->sendMail($sender, NULL, $recipients,
@@ -226,10 +242,22 @@ class Extractor implements EndpointInterface
           if (!empty($errors)) {
                   $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
           }
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          if ($repeatableSchedule !== NULL) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+          } else if ($mainTaskDn !== NULL) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
+          } else {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          }
         } else {
           $finalMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+          if ($repeatableSchedule !== NULL) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage, $mainTaskDn, $repeatableSchedule);
+          } else if ($mainTaskDn !== NULL) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage, $mainTaskDn);
+          } else {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+          }
         }
       }
       return $finalMessage;
