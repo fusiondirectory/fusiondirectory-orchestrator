@@ -31,7 +31,7 @@ try {
 $dsaCN = $payload["sub"];
 
 $ldap_connect  = new Ldap($_ENV["LDAP_URI"], $_ENV["LDAP_BIND_DN"], $_ENV["LDAP_PASSWORD"]);
-$fdConfiguration = new Configuration();
+$fdConfiguration = new Backend();
 
 $fdConfigAttributes        = $fdConfiguration->getFDConfigAttributes();
 $orchestratorAccountBranch = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0];
