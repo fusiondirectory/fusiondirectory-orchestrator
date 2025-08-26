@@ -92,12 +92,22 @@ class Audit implements EndpointInterface
    */
   private function processScheduledTask (array $task): array
   {
-    // Retrieve data from the main task.
-    $auditMainTask  = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
+    // Retrieve main task DN
+    $mainTaskDn    = $task['fdtasksgranularmaster'][0];
+    // Retrieve data from the main task (now also repeatable attributes)
+    $auditMainTask = $this->getAuditMainTask($mainTaskDn);
+
+    // Determine repeatable schedule only if main task marked repeatable
+    $repeatableSchedule = NULL;
+    $repeatableFlag     = $auditMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
+    if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
+      $repeatableSchedule = $auditMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+    }
+
     // Simply get the days to retain audit.
     $auditRetention = $auditMainTask[0]['fdaudittasksretention'][0];
     // Verification of all audit and their potential removal based on retention days passed, also update subtasks.
-    return $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0]);
+    return $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0], $mainTaskDn, $repeatableSchedule);
   }
 
   /**
@@ -114,16 +124,24 @@ class Audit implements EndpointInterface
 
     foreach ($syslogAuditSubTasks as $task) {
       try {
+        // Initialize for safety
+        $mainTaskDn         = NULL;
+        $repeatableSchedule = NULL;
         // If the task must be treated - status and scheduled - process the sub-tasks
         if ($this->gateway->statusAndScheduleCheck($task)) {
           // Retrieve data from the main task
-
-          $auditMainTask = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
+          $mainTaskDn   = $task['fdtasksgranularmaster'][0];
+          $auditMainTask = $this->getAuditMainTask($mainTaskDn);
+          // Repeatable logic
+          $repeatableFlag = $auditMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
+          if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
+            $repeatableSchedule = $auditMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+          }
           // Get the prefix from the main task configuration (default to 'fd_syslog' if not set)
           $prefix = $auditMainTask[0]['fdauditsyslogprefix'][0] ?? 'fd_syslog';
 
           // Get the most recent audit timestamp that was already processed
-          $lastProcessedTime = NULL;
+            $lastProcessedTime = NULL;
 
           // Check if we have a state file recording last processed time (with prefix)
           $stateFile = $path . $prefix . '-last-processed.txt';
@@ -146,7 +164,13 @@ class Audit implements EndpointInterface
 
           // Check if there are no audit entries
           if (count($auditEntries) === 0) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            if ($repeatableSchedule !== NULL) {
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+            } elseif ($mainTaskDn !== NULL) {
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
+            } else {
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            }
             $result[] = ["dn" => $task['dn'], "message" => "No audit entries found to transform"];
             continue;
           }
@@ -162,14 +186,12 @@ class Audit implements EndpointInterface
           if (file_exists($filename)) {
             $existingContent = file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($existingContent as $line) {
-              // Extract audit ID from the line using regex
               if (preg_match('/id="([^"]+)"/', $line, $matches)) {
                 $existingAuditIds[] = $matches[1];
               }
             }
           }
 
-          // Open file for writing (append mode)
           $handle = fopen($filename, 'a');
           if ($handle === FALSE) {
             throw new Exception("Could not open file: $filename");
@@ -179,17 +201,14 @@ class Audit implements EndpointInterface
           $skipped = 0;
 
           foreach ($auditEntries as $entry) {
-            // Skip entry if its ID is already in the file
             $auditId = $entry['fdauditid'][0] ?? 'unknown';
             if (in_array($auditId, $existingAuditIds)) {
               $skipped++;
               continue;
             }
 
-            // Parse LDAP timestamp format (YYYYMMDDHHmmss.SSSSSSZ)
             $timestamp = '';
             if (isset($entry['fdauditdatetime'][0])) {
-              // Extract date parts from LDAP format
               $dateStr = $entry['fdauditdatetime'][0];
               if (preg_match('/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/', $dateStr, $matches)) {
                 $year  = $matches[1];
@@ -198,8 +217,6 @@ class Audit implements EndpointInterface
                 $hour  = $matches[4];
                 $min   = $matches[5];
                 $sec   = $matches[6];
-
-                // Create a datetime object in UTC first, then convert to local timezone
                 $dt = new DateTime("$year-$month-$day $hour:$min:$sec", new DateTimeZone('UTC'));
                 $dt->setTimezone(new DateTimeZone(date_default_timezone_get()));
                 $timestamp = $dt->format('M d H:i:s');
@@ -211,17 +228,13 @@ class Audit implements EndpointInterface
             }
 
             $syslogMessage = $this->createSyslogMessage($entry, $timestamp, $auditId);
-
-            // Write the message to the file
             fwrite($handle, $syslogMessage . PHP_EOL);
             $count++;
           }
 
           fclose($handle);
 
-          // After processing all entries, save the latest timestamp
           if (!empty($auditEntries)) {
-            // Find the most recent timestamp
             $latestTime = NULL;
             foreach ($auditEntries as $entry) {
               if (isset($entry['fdauditdatetime'][0])) {
@@ -230,26 +243,33 @@ class Audit implements EndpointInterface
                 }
               }
             }
-
-            // Save it to the state file
             if ($latestTime !== NULL) {
               file_put_contents($stateFile, $latestTime);
             }
           }
 
-          // Update task status
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          if ($repeatableSchedule !== NULL) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+          } elseif ($mainTaskDn !== NULL) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
+          } else {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          }
 
-          // Include information about skipped entries in the result message
           $resultMsg = "Successfully transformed $count audit entries to syslog format in $filename";
           if ($skipped > 0) {
             $resultMsg .= " (skipped $skipped duplicate entries)";
           }
-
           $result[] = ["dn" => $task['dn'], "message" => $resultMsg];
         }
       } catch (Exception $e) {
-        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
+        if ($repeatableSchedule !== NULL && $mainTaskDn !== NULL) {
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
+        } elseif ($mainTaskDn !== NULL) {
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn);
+        } else {
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
+        }
         $result[] = ["dn" => $task['dn'], "message" => "Error transforming audit entries: " . $e->getMessage()];
       }
     }
@@ -264,8 +284,12 @@ class Audit implements EndpointInterface
    */
   public function getAuditMainTask (string $mainTaskDn): array
   {
-    // Retrieve data from the main task
-    return $this->gateway->getLdapTasks('(objectClass=fdAuditTasks)', ['fdAuditTasksRetention', 'fdAuditSyslogPrefix'], '', $mainTaskDn);
+    return $this->gateway->getLdapTasks(
+      '(objectClass=fdAuditTasks)',
+      ['fdAuditTasksRetention', 'fdAuditSyslogPrefix', 'fdTasksRepeatableSchedule', 'fdTasksRepeatable'],
+      '',
+      $mainTaskDn
+    );
   }
 
   /**
@@ -276,7 +300,15 @@ class Audit implements EndpointInterface
    */
   public function checkAuditPassedRetention (int $auditRetention, $subTaskDN, $subTaskCN, $mainTaskDn = NULL, $repeatableSchedule = NULL): array
   {
-    $auditLib = new FusionDirectory\Audit\AuditLib($auditRetention, $this->returnLdapAuditEntries(), $this->gateway, $subTaskDN, $subTaskCN);
+    $auditLib = new FusionDirectory\Audit\AuditLib(
+      $auditRetention,
+      $this->returnLdapAuditEntries(),
+      $this->gateway,
+      $subTaskDN,
+      $subTaskCN,
+      $mainTaskDn,
+      $repeatableSchedule
+    );
     return $auditLib->checkAuditPassedRetentionOrchestrator();
   }
 
