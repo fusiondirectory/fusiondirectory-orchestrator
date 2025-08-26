@@ -59,7 +59,7 @@ class Mail implements EndpointInterface
   {
     return $this->gateway->getLdapTasks(
       "(objectClass=fdTasks)",
-      ["fdTasksRepeatableSchedule"],
+      ["fdTasksRepeatableSchedule", "fdTasksRepeatable"],
       "",
       $mainTaskDn
     );
@@ -90,7 +90,12 @@ class Mail implements EndpointInterface
 
           // Retrieve data from the main task including the repeatable schedule
           $mainTaskConfig = $this->getMailTaskMainTask($mainTaskDn);
-          $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+          // Gate schedule usage by repeatable flag
+          $repeatableSchedule = NULL;
+          $repeatableFlag = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? NULL;
+          if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
+            $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+          }
 
           // Search for the related attached mail object.
           $mailInfos   = $this->retrieveMailTemplateInfos($task["fdtasksgranularref"][0]);
@@ -120,7 +125,7 @@ class Mail implements EndpointInterface
           }
 
           $mailSentResult = $this->mailUtils->sendMail($setFrom, $setBCC, $recipients, $body, $signature, $subject, $receipt, $attachments);
-          $result[$task["dn"]] = $this->updateResult($mailSentResult, $task, $fdTasksConf);
+          $result[$task["dn"]] = $this->updateResult($mailSentResult, $task, $fdTasksConf, $mainTaskDn, $repeatableSchedule);
 
           // Verification anti-spam max mails to be sent and quit loop if matched
           $maxMailsIncrement += 1; //Only one as recipients in mail object is always one email.
@@ -134,21 +139,29 @@ class Mail implements EndpointInterface
     return $result;
   }
 
-  private function updateResult (array $mailSentResult, $task, $fdTasksConf): array
+  private function updateResult (array $mailSentResult, $task, $fdTasksConf, $mainTaskDn = NULL, $repeatableSchedule = NULL): array
   {
     $result = [];
     if ($mailSentResult[0] == "SUCCESS") {
-
-      // The third arguments "2" is the status code of success for mail as of now 18/11/22
-      $result['statusUpdate']   = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], "2");
-      $result['mailStatus']   = 'mail : ' . $task["dn"] . ' was successfully sent';
+      if ($repeatableSchedule !== NULL && $mainTaskDn !== NULL) {
+        $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], "2", $mainTaskDn, $repeatableSchedule);
+      } else if ($mainTaskDn !== NULL) {
+        $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], "2", $mainTaskDn);
+      } else {
+        $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], "2");
+      }
+      $result['mailStatus'] = 'mail : ' . $task["dn"] . ' was successfully sent';
       $result['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($fdTasksConf[0]["dn"]);
-
     } else {
-      $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], $mailSentResult[0]);
-      $result['Error']  = $mailSentResult;
+      if ($repeatableSchedule !== NULL && $mainTaskDn !== NULL) {
+        $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], $mailSentResult[0], $mainTaskDn, $repeatableSchedule);
+      } else if ($mainTaskDn !== NULL) {
+        $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], $mailSentResult[0], $mainTaskDn);
+      } else {
+        $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], $mailSentResult[0]);
+      }
+      $result['Error'] = $mailSentResult;
     }
-
     return $result;
   }
 
