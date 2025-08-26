@@ -149,13 +149,13 @@ class Extractor implements EndpointInterface
               $finalMessage .= " Errors: " . implode("; ", $errors);
           }
             // Treat as successful completion (no data) so next execution can be scheduled
-            if ($repeatableSchedule !== NULL) {
-              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
-            } else if ($mainTaskDn !== NULL) {
-              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
-            } else {
-              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-            }
+          if ($repeatableSchedule !== NULL) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+          } else if ($mainTaskDn !== NULL) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
+          } else {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          }
             $result[$task['dn']]['result'] = $finalMessage;
             continue;
         }
