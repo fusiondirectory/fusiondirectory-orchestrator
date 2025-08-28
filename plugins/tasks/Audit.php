@@ -92,12 +92,22 @@ class Audit implements EndpointInterface
    */
   private function processScheduledTask (array $task): array
   {
-    // Retrieve data from the main task.
-    $auditMainTask  = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
+    // Retrieve main task DN
+    $mainTaskDn    = $task['fdtasksgranularmaster'][0];
+    // Retrieve data from the main task (now also repeatable attributes)
+    $auditMainTask = $this->getAuditMainTask($mainTaskDn);
+
+    // Determine repeatable schedule only if main task marked repeatable
+    $repeatableSchedule = NULL;
+    $repeatableFlag     = $auditMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
+    if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
+      $repeatableSchedule = $auditMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+    }
+
     // Simply get the days to retain audit.
     $auditRetention = $auditMainTask[0]['fdaudittasksretention'][0];
     // Verification of all audit and their potential removal based on retention days passed, also update subtasks.
-    return $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0]);
+    return $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0], $mainTaskDn, $repeatableSchedule);
   }
 
   /**
@@ -114,16 +124,24 @@ class Audit implements EndpointInterface
 
     foreach ($syslogAuditSubTasks as $task) {
       try {
+        // Initialize for safety
+        $mainTaskDn         = NULL;
+        $repeatableSchedule = NULL;
         // If the task must be treated - status and scheduled - process the sub-tasks
         if ($this->gateway->statusAndScheduleCheck($task)) {
           // Retrieve data from the main task
-
-          $auditMainTask = $this->getAuditMainTask($task['fdtasksgranularmaster'][0]);
+          $mainTaskDn   = $task['fdtasksgranularmaster'][0];
+          $auditMainTask = $this->getAuditMainTask($mainTaskDn);
+          // Repeatable logic
+          $repeatableFlag = $auditMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
+          if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
+            $repeatableSchedule = $auditMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+          }
           // Get the prefix from the main task configuration (default to 'fd_syslog' if not set)
           $prefix = $auditMainTask[0]['fdauditsyslogprefix'][0] ?? 'fd_syslog';
 
           // Get the most recent audit timestamp that was already processed
-          $lastProcessedTime = NULL;
+            $lastProcessedTime = NULL;
 
           // Check if we have a state file recording last processed time (with prefix)
           $stateFile = $path . $prefix . '-last-processed.txt';
@@ -146,7 +164,13 @@ class Audit implements EndpointInterface
 
           // Check if there are no audit entries
           if (count($auditEntries) === 0) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            if ($repeatableSchedule !== NULL) {
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+            } elseif ($mainTaskDn !== NULL) {
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
+            } else {
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+            }
             $result[] = ["dn" => $task['dn'], "message" => "No audit entries found to transform"];
             continue;
           }
@@ -237,19 +261,29 @@ class Audit implements EndpointInterface
             }
           }
 
-          // Update task status
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          if ($repeatableSchedule !== NULL) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+          } elseif ($mainTaskDn !== NULL) {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
+          } else {
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
+          }
 
           // Include information about skipped entries in the result message
           $resultMsg = "Successfully transformed $count audit entries to syslog format in $filename";
           if ($skipped > 0) {
             $resultMsg .= " (skipped $skipped duplicate entries)";
           }
-
           $result[] = ["dn" => $task['dn'], "message" => $resultMsg];
         }
       } catch (Exception $e) {
-        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
+        if ($repeatableSchedule !== NULL && $mainTaskDn !== NULL) {
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
+        } elseif ($mainTaskDn !== NULL) {
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn);
+        } else {
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
+        }
         $result[] = ["dn" => $task['dn'], "message" => "Error transforming audit entries: " . $e->getMessage()];
       }
     }
@@ -264,8 +298,12 @@ class Audit implements EndpointInterface
    */
   public function getAuditMainTask (string $mainTaskDn): array
   {
-    // Retrieve data from the main task
-    return $this->gateway->getLdapTasks('(objectClass=fdAuditTasks)', ['fdAuditTasksRetention', 'fdAuditSyslogPrefix'], '', $mainTaskDn);
+    return $this->gateway->getLdapTasks(
+      '(objectClass=fdAuditTasks)',
+      ['fdAuditTasksRetention', 'fdAuditSyslogPrefix', 'fdTasksRepeatableSchedule', 'fdTasksRepeatable'],
+      '',
+      $mainTaskDn
+    );
   }
 
   /**
@@ -276,7 +314,15 @@ class Audit implements EndpointInterface
    */
   public function checkAuditPassedRetention (int $auditRetention, $subTaskDN, $subTaskCN, $mainTaskDn = NULL, $repeatableSchedule = NULL): array
   {
-    $auditLib = new FusionDirectory\Audit\AuditLib($auditRetention, $this->returnLdapAuditEntries(), $this->gateway, $subTaskDN, $subTaskCN);
+    $auditLib = new FusionDirectory\Audit\AuditLib(
+      $auditRetention,
+      $this->returnLdapAuditEntries(),
+      $this->gateway,
+      $subTaskDN,
+      $subTaskCN,
+      $mainTaskDn,
+      $repeatableSchedule
+    );
     return $auditLib->checkAuditPassedRetentionOrchestrator();
   }
 
