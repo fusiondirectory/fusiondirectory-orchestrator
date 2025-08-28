@@ -186,12 +186,14 @@ class Audit implements EndpointInterface
           if (file_exists($filename)) {
             $existingContent = file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($existingContent as $line) {
+              // Extract audit ID from the line using regex
               if (preg_match('/id="([^"]+)"/', $line, $matches)) {
                 $existingAuditIds[] = $matches[1];
               }
             }
           }
 
+          // Open file for writing (append mode)
           $handle = fopen($filename, 'a');
           if ($handle === FALSE) {
             throw new Exception("Could not open file: $filename");
@@ -201,14 +203,17 @@ class Audit implements EndpointInterface
           $skipped = 0;
 
           foreach ($auditEntries as $entry) {
+            // Skip entry if its ID is already in the file
             $auditId = $entry['fdauditid'][0] ?? 'unknown';
             if (in_array($auditId, $existingAuditIds)) {
               $skipped++;
               continue;
             }
 
+            // Parse LDAP timestamp format (YYYYMMDDHHmmss.SSSSSSZ)
             $timestamp = '';
             if (isset($entry['fdauditdatetime'][0])) {
+              // Extract date parts from LDAP format
               $dateStr = $entry['fdauditdatetime'][0];
               if (preg_match('/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/', $dateStr, $matches)) {
                 $year  = $matches[1];
@@ -217,6 +222,8 @@ class Audit implements EndpointInterface
                 $hour  = $matches[4];
                 $min   = $matches[5];
                 $sec   = $matches[6];
+
+                // Create a datetime object in UTC first, then convert to local timezone
                 $dt = new DateTime("$year-$month-$day $hour:$min:$sec", new DateTimeZone('UTC'));
                 $dt->setTimezone(new DateTimeZone(date_default_timezone_get()));
                 $timestamp = $dt->format('M d H:i:s');
@@ -228,13 +235,17 @@ class Audit implements EndpointInterface
             }
 
             $syslogMessage = $this->createSyslogMessage($entry, $timestamp, $auditId);
+
+            // Write the message to the file
             fwrite($handle, $syslogMessage . PHP_EOL);
             $count++;
           }
 
           fclose($handle);
 
+          // After processing all entries, save the latest timestamp
           if (!empty($auditEntries)) {
+            // Find the most recent timestamp
             $latestTime = NULL;
             foreach ($auditEntries as $entry) {
               if (isset($entry['fdauditdatetime'][0])) {
@@ -243,6 +254,8 @@ class Audit implements EndpointInterface
                 }
               }
             }
+
+            // Save it to the state file
             if ($latestTime !== NULL) {
               file_put_contents($stateFile, $latestTime);
             }
@@ -256,6 +269,7 @@ class Audit implements EndpointInterface
             $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
           }
 
+          // Include information about skipped entries in the result message
           $resultMsg = "Successfully transformed $count audit entries to syslog format in $filename";
           if ($skipped > 0) {
             $resultMsg .= " (skipped $skipped duplicate entries)";
