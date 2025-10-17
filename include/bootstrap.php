@@ -5,21 +5,25 @@
  * Allows to load the 3 dependencies require by php-mailer.
  * Allows to iterate on parent directory for any required class.
  */
-function autoload ($class)
+function fd_orchestrator_autoload ($class)
 {
-  // Integrator is required
-  require_once '/usr/share/php/FusionDirectory/autoloader.php';
   // avoid error handler requirements error, as it should be one of the first to load ?
   require_once dirname(__DIR__).'/handlers/ErrorHandler.php';
 
+  // file containing all the default variables
+  require_once 'variables_common.php';
+
+  // Integrator is required
+  require_once(FD_INTEGRATOR_LIB.'/autoloader.php');
+
   if (strpos($class, 'PHPMailer') !== FALSE) {
-    require_once("/usr/share/php/libphp-phpmailer/src/Exception.php");
-    require_once("/usr/share/php/libphp-phpmailer/src/PHPMailer.php");
-    require_once("/usr/share/php/libphp-phpmailer/src/SMTP.php");
+    require_once(PHP_MAILER.'/src/Exception.php');
+    require_once(PHP_MAILER.'/src/PHPMailer.php');
+    require_once(PHP_MAILER.'/src/SMTP.php');
   }
 
   $relative_class = str_replace('\\', '/', $class) . '.php';
-  $base_dirs      = ['/usr/share/php', dirname(__DIR__)];
+  $base_dirs      = [PHP_DIR, dirname(__DIR__)];
   $files          = [];
   foreach ($base_dirs as $base_dir) {
     $dir   = new RecursiveDirectoryIterator($base_dir);
@@ -40,7 +44,7 @@ function autoload ($class)
 
 }
 
-spl_autoload_register('autoload');
+spl_autoload_register('fd_orchestrator_autoload');
 
 set_error_handler(static function (int $errno, string $errstr, string $errfile, int $errline): bool {
   ErrorHandler::handleError($errno, $errstr, $errfile, $errline);
@@ -50,7 +54,7 @@ set_error_handler(static function (int $errno, string $errstr, string $errfile, 
 
 set_exception_handler("ErrorHandler::handleException");
 
-$dotenv = Dotenv\Dotenv::create('/etc/fusiondirectory-orchestrator', 'orchestrator.conf');
+$dotenv = Dotenv\Dotenv::create(CONFIG_DIR, CONFIG_FILE);
 $dotenv->overload();
 
 header("Content-type: application/json; charset=UTF-8");

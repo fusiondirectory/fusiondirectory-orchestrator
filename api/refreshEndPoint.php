@@ -53,7 +53,7 @@ if (!$refresh_token) {
     exit;
 }
 
-require __DIR__ . "/../config/tokens.php";
+require __DIR__ . "/../include/tokens.php";
 
 $refresh_token_gateway->delete($data["token"]);
 if (!empty($refresh_token_expiry)) {
