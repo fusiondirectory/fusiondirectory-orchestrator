@@ -30,7 +30,7 @@ $user = $user_gateway->getDSAInfo($data["username"]);
 
 $codec = new JWTCodec($_ENV["SECRET_KEY"]);
 
-require __DIR__ . "/../config/tokens.php";
+require __DIR__ . "/../include/tokens.php";
 
 $refresh_token_gateway = new RefreshTokenGateway($ldap_connect, $_ENV["SECRET_KEY"], $user);
 
