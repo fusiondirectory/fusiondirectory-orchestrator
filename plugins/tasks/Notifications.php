@@ -111,16 +111,52 @@ class Notifications implements EndpointInterface
           // Require to be set for updating the status of the task later on.
           $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
           $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['uid'] = $task['fdtasksgranulardn'][0];
+
           // Persist main task DN for this notification batch (sustainable retrieval later)
           $notifications[$notificationsMainTaskName]['mainTaskDn'] = $mainTaskDn;
+
           // Persist repeatable schedule once at batch level if task is repeatable
           if ($repeatableSchedule !== NULL) {
             $notifications[$notificationsMainTaskName]['repeatableSchedule'] = $repeatableSchedule;
           }
-          $notifications[$notificationsMainTaskName]['mailForm']                       = $mailTemplateForm;
+          $notifications[$notificationsMainTaskName]['mailForm'] = $mailTemplateForm;
+
+          // Add the POST attributs in the subtask to be able to use them later
+          $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostResource'] = $notificationsMainTask[0]['fdtasksnotificationspostresource'][0] ?? '';
+          $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostState']    = $notificationsMainTask[0]['fdtasksnotificationspoststate'][0] ?? '';
+          $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostSubState'] = $notificationsMainTask[0]['fdtasksnotificationspostsubstate'][0] ?? '';
+
           // Overwrite array notifications with complementing mail form body with uid and related attributes.
           $notifications = $this->completeNotificationsBody($notifications, $notificationsMainTaskName);
 
+          // Change state and substate if fdTasksNotificationsPostResource and fdTasksNotificationsPostState is not = ''
+          if ( ($notifications[$notificationsMainTaskName]['fdTasksNotificationsPostResource'] != '') && ($notifications[$notificationsMainTaskName]['fdTasksNotificationsPostState'] != '')) {
+            // Login to webservice
+            $webservice = new FusionDirectory\Rest\WebServiceCall($_ENV['FUSIONDIRECTORY_WEBSERVICE_URL'] . '/login', 'POST');
+
+            // Required to prepare future webservice call. E.g. Retrieval of mandatory token.
+            $webservice->setCurlSettings();
+
+            // Get old supann status value for userdn
+            $userdn          = $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['uid'];
+            $oldSupannStatus = $webservice->getUserTab($userdn, 'supannAccountStatus')['supannRessourceEtatDate'];
+
+            // Change only the specific resource
+            $newSupannStatus = [];
+            foreach ($oldSupannStatus as $supannStatus) {
+              list($resourceState, $subState, $dateStart, $dateEnd) = explode(':', $supannStatus);
+
+              // If ressource match replace only resource, state and substate part
+              if (explode('}', $resourceState)[0] == '{' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostResource']) {
+                $newSupannStatus[] = '{' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostResource'] . '}' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostState'] . ':' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostSubState'] . ':' . $dateStart . ':' . $dateEnd;
+              } else {
+                $newSupannStatus[] = $supannStatus;
+              }
+            }
+
+            // Update supannStatus
+            $result[] = $webservice->setUserTabAttribute($userdn, 'supannAccountStatus', 'supannRessourceEtatDate', $newSupannStatus);
+          }
         } else { // Simply update the sub-task with status 3 (nothing to be processed).
           $result[$task['dn']]['Status'] = $this->gateway->updateTaskStatus(
             $task['dn'],
@@ -222,7 +258,8 @@ class Notifications implements EndpointInterface
     return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksNotificationsListOfRecipientsMails',
       'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksNotificationsEmailSender',
       'fdTasksNotificationsSubState', 'fdTasksNotificationsState', 'fdTasksNotificationsResource',
-      'fdTasksRepeatableSchedule', 'fdTasksRepeatable'], '', $mainTaskDn);
+      'fdTasksRepeatableSchedule', 'fdTasksRepeatable', 'fdTasksNotificationsPostResource',
+      'fdTasksNotificationsPostState', 'fdTasksNotificationsPostSubState'], '', $mainTaskDn);
   }
 
   /**
