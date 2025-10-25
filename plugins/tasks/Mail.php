@@ -173,8 +173,8 @@ class Mail implements EndpointInterface
   private function getMailObjectConfiguration (): array
   {
     return $this->gateway->getLdapTasks(
-      "(objectClass=fdTasksConf)",
-      ["fdTasksConfLastExecTime", "fdTasksConfIntervalEmails", "fdTasksConfMaxEmails"]
+      '(objectClass=fdTasksConf)',
+      ['fdTasksConfLastExecTime', 'fdTasksConfIntervalEmails', 'fdTasksConfMaxEmails']
     );
   }
 

@@ -441,7 +441,7 @@ class Reminder implements EndpointInterface
   public function getRemindersMainTask (string $mainTaskDn): array
   {
     // Retrieve data from the main Reminder task
-    return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksReminderListOfRecipientsMails',
+    return $this->gateway->getLdapTasks('(objectClass=fdTasksReminder)', ['fdTasksReminderListOfRecipientsMails',
       'fdTasksReminderResource', 'fdTasksReminderState', 'fdTasksReminderPosix', 'fdTasksReminderMailTemplate',
       'fdTasksReminderSupannNewEndDate', 'fdTasksReminderRecipientsMembers', 'fdTasksReminderEmailSender',
       'fdTasksReminderAccountProlongation', 'fdTasksReminderMembers', 'fdTasksReminderNextResource',

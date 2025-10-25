@@ -263,7 +263,7 @@ class AutomaticGroups implements EndpointInterface
   private function getAutomaticGroupsMainTask (string $mainTaskDn): array
   {
     return $this->gateway->getLdapTasks(
-      '(objectClass=*)',
+      '(objectClass=fdTasksAutomaticGroups)',
       [
         'fdTasksAutomaticGroupsOfName',
         'fdTasksAutomaticGroupsPreResource',
@@ -290,7 +290,7 @@ class AutomaticGroups implements EndpointInterface
   private function getUserSupannState (string $userDn): array
   {
     $result = $this->gateway->getLdapTasks(
-      '(objectClass=*)',
+      '(objectClass=supannPerson)',
       ['supannRessourceEtat'],
       '',
       $userDn

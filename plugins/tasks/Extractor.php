@@ -271,7 +271,7 @@ class Extractor implements EndpointInterface
   private function getExtractMainTaskConfig (string $mainTaskDn): array
   {
     return $this->gateway->getLdapTasks(
-      '(objectClass=*)',
+      '(objectClass=fdExtractorTasks)',
       [
         'fdExtractorTaskFormat',
         'cn',
@@ -317,7 +317,7 @@ class Extractor implements EndpointInterface
 
     // Get user data from LDAP for the selected attributes
     $userData = $this->gateway->getLdapTasks(
-      '(objectClass=*)',
+      '(objectClass=inetOrgPerson)',
       $attributesToFetch,
       '',
       $userDn
@@ -427,7 +427,7 @@ class Extractor implements EndpointInterface
   private function getMainTaskCn (string $mainTaskDn): string
   {
     $mainTask = $this->gateway->getLdapTasks(
-      '(objectClass=*)',
+      '(objectClass=fdTasks)',
       ['cn'],
       '',
       $mainTaskDn
