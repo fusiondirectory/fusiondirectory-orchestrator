@@ -59,7 +59,7 @@ class LifeCycle implements EndpointInterface
    */
   private function getLifeCycleBehaviorFromMainTask (string $taskDN): array
   {
-    return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksLifeCyclePreResource',
+    return $this->gateway->getLdapTasks('(objectClass=fdTasksLifeCycle)', ['fdTasksLifeCyclePreResource',
       'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
       'fdTasksLifeCyclePostResource', 'fdTasksLifeCyclePostState', 'fdTasksLifeCyclePostSubState', 'fdTasksLifeCyclePostEndDate',
       'fdTasksLifeCycleRegexPattern', 'fdTasksLifeCycleEnableAccountClosure', 'fdTasksRepeatableSchedule', 'fdTasksRepeatable'],

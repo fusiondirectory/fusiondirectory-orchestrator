@@ -255,7 +255,7 @@ class Notifications implements EndpointInterface
   public function getNotificationsMainTask (string $mainTaskDn): array
   {
     // Retrieve data from the main task
-    return $this->gateway->getLdapTasks('(objectClass=*)', ['fdTasksNotificationsListOfRecipientsMails',
+    return $this->gateway->getLdapTasks('(objectClass=fdTasksNotifications)', ['fdTasksNotificationsListOfRecipientsMails',
       'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksNotificationsEmailSender',
       'fdTasksNotificationsSubState', 'fdTasksNotificationsState', 'fdTasksNotificationsResource',
       'fdTasksRepeatableSchedule', 'fdTasksRepeatable', 'fdTasksNotificationsPostResource',

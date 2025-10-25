@@ -119,7 +119,7 @@ class Archive implements EndpointInterface
   private function getArchiveTaskBehaviorFromMainTask (string $taskDN): array
   {
       return $this->gateway->getLdapTasks(
-          '(objectClass=*)',
+          '(objectClass=fdArchiveTasks)',
           ['fdArchiveTaskResource', 'fdArchiveTaskState', 'fdArchiveTaskSubState', 'fdTasksRepeatableSchedule', 'fdTasksRepeatable'],
           '',
           $taskDN
