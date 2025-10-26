@@ -140,6 +140,7 @@ class Notifications implements EndpointInterface
             // Get old supann status value for userdn
             $userdn          = $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['uid'];
             $oldSupannStatus = $webservice->getUserTab($userdn, 'supannAccountStatus')['supannRessourceEtatDate'] ?? [];
+            $newSupannStatus = [];
 
             // Change only the specific resource (or simple add the new one if there are none of them)
             if ($oldSupannStatus == []) {
@@ -162,10 +163,10 @@ class Notifications implements EndpointInterface
                 } else {
                   $newSupannStatus[] = $supannStatus;
                 }
-              }
 
-              // Update supannStatus
-              $result[] = $webservice->setUserTabAttribute($userdn, 'supannAccountStatus', 'supannRessourceEtatDate', $newSupannStatus);
+                // Update supannStatus
+                $result[] = $webservice->setUserTabAttribute($userdn, 'supannAccountStatus', 'supannRessourceEtatDate', $newSupannStatus);
+              }
             }
           }
         } else { // Simply update the sub-task with status 3 (nothing to be processed).
