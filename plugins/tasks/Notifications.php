@@ -141,21 +141,32 @@ class Notifications implements EndpointInterface
             $userdn          = $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['uid'];
             $oldSupannStatus = $webservice->getUserTab($userdn, 'supannAccountStatus')['supannRessourceEtatDate'] ?? [];
 
-            // Change only the specific resource
-            $newSupannStatus = [];
-            foreach ($oldSupannStatus as $supannStatus) {
-              list($resourceState, $subState, $dateStart, $dateEnd) = explode(':', $supannStatus);
+            // Change only the specific resource (or simple add the new one if there are none of them)
+            if ($oldSupannStatus == []) {
+              // Enable supannAccountStatus tab
+              $newSupannStatus[] = '{' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostResource'] . '}' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostState'] . ':' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostSubState'] . '::';
+              $result[] = $webservice->setUser($userdn, [
+                'supannAccount' => [],
+                'supannAccountStatus' => [
+                  'supannRessourceEtatDate' => $newSupannStatus
+                ]
+              ]);
+            } else {
+              $newSupannStatus = [];
+              foreach ($oldSupannStatus as $supannStatus) {
+                list($resourceState, $subState, $dateStart, $dateEnd) = explode(':', $supannStatus);
 
-              // If ressource match replace only resource, state and substate part
-              if (explode('}', $resourceState)[0] == '{' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostResource']) {
-                $newSupannStatus[] = '{' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostResource'] . '}' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostState'] . ':' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostSubState'] . ':' . $dateStart . ':' . $dateEnd;
-              } else {
-                $newSupannStatus[] = $supannStatus;
+                // If ressource match replace only resource, state and substate part
+                if (explode('}', $resourceState)[0] == '{' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostResource']) {
+                  $newSupannStatus[] = '{' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostResource'] . '}' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostState'] . ':' . $notifications[$notificationsMainTaskName]['fdTasksNotificationsPostSubState'] . ':' . $dateStart . ':' . $dateEnd;
+                } else {
+                  $newSupannStatus[] = $supannStatus;
+                }
+
+              // Update supannStatus
+              $result[] = $webservice->setUserTabAttribute($userdn, 'supannAccountStatus', 'supannRessourceEtatDate', $newSupannStatus);
               }
             }
-
-            // Update supannStatus
-            $result[] = $webservice->setUserTabAttribute($userdn, 'supannAccountStatus', 'supannRessourceEtatDate', $newSupannStatus);
           }
         } else { // Simply update the sub-task with status 3 (nothing to be processed).
           $result[$task['dn']]['Status'] = $this->gateway->updateTaskStatus(
