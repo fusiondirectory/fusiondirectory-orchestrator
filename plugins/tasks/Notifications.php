@@ -139,7 +139,7 @@ class Notifications implements EndpointInterface
 
             // Get old supann status value for userdn
             $userdn          = $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['uid'];
-            $oldSupannStatus = $webservice->getUserTab($userdn, 'supannAccountStatus')['supannRessourceEtatDate'];
+            $oldSupannStatus = $webservice->getUserTab($userdn, 'supannAccountStatus')['supannRessourceEtatDate'] ?? [];
 
             // Change only the specific resource
             $newSupannStatus = [];
