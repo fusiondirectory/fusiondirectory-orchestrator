@@ -162,10 +162,10 @@ class Notifications implements EndpointInterface
                 } else {
                   $newSupannStatus[] = $supannStatus;
                 }
+              }
 
               // Update supannStatus
               $result[] = $webservice->setUserTabAttribute($userdn, 'supannAccountStatus', 'supannRessourceEtatDate', $newSupannStatus);
-              }
             }
           }
         } else { // Simply update the sub-task with status 3 (nothing to be processed).
