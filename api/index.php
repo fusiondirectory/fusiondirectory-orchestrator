@@ -43,11 +43,12 @@ switch ($resource) {
 // Retrieve an authenticated ldap connection
 $ldap_connect = new Ldap($_ENV["LDAP_URI"], $_ENV["LDAP_BIND_DN"], $_ENV["LDAP_PASSWORD"]);
 
-// Set timezone according to what's referenced in FusionDirectory configuration
-$timezone = $ldap_connect->searchInLdap($ldap_connect->getConnection(),
-    '(objectClass=FusionDirectoryConf)', ['fdTimezone'], "cn=config,ou=fusiondirectory,".$_ENV["LDAP_BASE"]);
-// Set default timezone retrieved.
-date_default_timezone_set($timezone[0]['fdtimezone'][0]);
+$fdConfiguration = new Backend();
+
+$fdConfigAttributes = $fdConfiguration->getFDConfigAttributes();
+$timezone = $fdConfigAttributes[0]['fdTimezone'][0];
+
+date_default_timezone_set($timezone);
 
 // Encode &  Decode +  b64 tokens
 $codec = new JWTCodec($_ENV["SECRET_KEY"]);
