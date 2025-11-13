@@ -36,7 +36,6 @@ class ReminderTokenUtils
    */
   public function generateToken (string $userDN, int $timeStamp, TaskGateway $gateway): string
   {
-
     $token = NULL;
     // Salt has been generated with APG.
     $salt  = '8onOlEsItKond';
@@ -76,7 +75,7 @@ class ReminderTokenUtils
     $tokenBranch         = $fdConfigAttributes[0]['fdReminderTokenRDN'][0];
 
     if (empty($tokenBranch)) {
-      $tokenBranch  =  'ou=reminder,ou=tokens';
+      $tokenBranch = 'ou=reminder,ou=tokens';
     }
 
     // set the dn for the token, only take what's between "uid=" and ",ou="
