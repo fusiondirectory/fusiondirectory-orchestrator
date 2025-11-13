@@ -26,9 +26,7 @@ class ReminderTokenUtils
 {
   public function __construct ()
   {
-
-  $this->fdConfiguration = new Backend();
-
+    $this->fdConfiguration = new Backend();
   }
 
   /**
