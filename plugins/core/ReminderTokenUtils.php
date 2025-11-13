@@ -36,6 +36,7 @@ class ReminderTokenUtils
    */
   public function generateToken (string $userDN, int $timeStamp, TaskGateway $gateway): string
   {
+
     $token = NULL;
     // Salt has been generated with APG.
     $salt  = '8onOlEsItKond';
@@ -71,9 +72,17 @@ class ReminderTokenUtils
     // Calculate the future timestamp by adding days to the current timestamp (We actually adds number of seconds).
     $futureTimestamp = $currentTimestamp + ($days * 24 * 60 * 60);
 
+    $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
+    $tokenBranch         = $fdConfigAttributes[0]['fdReminderTokenRDN'][0];
+
+    if (empty($tokenBranch)) {
+      $tokenBranch  =  'ou=reminder,ou=tokens';
+    }
+
+    // set the dn for the token, only take what's between "uid=" and ",ou="
     preg_match('/uid=([^,]+),ou=/', $userDN, $matches);
     $uid = $matches[1];
-    $dn  = 'cn=' . $uid . ',' . 'ou=tokens' . ',' . $_ENV["LDAP_BASE"];
+    $dn  = 'cn=' . $uid . ',' . $tokenBranch . ',' . $_ENV["LDAP_BASE"];
 
     $ldap_entry["objectClass"]    = ['top', 'fdTokenEntry'];
     $ldap_entry["fdTokenUserDN"]  = $userDN;
@@ -82,17 +91,8 @@ class ReminderTokenUtils
     $ldap_entry["fdTokenTimestamp"] = $futureTimestamp;
     $ldap_entry["cn"]         = $uid;
 
-    // set the dn for the token, only take what's between "uid=" and ",ou="
-
-
-    // Verify if token ou branch exists
-    if (!$this->tokenBranchExist('ou=tokens' . ',' . $_ENV["LDAP_BASE"], $gateway)) {
-      // Create the branch
-      $this->createBranchToken($gateway);
-    }
-
     // The user token DN creation
-    $userTokenDN = 'cn=' . $uid . ',ou=tokens' . ',' . $_ENV["LDAP_BASE"];
+    $userTokenDN = 'cn=' . $uid . $tokenBranch . ',' . $_ENV["LDAP_BASE"];
     // Verify if a token already exists for specified user and remove it to create new one correctly.
     if ($this->tokenBranchExist($userTokenDN, $gateway)) {
       // Remove the user token
@@ -144,27 +144,6 @@ class ReminderTokenUtils
       $result = ldap_delete($gateway->ds, $userTokenDN); // bool returned
     } catch (Exception $e) {
       echo json_encode(["Ldap Error - User token could not be removed!" => "$e"]); // string returned
-      exit;
-    }
-  }
-
-  /**
-   * Create ou=pluginManager LDAP branch
-   * @throws Exception
-   */
-  private function createBranchToken (TaskGateway $gateway): void
-  {
-    try {
-      ldap_add(
-        $gateway->ds, 'ou=tokens' . ',' . $_ENV["LDAP_BASE"],
-        [
-          'ou'          => 'tokens',
-          'objectClass' => 'organizationalUnit',
-        ]
-      );
-    } catch (Exception $e) {
-
-      echo json_encode(["Ldap Error - Impossible to create the token branch" => "$e"]); // string returned
       exit;
     }
   }
