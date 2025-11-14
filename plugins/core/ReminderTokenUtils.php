@@ -40,8 +40,10 @@ class ReminderTokenUtils
   public function generateToken (string $userDN, int $timeStamp, TaskGateway $gateway): string
   {
     $token = NULL;
-    // Salt has been generated with APG.
-    $salt  = '8onOlEsItKond';
+
+    $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
+    $salt                = $fdConfigAttributes[0]['fdReminderSalt'][0];
+
     $payload = json_encode($userDN . $salt);
     // This allows the token to be different every time.
     $time = time();
