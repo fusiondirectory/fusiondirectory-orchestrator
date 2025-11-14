@@ -34,7 +34,12 @@ class UserGateway
     $jwtCN  = $dsaLogin;
 
     $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
-    $tokenBranch         = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0] . ',' . $_ENV["LDAP_BASE"];
+
+    try {
+      $tokenBranch = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0] . ',' . $_ENV["LDAP_BASE"];
+    } catch (Exception $e) {
+      throw new Exception("A branch is missing, please open your FusionDirectory configuration and save it.");
+    }
 
     $filter = "(&(objectClass=fdJWT)(cn=$jwtCN))";
     $attrs  = ["cn", "dn"];
