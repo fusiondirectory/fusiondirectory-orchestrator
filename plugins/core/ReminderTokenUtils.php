@@ -95,12 +95,10 @@ class ReminderTokenUtils
     $ldap_entry["fdTokenTimestamp"] = $futureTimestamp;
     $ldap_entry["cn"]         = $uid;
 
-    // The user token DN creation
-    $userTokenDN = 'cn=' . $uid . $tokenBranch . ',' . $_ENV["LDAP_BASE"];
     // Verify if a token already exists for specified user and remove it to create new one correctly.
-    if ($this->tokenBranchExist($userTokenDN, $gateway)) {
+    if ($this->tokenBranchExist($dn, $gateway)) {
       // Remove the user token
-      $this->removeUserToken($userTokenDN, $gateway);
+      $this->removeUserToken($dn, $gateway);
     }
 
     // Add token to LDAP for specific UID
