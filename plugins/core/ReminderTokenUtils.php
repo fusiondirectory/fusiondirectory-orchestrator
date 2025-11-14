@@ -79,8 +79,10 @@ class ReminderTokenUtils
     $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
     $tokenBranch         = $fdConfigAttributes[0]['fdReminderTokenRDN'][0];
 
-    if (empty($tokenBranch)) {
-      $tokenBranch = 'ou=reminder,ou=tokens';
+    try {
+      $tokenBranch = $fdConfigAttributes[0]['fdReminderTokenRDN'][0];
+    } catch (Exception $e) {
+      throw new Exception("A branch is missing, please open your FusionDirectory configuration and save it.");
     }
 
     // set the dn for the token, only take what's between "uid=" and ",ou="
