@@ -89,7 +89,7 @@ class LifeCycle implements EndpointInterface
   // Simply process the account closure if the conditions are met
   protected function processAccountClosure (array $lifeCycleBehavior, string $userDN, array $currentUserLifeCycle)
   {
-    $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
+    $pattern = '/\{([A-Za-z0-9\-\:\.\_]+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
     $userStateHistory = $currentUserLifeCycle[0]['supannressourceetatdate'] ?? [];
     $this->gateway->unsetCountKeys($userStateHistory);
 
@@ -310,7 +310,7 @@ class LifeCycle implements EndpointInterface
   protected function isLifeCycleRequiringModification (array $lifeCycleBehavior, array $currentUserLifeCycle): bool
   {
     // Regular expression to extract parts of the supannRessourceEtatDate string
-    $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
+    $pattern = '/\{([A-Za-z0-9\-\:\.\_]+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
 
     if (empty($currentUserLifeCycle[0]['supannressourceetatdate'][0])) {
       return FALSE;
@@ -380,7 +380,7 @@ class LifeCycle implements EndpointInterface
    */
   protected function updateLifeCycle (array $lifeCycleBehavior, string $userDN, array $currentUserLifeCycle)
   {
-    $pattern = '/\{(\w+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
+    $pattern = '/\{([A-Za-z0-9\-\:\.\_]+)\}(\w):([^:]*)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?/';
     $userStateHistory = $currentUserLifeCycle[0]['supannressourceetatdate'] ?? [];
     $this->gateway->unsetCountKeys($userStateHistory);
 
