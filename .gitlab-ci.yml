@@ -8,7 +8,7 @@ stages:
 
 # PHP lint
 create_php_lint_rapport:
-  image: registry.fusiondirectory.org/fusiondirectory/fd/phpcodesniffer-cli:fd
+  image: registry.fusiondirectory.org/fusiondirectory/fd/phpcodesniffer-cli:fd-php8
   stage: lint
   only:
     - branches
@@ -19,7 +19,7 @@ create_php_lint_rapport:
 
 # PHP codesniffer
 create_php_code_sniffer_rapport:
-  image: registry.fusiondirectory.org/fusiondirectory/fd/phpcodesniffer-cli:fd
+  image: registry.fusiondirectory.org/fusiondirectory/fd/phpcodesniffer-cli:fd-php8
   stage: codestyle
   only:
     - branches
@@ -33,7 +33,7 @@ create_php_code_sniffer_rapport:
 
 # phpstan
 create_phpstan_rapport:
-  image: registry.fusiondirectory.org/fusiondirectory/fd/phpstan-cli:fd
+  image: registry.fusiondirectory.org/fusiondirectory/fd/phpstan-cli:fd-php8
   stage: codestyle
   only:
     - branches
@@ -46,6 +46,7 @@ create_phpstan_rapport:
     - mkdir /usr/share/php/FusionDirectory/
     - tar -xvzf ./fusiondirectory-integrator.tar.gz
     - mv ./fusiondirectory-integrator-$INTEGRATOR_VERSION/src/* /usr/share/php/FusionDirectory/
+    - composer global require phpstan/phpstan
     - cp ../dev-tools/phpstan/fusiondirectory-orchestrator/*.neon .
     - /root/.composer/vendor/bin/phpstan analyse -c phpstan.neon
 
@@ -83,13 +84,6 @@ trigger-ci-debian-bullseye:
     - dev
   trigger:
     project: debian/bullseye-fusiondirectory-orchestrator-dev
-    branch: "main"
+    branch: "php8"
 
-trigger-ci-ubuntu-focal:
-  stage: trigger
-  only:
-    - dev
-  trigger:
-    project: ubuntu/focal-fusiondirectory-orchestrator-dev
-    branch: "main"
 
