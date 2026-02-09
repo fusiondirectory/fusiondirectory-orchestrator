@@ -9,7 +9,7 @@
 class TaskGateway
 {
   /**
-   * @var resource|null
+   * @var \LDAP\Connection|null
    */
   public $ds;
 
