@@ -257,7 +257,7 @@ class TaskGateway
    * @return array
    * NOTE : Filter in ldap_search cannot be an empty string or NULL, if not filters are required, use (objectClass=*).
    */
-  public function getLdapTasks (string $filter = '', array $attrs = [], string $attachmentsCN = NULL, string $dn = NULL): array
+  public function getLdapTasks (string $filter = '', array $attrs = [], ?string $attachmentsCN = NULL, ?string $dn = NULL): array
   {
     $result = [];
 
@@ -299,7 +299,7 @@ class TaskGateway
    * @return bool|string
    * Note : Update the status of the tasks.
    */
-  public function updateTaskStatus (string $dn, string $cn, string $status, string $mainTaskDn = NULL, string $repeatableSchedule = NULL)
+  public function updateTaskStatus (string $dn, string $cn, string $status, ?string $mainTaskDn = NULL, ?string $repeatableSchedule = NULL)
   {
     // prepare data
     if (!empty($dn)) {

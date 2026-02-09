@@ -8,7 +8,7 @@ class RefreshTokenGateway
   private Backend $fdConfiguration;
 
   // Ldap_connect could be of typed Ldap - enhancement.
-  public function __construct ($ldap_connect, string $key, array $user = NULL)
+  public function __construct ($ldap_connect, string $key, ?array $user = NULL)
   {
     $this->ds              = $ldap_connect->getConnection();
     $this->key             = $key;

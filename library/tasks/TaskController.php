@@ -33,7 +33,7 @@ class TaskController
    * @throws Exception
    * NOTE : objectType is actually the task type.
    */
-  public function processRequest (string $method, ?string $objectType, array $jsonBody = NULL): void
+  public function processRequest (string $method, ?string $objectType, ?array $jsonBody = NULL): void
   {
     // Allow result to be nullable.
     $result = NULL;

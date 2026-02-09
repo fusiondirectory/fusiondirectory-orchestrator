@@ -22,7 +22,7 @@ class AutomaticGroups implements EndpointInterface
    * @param array|null $data
    * @return array
    */
-  public function processEndPointPost (array $data = NULL): array
+  public function processEndPointPost (?array $data = NULL): array
   {
     return [];
   }
@@ -32,7 +32,7 @@ class AutomaticGroups implements EndpointInterface
    * @return array
    * @throws Exception
    */
-  public function processEndPointPatch (array $data = NULL): array
+  public function processEndPointPatch (?array $data = NULL): array
   {
     // Check what type of task we need to process
     if (isset($data['type']) && $data['type'] === 'dynamic-group') {
@@ -46,7 +46,7 @@ class AutomaticGroups implements EndpointInterface
    * @param array|null $data
    * @return array
    */
-  public function processEndPointDelete (array $data = NULL): array
+  public function processEndPointDelete (?array $data = NULL): array
   {
     return [];
   }

@@ -27,7 +27,7 @@ class Notifications implements EndpointInterface
    * @param array|null $data
    * @return array
    */
-  public function processEndPointPost (array $data = NULL): array
+  public function processEndPointPost (?array $data = NULL): array
   {
     return [];
   }
@@ -37,7 +37,7 @@ class Notifications implements EndpointInterface
    * @return array
    * @throws Exception
    */
-  public function processEndPointPatch (array $data = NULL): array
+  public function processEndPointPatch (?array $data = NULL): array
   {
     return $this->processNotifications($this->gateway->getObjectTypeTask('notifications'));
   }
@@ -46,7 +46,7 @@ class Notifications implements EndpointInterface
    * @param array|NULL $data
    * @return array
    */
-  public function processEndPointDelete (array $data = NULL): array
+  public function processEndPointDelete (?array $data = NULL): array
   {
     return [];
   }

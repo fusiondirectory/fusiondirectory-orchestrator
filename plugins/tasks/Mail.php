@@ -25,7 +25,7 @@ class Mail implements EndpointInterface
    * @return array
    * Note : Part of the interface of orchestrator plugin to treat POST method
    */
-  public function processEndPointPost (array $data = NULL): array
+  public function processEndPointPost (?array $data = NULL): array
   {
     return [];
   }
@@ -34,7 +34,7 @@ class Mail implements EndpointInterface
    * @return array
    * Note : Part of the interface of orchestrator plugin to treat DELETE method
    */
-  public function processEndPointDelete (array $data = NULL): array
+  public function processEndPointDelete (?array $data = NULL): array
   {
     return [];
   }
@@ -45,7 +45,7 @@ class Mail implements EndpointInterface
    * @throws Exception
    * Note : Part of the interface of orchestrator plugin to treat PATCH method
    */
-  public function processEndPointPatch (array $data = NULL): array
+  public function processEndPointPatch (?array $data = NULL): array
   {
     return $this->processMailTasks($this->gateway->getObjectTypeTask('Mail Object'));
   }
