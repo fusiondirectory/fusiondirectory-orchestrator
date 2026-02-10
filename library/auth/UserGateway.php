@@ -3,7 +3,6 @@
 class UserGateway
 {
   private $ds;
-  private string $orchestratorTokenBranch;
   private Backend $fdConfiguration;
 
   // Passed variable can be typed Ldap
@@ -34,12 +33,7 @@ class UserGateway
     $jwtCN  = $dsaLogin;
 
     $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
-
-    try {
-      $tokenBranch = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0] . ',' . $_ENV["LDAP_BASE"];
-    } catch (Exception $e) {
-      throw new Exception("A branch is missing, please open your FusionDirectory configuration and save it.");
-    }
+    $tokenBranch = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0] . ',' . $_ENV["LDAP_BASE"];
 
     $filter = "(&(objectClass=fdJWT)(cn=$jwtCN))";
     $attrs  = ["cn", "dn"];
