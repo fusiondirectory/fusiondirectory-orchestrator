@@ -3,13 +3,11 @@
 class Extractor implements EndpointInterface
 {
   private TaskGateway $gateway;
-  private CoreUtils $utils;
   private MailUtils $mailUtils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
-    $this->utils = new CoreUtils();
     $this->mailUtils = new MailUtils();
   }
 
@@ -111,7 +109,7 @@ class Extractor implements EndpointInterface
         }
 
         // Create directory if it doesn't exist
-        $this->utils->ensureDirectoryExists($path);
+        CoreUtils::ensureDirectoryExists($path);
 
         // Get main task CN for filename
         $mainTaskCn = $this->getMainTaskCn($mainTaskDn);
