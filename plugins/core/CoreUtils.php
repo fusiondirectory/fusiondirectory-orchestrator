@@ -85,7 +85,7 @@ class CoreUtils
    * @throws Exception
    * Note: Create directory if it doesn't exist.
    */
-  public static function ensureDirectoryExists (string $path): bool
+  public function ensureDirectoryExists (string $path): bool
   {
     if (!is_dir($path)) {
       if (!mkdir($path, 0755, TRUE)) {
