@@ -244,21 +244,19 @@ class Audit implements EndpointInterface
           fclose($handle);
 
           // After processing all entries, save the latest timestamp
-          if (!empty($auditEntries)) {
-            // Find the most recent timestamp
-            $latestTime = NULL;
-            foreach ($auditEntries as $entry) {
-              if (isset($entry['fdauditdatetime'][0])) {
-                if ($latestTime === NULL || $entry['fdauditdatetime'][0] > $latestTime) {
-                  $latestTime = $entry['fdauditdatetime'][0];
-                }
+          // Find the most recent timestamp
+          $latestTime = NULL;
+          foreach ($auditEntries as $entry) {
+            if (isset($entry['fdauditdatetime'][0])) {
+              if ($latestTime === NULL || $entry['fdauditdatetime'][0] > $latestTime) {
+                $latestTime = $entry['fdauditdatetime'][0];
               }
             }
+          }
 
-            // Save it to the state file
-            if ($latestTime !== NULL) {
-              file_put_contents($stateFile, $latestTime);
-            }
+          // Save it to the state file
+          if ($latestTime !== NULL) {
+            file_put_contents($stateFile, $latestTime);
           }
 
           if ($repeatableSchedule !== NULL) {
