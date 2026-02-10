@@ -283,7 +283,7 @@ class TaskGateway
     }
 
     // Verify if the above ldap search succeeded.
-    if (!empty($info) && is_array($info) && $info["count"] >= 1) {
+    if (!empty($info) && $info["count"] >= 1) {
       return $info;
     }
 

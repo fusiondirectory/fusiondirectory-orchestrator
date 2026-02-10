@@ -79,7 +79,7 @@ class TaskController
             case 'restartFailedTasks':
               // Optional JSON body: { "taskName": "<name>" }
               $taskName = NULL;
-              if (!empty($jsonBody) && is_array($jsonBody) && array_key_exists('taskName', $jsonBody)) {
+              if (!empty($jsonBody) && array_key_exists('taskName', $jsonBody)) {
                 $taskName = $jsonBody['taskName'];
               }
               $result = $this->gateway->restartFailedSubtasks($taskName);

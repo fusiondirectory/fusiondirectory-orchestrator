@@ -57,8 +57,8 @@ class Ldap
         $result = [json_encode(["Ldap Error" => "$e"])]; // string returned
     }
 
-      // Verify if the above ldap search succeeded.
-    if (!empty($info) && is_array($info) && $info["count"] >= 1) {
+    // Verify if the above ldap search succeeded.
+    if (!empty($info) && $info["count"] >= 1) {
         return $info;
     }
 
