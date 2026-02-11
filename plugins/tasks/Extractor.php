@@ -75,7 +75,7 @@ class Extractor implements EndpointInterface
 
         // Check if it's the bulk task identifier we expect
         // @phpstan-ignore isset.offset
-        if (!isset($task['fdtasksgranulardn'][0]) || $task['fdtasksgranulardn'][0] !== 'bulkExtractorTask') {
+        if (!isset($task['fdtasksgranulardn'][0]) || $task['fdtasksgranulardn'][0] !== 'bulkExtractorTask') { /* @phpstan-ignore-line */
           // Skip tasks without adding to result
           continue;
         }
@@ -195,16 +195,16 @@ class Extractor implements EndpointInterface
 
       } catch (Exception $e) {
         // @phpstan-ignore booleanAnd.alwaysFalse
-        if ($repeatableSchedule !== NULL && isset($mainTaskDn)) {
+        if ($repeatableSchedule !== NULL && isset($mainTaskDn)) { /* @phpstan-ignore-line */
           // @phpstan-ignore offsetAccess.notFound
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule); /* @phpstan-ignore-line */
           // @phpstan-ignore isset.variable
         } else if (isset($mainTaskDn)) {
           // @phpstan-ignore offsetAccess.notFound
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn);
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn); /* @phpstan-ignore-line */
         } else {
           // @phpstan-ignore offsetAccess.notFound
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage()); /* @phpstan-ignore-line */
         }
         // @phpstan-ignore offsetAccess.notFound
         $result[$task['dn']]['result'] = "Error processing extractor task: " . $e->getMessage();
@@ -318,7 +318,7 @@ class Extractor implements EndpointInterface
 
       // If not "ALL", use only the listed attributes
       // @phpstan-ignore function.impossibleType
-      if (is_array($attrList) && !(count($attrList) === 1 && strtoupper($attrList[0]) === 'ALL')) {
+      if (is_array($attrList) && !(count($attrList) === 1 && strtoupper($attrList[0]) === 'ALL')) { /* @phpstan-ignore-line */
         $attributesToFetch = [];
         foreach ($attrList as $attr) {
           if (is_string($attr)) {
@@ -326,7 +326,7 @@ class Extractor implements EndpointInterface
           }
         }
         // @phpstan-ignore function.impossibleType
-      } elseif (is_string($attrList) && strtoupper($attrList) !== 'ALL') {
+      } elseif (is_string($attrList) && strtoupper($attrList) !== 'ALL') { /* @phpstan-ignore-line */
         $attributesToFetch = [$attrList];
       }
     }

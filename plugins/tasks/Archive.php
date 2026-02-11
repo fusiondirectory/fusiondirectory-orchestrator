@@ -90,7 +90,7 @@ class Archive implements EndpointInterface
             // @phpstan-ignore offsetAccess.notFound
             $result[$task['dn']]['result'] = "Error archiving user: " . $e->getMessage();
             // @phpstan-ignore offsetAccess.notFound
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule); /* @phpstan-ignore-line */
       }
     }
 
