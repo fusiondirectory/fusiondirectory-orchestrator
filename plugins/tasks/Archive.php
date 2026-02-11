@@ -71,6 +71,7 @@ class Archive implements EndpointInterface
             // @phpstan-ignore offsetAccess.notFound
             $result[$task['dn']]['result'] = "User does not meet the criteria for archiving.";
             // @phpstan-ignore offsetAccess.notFound
+            // @phpstan-ignore offsetAccess.notFound
             $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '3', $mainTaskDn, $repeatableSchedule);
             continue;
         }
@@ -84,7 +85,9 @@ class Archive implements EndpointInterface
         // Check if the HTTP status code is 204
         if ($webServiceCall->getHttpStatusCode() === 204) {
             // @phpstan-ignore offsetAccess.notFound
+            // @phpstan-ignore offsetAccess.notFound
             $result[$task['dn']]['result'] = "User " . $task['fdtasksgranulardn'][0] . " successfully archived.";
+            // @phpstan-ignore offsetAccess.notFound
             // @phpstan-ignore offsetAccess.notFound
             $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
         } else {

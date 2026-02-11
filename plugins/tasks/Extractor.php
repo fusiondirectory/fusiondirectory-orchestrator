@@ -198,7 +198,7 @@ class Extractor implements EndpointInterface
         if ($repeatableSchedule !== NULL && isset($mainTaskDn)) {
           // @phpstan-ignore offsetAccess.notFound
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
-        // @phpstan-ignore isset.variable
+          // @phpstan-ignore isset.variable
         } else if (isset($mainTaskDn)) {
           // @phpstan-ignore offsetAccess.notFound
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn);
@@ -305,7 +305,7 @@ class Extractor implements EndpointInterface
    * Note: Get all user attributes from the user DN.
    */
   // @phpstan-ignore method.unused
-   private function getUserAttributes (string $userDn, array $mainTaskConfig): array
+  private function getUserAttributes (string $userDn, array $mainTaskConfig): array
   {
     // Default to all attributes
     $attributesToFetch = ['*'];
@@ -325,7 +325,7 @@ class Extractor implements EndpointInterface
             $attributesToFetch[] = $attr;
           }
         }
-      // @phpstan-ignore function.impossibleType
+        // @phpstan-ignore function.impossibleType
       } elseif (is_string($attrList) && strtoupper($attrList) !== 'ALL') {
         $attributesToFetch = [$attrList];
       }
