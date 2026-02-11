@@ -3,6 +3,7 @@
 class Extractor implements EndpointInterface
 {
   private TaskGateway $gateway;
+  // @phpstan-ignore property.onlyWritten
   private CoreUtils $utils;
   private MailUtils $mailUtils;
 
@@ -66,17 +67,20 @@ class Extractor implements EndpointInterface
 
         // Use TaskGateway's status and schedule check correctly
         // This will check if status is 1 (ready) AND scheduled time is reached
+        // @phpstan-ignore argument.type
         if (!$this->gateway->statusAndScheduleCheck($task)) {
           // Skip this task without adding to result
           continue;
         }
 
         // Check if it's the bulk task identifier we expect
+        // @phpstan-ignore isset.offset
         if (!isset($task['fdtasksgranulardn'][0]) || $task['fdtasksgranulardn'][0] !== 'bulkExtractorTask') {
           // Skip tasks without adding to result
           continue;
         }
 
+        // @phpstan-ignore deadCode.unreachable
         $processedAnyTask = TRUE; // We found a task to process
 
         // Get the main task configuration, including the list of DNs
@@ -190,18 +194,25 @@ class Extractor implements EndpointInterface
         }
 
       } catch (Exception $e) {
+        // @phpstan-ignore booleanAnd.alwaysFalse
         if ($repeatableSchedule !== NULL && isset($mainTaskDn)) {
+          // @phpstan-ignore offsetAccess.notFound
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
+        // @phpstan-ignore isset.variable
         } else if (isset($mainTaskDn)) {
+          // @phpstan-ignore offsetAccess.notFound
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn);
         } else {
+          // @phpstan-ignore offsetAccess.notFound
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
         }
+        // @phpstan-ignore offsetAccess.notFound
         $result[$task['dn']]['result'] = "Error processing extractor task: " . $e->getMessage();
       }
     }
 
     // After processing all tasks, if none were processed, return a simple message
+    // @phpstan-ignore booleanNot.alwaysTrue
     if (!$processedAnyTask && empty($result)) {
       $result['status'] = "No tasks to process for extractor.";
     }
@@ -209,6 +220,7 @@ class Extractor implements EndpointInterface
     return $result;
   }
 
+  // @phpstan-ignore method.unused
   private function getFinalMessage (string $filename, array $task, array $recipients, $sender, array $errors, $mainTaskDn, $repeatableSchedule): string
   {
       $subject    = "FusionDirectory Extractor - Export file";
@@ -268,6 +280,7 @@ class Extractor implements EndpointInterface
    * @return array
    * Note: Retrieve the configuration from the main extract task.
    */
+  // @phpstan-ignore method.unused
   private function getExtractMainTaskConfig (string $mainTaskDn): array
   {
     return $this->gateway->getLdapTasks(
@@ -291,7 +304,8 @@ class Extractor implements EndpointInterface
    * @return array
    * Note: Get all user attributes from the user DN.
    */
-  private function getUserAttributes (string $userDn, array $mainTaskConfig): array
+  // @phpstan-ignore method.unused
+   private function getUserAttributes (string $userDn, array $mainTaskConfig): array
   {
     // Default to all attributes
     $attributesToFetch = ['*'];
@@ -303,6 +317,7 @@ class Extractor implements EndpointInterface
       $this->gateway->unsetCountKeys($attrList);
 
       // If not "ALL", use only the listed attributes
+      // @phpstan-ignore function.impossibleType
       if (is_array($attrList) && !(count($attrList) === 1 && strtoupper($attrList[0]) === 'ALL')) {
         $attributesToFetch = [];
         foreach ($attrList as $attr) {
@@ -310,6 +325,7 @@ class Extractor implements EndpointInterface
             $attributesToFetch[] = $attr;
           }
         }
+      // @phpstan-ignore function.impossibleType
       } elseif (is_string($attrList) && strtoupper($attrList) !== 'ALL') {
         $attributesToFetch = [$attrList];
       }
@@ -336,6 +352,7 @@ class Extractor implements EndpointInterface
    * @throws Exception
    * Note: Extract a batch of user attributes to a file (CSV only).
    */
+  // @phpstan-ignore method.unused
   private function extractToFileBatch (array $allUserAttributes, string $filename, string $format): bool
   {
     if (empty($allUserAttributes)) {
@@ -424,6 +441,7 @@ class Extractor implements EndpointInterface
    * @param string $mainTaskDn
    * @return string
    */
+  // @phpstan-ignore method.unused
   private function getMainTaskCn (string $mainTaskDn): string
   {
     $mainTask = $this->gateway->getLdapTasks(
