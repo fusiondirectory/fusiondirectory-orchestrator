@@ -68,10 +68,8 @@ class Archive implements EndpointInterface
         // Check if the current supann status matches the desired status
         if (!$this->isSupannStatusMatching($desiredSupannStatus, $currentSupannStatus)) {
             // The task does not meet the criteria for archiving - reporting nothing to be processed.
-            /* @phpstan-ignore-line */
-            $result[$task['dn']]['result'] = "User does not meet the criteria for archiving.";
-            /* @phpstan-ignore-line */
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '3', $mainTaskDn, $repeatableSchedule);
+            $result[$task['dn']]['result'] = "User does not meet the criteria for archiving."; /* @phpstan-ignore-line */
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '3', $mainTaskDn, $repeatableSchedule); /* @phpstan-ignore-line */
             continue;
         }
 
@@ -83,10 +81,8 @@ class Archive implements EndpointInterface
 
         // Check if the HTTP status code is 204
         if ($webServiceCall->getHttpStatusCode() === 204) {
-            /* @phpstan-ignore-line */
-            $result[$task['dn']]['result'] = "User " . $task['fdtasksgranulardn'][0] . " successfully archived.";
-            /* @phpstan-ignore-line */
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+            $result[$task['dn']]['result'] = "User " . $task['fdtasksgranulardn'][0] . " successfully archived."; /* @phpstan-ignore-line */
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule); /* @phpstan-ignore-line */
         } else {
             throw new Exception("Unexpected HTTP status code: " . $webServiceCall->getHttpStatusCode());
         }
