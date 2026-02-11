@@ -53,7 +53,7 @@ create_phpstan_rapport:
 build-tarballs:
   stage: tarballs
   only:
-    - dev
+    - php8
   script:
     - mkdir ../fusiondirectory-orchestrator-$VERSION/
     - mv ./* ../fusiondirectory-orchestrator-$VERSION/
@@ -81,7 +81,7 @@ build-release:
 trigger-ci-debian-bullseye:
   stage: trigger
   only:
-    - dev
+    - php8
   trigger:
     project: debian/bullseye-fusiondirectory-orchestrator-dev
     branch: "php8"
