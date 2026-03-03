@@ -54,7 +54,7 @@ set_error_handler(static function (int $errno, string $errstr, string $errfile, 
 
 set_exception_handler("ErrorHandler::handleException");
 
-$dotenv = Dotenv\Dotenv::create(CONFIG_DIR, CONFIG_FILE);
-$dotenv->overload();
+$dotenv = Dotenv\Dotenv::createImmutable(CONFIG_DIR, CONFIG_FILE);
+$dotenv->load();
 
 header("Content-type: application/json; charset=UTF-8");
