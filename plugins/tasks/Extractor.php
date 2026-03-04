@@ -422,11 +422,11 @@ class Extractor implements EndpointInterface
 
     try {
         // Write headers
-        fputcsv($handle, $finalColumns);
+        fputcsv($handle, $finalColumns, escape: "\\");
 
         // Write data rows
       foreach ($allUserData as $row) {
-          fputcsv($handle, $row);
+          fputcsv($handle, $row, escape: "\\");
       }
 
         return TRUE;
