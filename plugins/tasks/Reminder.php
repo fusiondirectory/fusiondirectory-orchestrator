@@ -231,8 +231,10 @@ class Reminder implements EndpointInterface
       $interval = $today->diff($epoch);
 
       // Interval can be negative if date is in the past - we make sure it is not in the past by using invert.
-      if ($interval->days <= $days && $interval->invert == 0) {
-        $result = TRUE;
+      if ($interval->invert == 0) {
+        if (($interval->days < $days) || (($interval->days == $days) && ($interval->hours == 0))) {
+          $result = TRUE;
+        }
       }
     }
 
@@ -308,9 +310,11 @@ class Reminder implements EndpointInterface
         $interval = $today->diff($DnSupannDateObject);
 
         // Interval can be negative if date is in the past - we make sure it is not in the past by using invert.
-        if ($interval->days <= $days && $interval->invert == 0) {
-          $result = TRUE;
-        }
+        if ($interval->invert == 0) {
+          if (($interval->days < $days) || (($interval->days == $days) && ($interval->hours == 0))) {
+            $result = TRUE;
+          }
+        }  
       }
     }
 
