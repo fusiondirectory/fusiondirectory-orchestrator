@@ -232,7 +232,7 @@ class Reminder implements EndpointInterface
 
       // Interval can be negative if date is in the past - we make sure it is not in the past by using invert.
       if ($interval->invert == 0) {
-        if (($interval->days < $days) || (($interval->days == $days) && ($interval->hours == 0))) {
+        if (($interval->days < $days) || (($interval->days == $days) && ($interval->h == 0))) {
           $result = TRUE;
         }
       }
@@ -311,10 +311,10 @@ class Reminder implements EndpointInterface
 
         // Interval can be negative if date is in the past - we make sure it is not in the past by using invert.
         if ($interval->invert == 0) {
-          if (($interval->days < $days) || (($interval->days == $days) && ($interval->hours == 0))) {
+          if (($interval->days < $days) || (($interval->days == $days) && ($interval->h == 0))) {
             $result = TRUE;
           }
-        }  
+        }
       }
     }
 
