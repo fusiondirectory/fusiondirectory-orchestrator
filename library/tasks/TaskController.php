@@ -61,7 +61,20 @@ class TaskController
               break;
 
             default:
-              $this->respondMethodAllowed("GET, PATCH, DELETE");
+              $this->respondMethodAllowed("GET, POST, PATCH, DELETE");
+          }
+          $this->parseJsonResult($result);
+          break;
+
+        // POST methods
+        case "POST":
+          switch ($objectType) {
+            case $objectType:
+              if (class_exists($objectType)) {
+                $endpoint = new $objectType($this->gateway);
+                $result   = $endpoint->processEndPointPost($jsonBody);
+              }
+              break;
           }
           $this->parseJsonResult($result);
           break;
@@ -98,7 +111,7 @@ class TaskController
           break;
 
         default:
-          $this->respondMethodAllowed("GET, PATCH, DELETE");
+          $this->respondMethodAllowed("GET, POST, PATCH, DELETE");
       }
     }
   }
