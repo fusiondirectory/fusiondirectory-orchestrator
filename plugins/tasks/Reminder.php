@@ -467,6 +467,10 @@ class Reminder implements EndpointInterface
     $mailTemplateName = $mainTask[0]['fdtasksremindermailtemplate'][0];
 
     $mailInfos   = $this->gateway->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $mailTemplateName);
+
+    // Remove count from array.
+    $this->gateway->unsetCountKeys($mailInfos);
+
     $mailContent = $mailInfos[0];
 
     // If no forward-to mail recipients is set, simply send the reminder to the monitored members.
@@ -483,9 +487,10 @@ class Reminder implements EndpointInterface
     // Render the array unique.
 
     // Set the reminder array with all required variable for all sub-tasks of same main task origin.
+    $mailMacros             = isset($mailContent["fdmailtemplatemacro"]) ? $mailContent["fdmailtemplatemacro"] : [];
     $mailForm['setFrom']    = $sender;
     $mailForm['recipients'] = $recipients;
-    $mailForm['body']       = $mailContent["fdmailtemplatebody"][0];
+    $mailForm['body']       = $this->mailUtils->replaceMacros($this->gateway, $recipients, $mailContent["fdmailtemplatebody"][0], $mailMacros);
     $mailForm['signature']  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
     $mailForm['subject']    = $mailContent["fdmailtemplatesubject"][0];
     $mailForm['receipt']    = $mailContent["fdmailtemplatereadreceipt"][0];

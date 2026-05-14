@@ -162,7 +162,7 @@ class ReminderTokenUtils
     $cleanedUrl = preg_replace('#/rest\.php/v1$#', '', $_ENV['FUSIONDIRECTORY_WEBSERVICE_URL']);
     $url    = $cleanedUrl . '/accountProlongation.php?token=' . $token . '&task=' . $taskName;
 
-    $mailTemplateForm['body'] .= $url;
+    $mailTemplateForm['body'] .= PHP_EOL . PHP_EOL . $url;
 
     return $mailTemplateForm;
   }
