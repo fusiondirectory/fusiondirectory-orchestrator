@@ -100,23 +100,24 @@ class Mail implements EndpointInterface
 
           // Search for the related attached mail object.
           $mailInfos   = $this->retrieveMailTemplateInfos($task["fdtasksgranularref"][0]);
+
+          // Remove count from array.
+          $this->gateway->unsetCountKeys($mailInfos);
+
           $mailContent = $mailInfos[0];
 
           // Only takes arrays related to files attachments for the mail template selected
           unset($mailInfos[0]);
-          // Remove count from array.
-          $this->gateway->unsetCountKeys($mailInfos);
           $mailAttachments = array_values($mailInfos);
 
+          $mailMacros = isset($mailContent["fdmailtemplatemacro"]) ? $mailContent["fdmailtemplatemacro"] : [];
           $setFrom    = $task["fdtasksgranularmailfrom"][0];
           $setBCC     = $task["fdtasksgranularmailbcc"][0] ?? NULL;
           $recipients = $task["fdtasksgranularmail"];
-          $body       = $mailContent["fdmailtemplatebody"][0];
+          $body       = $this->mailUtils->replaceMacros($this->gateway, $recipients, $mailContent["fdmailtemplatebody"][0], $mailMacros);
           $signature  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
           $subject    = $mailContent["fdmailtemplatesubject"][0];
           $receipt    = $mailContent["fdmailtemplatereadreceipt"][0];
-
-          $body = $this->replaceMacros($recipients, $body);
 
           $attachments = [];
           foreach ($mailAttachments as $file) {
@@ -208,31 +209,6 @@ class Mail implements EndpointInterface
     }
 
     return FALSE;
-  }
-
-  private function replaceMacros (array $recipients, string $body): string
-  {
-    // Process hardcoded macros %uid%, %sn% and %givenName%
-    // TODO: grab them from LDAP later
-    // Macro (without % before and after) => ldapAttribute
-    $hardcodedMacros = [
-      'givenName' => 'givenName',
-      'sn'    => 'sn',
-      'uid'     => 'uid'
-    ];
-
-    // Replace each $macro with the attribute in $body
-    foreach ($recipients as $recipient) {
-      foreach ($hardcodedMacros as $macro) {
-        $filter = "(&(objectClass=inetOrgPerson)(|(mail=$recipient)(gosaMailAlternateAddress=$recipient)(gosaMailForwardingAddress=$recipient)(supannAutreMail=$recipient)(supannMailPerso=$recipient)(supannMailPrive={*}$recipient)))";
-        $ldapAttribute = $this->gateway->getLdapTasks("$filter", ["$macro"]);
-        if (isset($ldapAttribute[0][strtolower($macro)][0])) {
-          $body = preg_replace('/%' . $macro . '%/', $ldapAttribute[0][strtolower($macro)][0], $body);
-        }
-      }
-    }
-
-    return $body;
   }
 
   /**

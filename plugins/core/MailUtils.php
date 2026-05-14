@@ -64,4 +64,33 @@ class MailUtils
     // set the maximum mails to be sent to the configured value or 50 if not set.
     return $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
   }
+
+  public function replaceMacros (TaskGateway $gateway, array|string $recipients, string $body, array $mailMacros): string
+  {
+    // Prepare hardcodedMacros array
+    $hardcodedMacros = [];
+    foreach ($mailMacros as $macro) {
+      $pattern                   = explode("|", $macro)[0];
+      $ldapValue                 = explode("|", $macro)[1];
+      $hardcodedMacros[$pattern] = $ldapValue;
+    }
+
+    // Convert $recipients as array if it is a string
+    if (is_string($recipients)) {
+      $recipients = [$recipients];
+    }
+
+    // Replace each $macro with the attribute in $body
+    foreach ($recipients as $recipient) {
+      foreach ($hardcodedMacros as $pattern => $ldapValue) {
+        $filter = "(&(objectClass=inetOrgPerson)(|(mail=$recipient)(gosaMailAlternateAddress=$recipient)(gosaMailForwardingAddress=$recipient)(supannAutreMail=$recipient)(supannMailPerso=$recipient)(supannMailPrive={*}$recipient)))";
+        $ldapAttribute = $gateway->getLdapTasks("$filter", ["$ldapValue"]);
+        if (isset($ldapAttribute[0][strtolower($ldapValue)][0])) {
+          $body = preg_replace('/%' . $pattern . '%/', $ldapAttribute[0][strtolower($ldapValue)][0], $body);
+        }
+      }
+    }
+
+    return $body;
+  }
 }

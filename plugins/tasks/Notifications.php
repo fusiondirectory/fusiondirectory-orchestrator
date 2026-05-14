@@ -288,12 +288,17 @@ class Notifications implements EndpointInterface
     $mailTemplateName = $mainTask[0]['fdtasksnotificationsmailtemplate'][0];
 
     $mailInfos   = $this->gateway->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $mailTemplateName);
+
+    // Remove count from array.
+    $this->gateway->unsetCountKeys($mailInfos);
+
     $mailContent = $mailInfos[0];
 
     // Set the notification array with all required variable for all sub-tasks of same main task origin.
+    $mailMacros             = isset($mailContent["fdmailtemplatemacro"]) ? $mailContent["fdmailtemplatemacro"] : [];
     $mailForm['setFrom']    = $sender;
     $mailForm['recipients'] = $recipients;
-    $mailForm['body']       = $mailContent["fdmailtemplatebody"][0];
+    $mailForm['body']       = $this->mailUtils->replaceMacros($this->gateway, $recipients, $mailContent["fdmailtemplatebody"][0], $mailMacros);
     $mailForm['signature']  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
     $mailForm['subject']    = $mailContent["fdmailtemplatesubject"][0];
     $mailForm['receipt']    = $mailContent["fdmailtemplatereadreceipt"][0];
@@ -359,7 +364,7 @@ class Notifications implements EndpointInterface
     // Make the array unique, avoiding uid and same attribute duplication.
     $uidAttrsText = array_unique($uidAttrsText);
     // Add uid names and related attrs to mailForm['body']
-    $notifications[$notificationsMainTaskName]['mailForm']['body'] .= " " . implode(" ", $uidAttrsText);
+    $notifications[$notificationsMainTaskName]['mailForm']['body'] .= PHP_EOL . implode(" ", $uidAttrsText);
 
     return $notifications;
   }
