@@ -239,8 +239,8 @@ class TaskGateway
    */
   public function verifySchedule (string $schedule): bool
   {
-    $currentDateTime   = new DateTime('now'); // Get current datetime in locale timezone
-    $scheduledDateTime = new DateTime($schedule); // Parse scheduled datetime string in local timezone
+    $currentDateTime   = new DateTime('now', new DateTimeZone('UTC')); // Get current datetime
+    $scheduledDateTime = \FusionDirectory\Ldap\GeneralizedTime::fromString($schedule); // Parse scheduled datetime string
 
     if ($scheduledDateTime < $currentDateTime) {
       return TRUE; // Schedule has passed
