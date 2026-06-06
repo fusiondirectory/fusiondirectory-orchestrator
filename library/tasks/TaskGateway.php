@@ -307,15 +307,15 @@ class TaskGateway
     }
 
     // Get current timestamp in the correct format
-    $currentTime = date("Y-m-d H:i:s");
+    $currentDateTime   = new DateTime('now', new DateTimeZone('UTC')); // Get current datetime
 
     // Status subject to change
     $ldap_entry["fdTasksGranularStatus"]   = $status;
-    $ldap_entry["fdTasksGranularLastExec"] = $currentTime;
+    $ldap_entry["fdTasksGranularLastExec"] = \FusionDirectory\Ldap\GeneralizedTime::toString($currentDateTime);
 
     // Calculate the next execution time if repeatable schedule is provided
     if (!empty($repeatableSchedule)) {
-      $nextExecTime = $this->calculateNextExecutionTime($repeatableSchedule, $currentTime);
+      $nextExecTime = $this->calculateNextExecutionTime($repeatableSchedule, $currentDateTime);
       if ($nextExecTime !== NULL) {
         $ldap_entry["fdTasksGranularNextExec"] = $nextExecTime;
       }
@@ -425,13 +425,12 @@ class TaskGateway
 
   /**
    * @param string $repeatableSchedule
-   * @param string $currentTime
+   * @param DateTime $currentDateTime
    * @return string|null
-   * Note: Calculate the next execution time based on the repeatable schedule
+   * Note: Calculate the next execution time based on the repeatable schedule and return a generalized time
    */
-  private function calculateNextExecutionTime (string $repeatableSchedule, string $currentTime): ?string
+  private function calculateNextExecutionTime (string $repeatableSchedule, string $currentDateTime): ?string
   {
-    $currentDateTime = new DateTime($currentTime);
     $nextExecutionTime = clone $currentDateTime;
 
     // Calculate next execution time based on repeatable schedule
@@ -466,7 +465,7 @@ class TaskGateway
     }
 
     // Return the next execution time in the same format as currentTime
-    return $nextExecutionTime->format('Y-m-d H:i:s');
+    return \FusionDirectory\Ldap\GeneralizedTime::toString($nextExecutionTime);
   }
 
   /**
