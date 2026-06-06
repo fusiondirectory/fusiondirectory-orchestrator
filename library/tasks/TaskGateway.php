@@ -329,7 +329,7 @@ class TaskGateway
       if ($result) {
         if ($mainTaskDn) {
           // Use the provided main task DN directly
-          $this->updateMainTaskLastExec($mainTaskDn, $currentTime);
+          $this->updateMainTaskLastExec($mainTaskDn, $currentDateTime);
           if (isset($ldap_entry["fdTasksGranularNextExec"])) {
             $this->updateMainTaskNextExec($mainTaskDn, $ldap_entry["fdTasksGranularNextExec"]);
           }
@@ -337,7 +337,7 @@ class TaskGateway
           // Fallback to LDAP lookup if main task DN not provided (Case of Audit E.g)
           $subtask = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(cn=" . $cn . "))", ["fdTasksGranularMaster"]);
           if (!empty($subtask) && isset($subtask[0]['fdtasksgranularmaster'][0])) {
-            $this->updateMainTaskLastExec($subtask[0]['fdtasksgranularmaster'][0], $currentTime);
+            $this->updateMainTaskLastExec($subtask[0]['fdtasksgranularmaster'][0], $currentDateTime);
             if (isset($ldap_entry["fdTasksGranularNextExec"])) {
               $this->updateMainTaskNextExec($subtask[0]['fdtasksgranularmaster'][0], $ldap_entry["fdTasksGranularNextExec"]);
             }
@@ -387,13 +387,13 @@ class TaskGateway
 
   /**
    * @param string $mainTaskDn
-   * @param string $timestamp
+   * @param DateTime $timestampDateTime
    * @return bool|string
    * Note: Update the attribute fdTasksLastExec of the main task when a subtask is processed
    */
-  public function updateMainTaskLastExec (string $mainTaskDn, string $timestamp)
+  public function updateMainTaskLastExec (string $mainTaskDn, DateTime $timestampDateTime)
   {
-    $ldap_entry["fdTasksLastExec"] = $timestamp;
+    $ldap_entry["fdTasksLastExec"] = \FusionDirectory\Ldap\GeneralizedTime::toString($timestampDateTime);
 
     // Add data to LDAP
     try {
@@ -429,7 +429,7 @@ class TaskGateway
    * @return string|null
    * Note: Calculate the next execution time based on the repeatable schedule and return a generalized time
    */
-  private function calculateNextExecutionTime (string $repeatableSchedule, string $currentDateTime): ?string
+  private function calculateNextExecutionTime (string $repeatableSchedule, DateTime $currentDateTime): ?string
   {
     $nextExecutionTime = clone $currentDateTime;
 
