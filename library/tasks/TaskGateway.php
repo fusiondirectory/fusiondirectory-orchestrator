@@ -373,7 +373,8 @@ class TaskGateway
    */
   public function updateLastMailExecTime (string $dn)
   {
-    $ldap_entry["fdTasksConfLastExecTime"] = time();
+    $currentDateTime = new DateTime('now', new DateTimeZone('UTC')); // Get current datetime
+    $ldap_entry["fdTasksConfLastExecTime"] = \FusionDirectory\Ldap\GeneralizedTime::toString($currentDateTime);
 
     // Add data to LDAP
     try {
