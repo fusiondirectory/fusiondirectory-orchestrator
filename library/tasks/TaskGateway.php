@@ -253,29 +253,29 @@ class TaskGateway
    * @param string $filter
    * @param array $attrs
    * @param string|NULL $attachmentsCN
-   * @param string|NULL $dn
+   * @param string|NULL $base
    * @return array
    * NOTE : Filter in ldap_search cannot be an empty string or NULL, if not filters are required, use (objectClass=*).
    */
-  public function getLdapTasks (string $filter = '', array $attrs = [], ?string $attachmentsCN = NULL, ?string $dn = NULL): array
+  public function getLdapTasks (string $filter = '', array $attrs = [], ?string $attachmentsCN = NULL, ?string $base = NULL): array
   {
     $result = [];
 
     // Verify if an optional DN is passed, set de default if not.
-    if (empty($dn)) {
-      $dn = $_ENV["LDAP_BASE"];
+    if (empty($base)) {
+      $base = $_ENV["LDAP_BASE"];
     }
 
     // This is the logic in order to get sub nodes attachments based on the mailTemplate parent cn.
     if (!empty($attachmentsCN)) {
-      $dn = 'cn=' . $attachmentsCN . ',ou=mailTemplate,' . $dn;
+      $dn = 'cn=' . $attachmentsCN . ',ou=mailTemplate,' . $base;
     }
 
     /** Verification if the search report a FALSE, possible in case of non-existing DN passed in sub-tasks from a past
      *members registration which is now obsolete. (Array of members with non-existing DN reported in FD).
      */
     try {
-      $sr   = ldap_search($this->ds, $dn, $filter, $attrs);
+      $sr   = ldap_search($this->ds, $base, $filter, $attrs);
       $info = ldap_get_entries($this->ds, $sr);
     } catch (Exception $e) {
       // build array for return response
