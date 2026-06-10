@@ -47,7 +47,7 @@ class Mail implements EndpointInterface
    */
   public function processEndPointPatch (?array $data = NULL): array
   {
-    return $this->processMailTasks($this->gateway->getObjectTypeTask('Mail Object'));
+    return $this->processMailTasks($this->gateway->getObjectTypeTask('mail'));
   }
 
   /**
