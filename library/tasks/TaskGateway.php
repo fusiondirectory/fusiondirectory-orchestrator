@@ -12,6 +12,8 @@ class TaskGateway
    * @var \LDAP\Connection|null
    */
   public $ds;
+  public $fdConfiguration;
+  public $templateBranch;
 
   // Variable type can be LDAP : enhancement (php8.2)
   public function __construct ($ldap_connect)
@@ -259,6 +261,11 @@ class TaskGateway
    */
   public function getLdapTasks (string $filter = '', array $attrs = [], ?string $attachmentsCN = NULL, ?string $base = NULL): array
   {
+    $this->fdConfiguration = new Backend();
+
+    $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
+    $templateBranch      = $fdConfigAttributes[0]['fdMailTemplateRDN'][0];
+
     $result = [];
 
     // Verify if an optional DN is passed, set de default if not.
@@ -268,7 +275,7 @@ class TaskGateway
 
     // This is the logic in order to get sub nodes attachments based on the mailTemplate parent cn.
     if (!empty($attachmentsCN)) {
-      $dn = 'cn=' . $attachmentsCN . ',ou=mailTemplate,' . $base;
+      $dn = 'cn=' . $attachmentsCN . "," . $templateBranch . "," . $base;
     }
 
     /** Verification if the search report a FALSE, possible in case of non-existing DN passed in sub-tasks from a past
