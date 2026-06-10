@@ -3,6 +3,8 @@
 class AutomaticGroups implements EndpointInterface
 {
   private TaskGateway $gateway;
+  public $fdConfiguration;
+  public $groupBranch;
 
   public function __construct (TaskGateway $gateway)
   {
@@ -454,16 +456,24 @@ class AutomaticGroups implements EndpointInterface
         throw new Exception("Missing required parameters for dynamic group creation");
     }
 
+    $this->fdConfiguration = new Backend();
+
+    $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
+    $groupBranch      = $fdConfigAttributes[0]['fdGroupRDN'][0];
+
     // Get base DN from environment variables
     $baseDN   = $_ENV["LDAP_BASE"];
-    $groupDN  = "cn=$groupName,ou=groups,$baseDN";
+    $groupDN  = "cn=$groupName" . "," . $groupBranch . "," . $baseDN;
+
+    print($groupDN);
+    print("\n");
 
     // Check if the group already exists
     $existingGroup = $this->gateway->getLdapTasks(
         "(cn=$groupName)",
         ['cn', 'objectClass', 'memberURL'],
         NULL,
-        "ou=groups,$baseDN"
+        "$groupBranch,$baseDN"
     );
 
     // If group exists, mark as success but don't modify it
