@@ -30,31 +30,11 @@ class TaskGateway
   {
     switch ($object_type) {
 
-      case "lifeCycle":
-        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Life Cycle))");
-        $this->unsetCountKeys($list_tasks);
-        break;
-
-      case "notifications":
-        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Notifications))");
-        $this->unsetCountKeys($list_tasks);
-        break;
-
-      case "reminder":
-        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=Reminder))");
-        $this->unsetCountKeys($list_tasks);
-        break;
-
       case "removeSubTasks":
       case "activateCyclicTasks":
       case "restartFailedTasks":
-        // No need to get any parent tasks here, but to note break logic - we will return an array.
+        // No need to get any parent tasks here, but to not break logic - we will return an array.
         $list_tasks = ['Generic tasks execution'];
-        break;
-
-      // If no tasks object type declared , return all tasks
-      case NULL:
-        $list_tasks = $this->getLdapTasks("(objectClass=fdTasks)", ["cn", "objectClass"]);
         break;
 
       case $object_type:

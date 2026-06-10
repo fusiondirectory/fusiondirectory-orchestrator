@@ -50,10 +50,10 @@ class Audit implements EndpointInterface
 
     if ($auditType === 'syslog') {
       // Process syslog audit
-      $result = $this->processSyslogAuditTransformation($this->gateway->getObjectTypeTask('Audit-Syslog'));
+      $result = $this->processSyslogAuditTransformation($this->gateway->getObjectTypeTask('auditSyslog'));
     } else {
       // Process standard audit
-      $result = $this->processAuditDeletion($this->gateway->getObjectTypeTask('Audit'));
+      $result = $this->processAuditDeletion($this->gateway->getObjectTypeTask('audit'));
     }
 
     // Recursive function to filter out empty arrays at any depth

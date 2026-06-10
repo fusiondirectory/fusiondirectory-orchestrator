@@ -17,7 +17,7 @@ class AutomaticGroups implements EndpointInterface
    */
   public function processEndPointGet (): array
   {
-    return $this->gateway->getObjectTypeTask('Automatic Groups');
+    return $this->gateway->getObjectTypeTask('automaticGroups');
   }
 
   /**
@@ -38,9 +38,9 @@ class AutomaticGroups implements EndpointInterface
   {
     // Check what type of task we need to process
     if (isset($data['type']) && $data['type'] === 'dynamic-group') {
-      return $this->processDynamicGroupCreation($this->gateway->getObjectTypeTask('Dynamic-Group'));
+      return $this->processDynamicGroupCreation($this->gateway->getObjectTypeTask('automaticGroupsDynamic'));
     } else {
-      return $this->processAutomaticGroups($this->gateway->getObjectTypeTask('Automatic Groups'));
+      return $this->processAutomaticGroups($this->gateway->getObjectTypeTask('automaticGroups'));
     }
   }
 
