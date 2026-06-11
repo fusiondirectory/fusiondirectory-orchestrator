@@ -242,6 +242,7 @@ class TaskGateway
    * @param string|NULL $attachmentsCN
    * @param string|NULL $base
    * @return array
+   * @throw Exception Return LDAP error
    * NOTE : Filter in ldap_search cannot be an empty string or NULL, if not filters are required, use (objectClass=*).
    */
   public function getLdapTasks (string $filter = '', array $attrs = [], ?string $attachmentsCN = NULL, ?string $base = NULL): array
@@ -270,8 +271,7 @@ class TaskGateway
       $sr   = ldap_search($this->ds, $base, $filter, $attrs);
       $info = ldap_get_entries($this->ds, $sr);
     } catch (Exception $e) {
-      // build array for return response
-      $result = [json_encode(["Ldap Error" => "$e"] )]; // string returned
+      throw new Exception("Ldap Error: $e");
     }
 
     // Verify if the above ldap search succeeded.
