@@ -37,6 +37,11 @@ class TaskGateway
         $list_tasks = ['Generic tasks execution'];
         break;
 
+      // If no tasks object type declared it means we ask for the listing of all the tasks
+      case "tasks":
+        $list_tasks = $this->getLdapTasks("(objectClass=fdTasks)", ["cn", "objectClass"]);
+        break;
+
       case $object_type:
         $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=" . $object_type . "))");
         $this->unsetCountKeys($list_tasks);
