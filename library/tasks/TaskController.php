@@ -41,7 +41,7 @@ class TaskController
     // If no specific tasks object specified, return all tasks
     if ($objectType == NULL) {
       if ($method == "GET") {
-        echo json_encode($this->gateway->getTask(NULL));
+        echo json_encode($this->gateway->getTask("tasks"));
 
       } else {
         $this->respondMethodAllowed("GET");
