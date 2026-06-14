@@ -170,7 +170,7 @@ class Audit implements EndpointInterface
           }
 
           // Create syslog file with prefix (path already defined at the beginning)
-          $date = date('Y-m-d');
+          $date = new DateTime('now', new DateTimeZone('UTC'))->format('Y-m-d');
           $filename = $path . $prefix . '-' . $date . '.log';
 
           // Track which audit IDs are already in the file to prevent duplicates
