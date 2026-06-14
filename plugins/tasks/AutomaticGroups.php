@@ -2,6 +2,8 @@
 
 class AutomaticGroups implements EndpointInterface
 {
+  use TaskProcessingTrait;
+
   private TaskGateway $gateway;
   public $fdConfiguration;
   public $groupBranch;
@@ -70,80 +72,69 @@ class AutomaticGroups implements EndpointInterface
 
     foreach ($automaticGroupsTasks as $task) {
       try {
-        // Initialize variables to avoid undefined variable errors
-        $mainTaskDn         = NULL;
-        $repeatableSchedule = NULL;
+        $taskResult = $this->processTask($task, function ($task, $mainTaskDn, $repeatableSchedule) {
+          // Get the DN of the user/group to process
+          $userDn = $task['fdtasksgranulardn'][0] ?? NULL;
+          if (empty($userDn)) {
+            throw new Exception("Missing user DN in task");
+          }
 
-        // Check if task should be processed (status and schedule)
-        if (!$this->gateway->statusAndScheduleCheck($task)) {
-          continue;
-        }
+          // Get target group and resource/state criteria
+          $mainTaskConfig = $this->getMainTaskConfig($mainTaskDn);
+          $targetGroup   = $mainTaskConfig[0]['fdtasksautomaticgroupsofname'][0] ?? NULL;
+          $resource      = $mainTaskConfig[0]['fdtasksautomaticgroupspreresource'][0] ?? NULL;
+          $state         = $mainTaskConfig[0]['fdtasksautomaticgroupsprestate'][0] ?? NULL;
+          $subState      = $mainTaskConfig[0]['fdtasksautomaticgroupspresubstate'][0] ?? NULL;
+          $pattern       = $mainTaskConfig[0]['fdtasksautomaticgroupsregexpattern'][0] ?? NULL;
+          $resultMessage = [];
 
-        // Get the DN of the user/group to process
-        $userDn = $task['fdtasksgranulardn'][0] ?? NULL;
-        if (empty($userDn)) {
-          throw new Exception("Missing user DN in task");
-        }
+          if (empty($targetGroup)) {
+            throw new Exception("Missing target group in task configuration");
+          }
 
-        // Get main task configuration
-        $mainTaskDn = $task['fdtasksgranularmaster'][0];
-        $mainTaskConfig = $this->getAutomaticGroupsMainTask($mainTaskDn);
+          // Check if user meets the criteria (if resource/state specified)
+          $shouldAddToGroup = FALSE;
 
-        // Repeatable logic (only apply schedule if fdTasksRepeatable == TRUE)
-        $rawRepeatable = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? '';
-        $isTaskRepeatable = (strcasecmp($rawRepeatable, 'TRUE') === 0);
-        $repeatableSchedule = $isTaskRepeatable ? ($mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL) : NULL;
+          if ($resource !== 'NONE' && !empty($resource) && !empty($state)) {
+            // If resource is a regex, we need to check against all resources
+            if (isset($pattern)) {
+              // Get all ressources
+              $supannResources = $this->gateway->getLdapTasks('(objectClass=fdSupannRessource)', ['fdSupannRessourceName'], '', $_ENV["LDAP_BASE"]);
 
-        // Get target group and resource/state criteria
-        $targetGroup   = $mainTaskConfig[0]['fdtasksautomaticgroupsofname'][0] ?? NULL;
-        $resource      = $mainTaskConfig[0]['fdtasksautomaticgroupspreresource'][0] ?? NULL;
-        $state         = $mainTaskConfig[0]['fdtasksautomaticgroupsprestate'][0] ?? NULL;
-        $subState      = $mainTaskConfig[0]['fdtasksautomaticgroupspresubstate'][0] ?? NULL;
-        $pattern       = $mainTaskConfig[0]['fdtasksautomaticgroupsregexpattern'][0] ?? NULL;
-        $resultMessage = [];
+              // Need to unset to work for the foreach
+              unset($supannResources['count']);
+              foreach ($supannResources as $supannRessource) {
+                if (@preg_match('/' . $pattern . '/', $supannRessource['fdsupannressourcename'][0])) {
+                  // Uppercase this time for ressource
+                  $resourceReplace = str_replace('REGEX', $supannRessource['fdsupannressourcename'][0], $resource);
 
-        if (empty($targetGroup)) {
-          throw new Exception("Missing target group in task configuration");
-        }
+                  $userSupannState = $this->getUserSupannState($userDn);
+                  $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resourceReplace, $state, $subState);
 
-        // Check if user meets the criteria (if resource/state specified)
-        $shouldAddToGroup = FALSE;
-
-        if ($resource !== 'NONE' && !empty($resource) && !empty($state)) {
-          // If resource is a regex, we need to check against all resources
-          if (isset($pattern)) {
-            // Get all ressources
-            $supannResources = $this->gateway->getLdapTasks('(objectClass=fdSupannRessource)', ['fdSupannRessourceName'], '', $_ENV["LDAP_BASE"]);
-
-            // Need to unset to work for the foreach
-            unset($supannResources['count']);
-            foreach ($supannResources as $supannRessource) {
-              if (@preg_match('/' . $pattern . '/', $supannRessource['fdsupannressourcename'][0])) {
-                // Uppercase this time for ressource
-                $resourceReplace = str_replace('REGEX', $supannRessource['fdsupannressourcename'][0], $resource);
-
-                $userSupannState = $this->getUserSupannState($userDn);
-                $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resourceReplace, $state, $subState);
-
-                if ($shouldAddToGroup) {
-                  // If one match then quit
-                  break;
+                  if ($shouldAddToGroup) {
+                    // If one match then quit
+                    break;
+                  }
                 }
               }
+            } else {
+              $userSupannState = $this->getUserSupannState($userDn);
+              $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resource, $state, $subState);
             }
-          } else {
-            $userSupannState = $this->getUserSupannState($userDn);
-            $shouldAddToGroup = $this->checkUserSupannState($userSupannState, $resource, $state, $subState);
+            $resultMessage = $this->manageGroup($shouldAddToGroup, $userDn, $targetGroup);
           }
-          $resultMessage = $this->manageGroup($shouldAddToGroup, $userDn, $targetGroup);
-        }
 
-        // Update task status
-        $result[$task['dn']]['result'] = implode(PHP_EOL, $resultMessage);
-        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+          // Update task status
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
+          return ['result' => implode(PHP_EOL, $resultMessage)];
+        });
+
+        if (!empty($taskResult)) {
+          $result[$task['dn']] = $taskResult;
+        }
       } catch (Exception $e) {
         $result[$task['dn']]['result'] = "Error processing task: " . $e->getMessage();
-        $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
+        $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], $e->getMessage());
       }
     }
 
@@ -262,7 +253,7 @@ class AutomaticGroups implements EndpointInterface
    * @param string $mainTaskDn
    * @return array
    */
-  private function getAutomaticGroupsMainTask (string $mainTaskDn): array
+  protected function getMainTaskConfig (string $mainTaskDn): array
   {
     return $this->gateway->getLdapTasks(
       '(objectClass=fdTasksAutomaticGroups)',

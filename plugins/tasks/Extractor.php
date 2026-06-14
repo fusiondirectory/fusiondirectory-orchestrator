@@ -2,6 +2,8 @@
 
 class Extractor implements EndpointInterface
 {
+  use TaskProcessingTrait;
+
   private TaskGateway $gateway;
   // @phpstan-ignore property.onlyWritten
   private CoreUtils $utils;
@@ -85,13 +87,10 @@ class Extractor implements EndpointInterface
 
         // Get the main task configuration, including the list of DNs
         $mainTaskDn = $task['fdtasksgranularmaster'][0];
-        $mainTaskConfig = $this->getExtractMainTaskConfig($mainTaskDn);
+        $mainTaskConfig = $this->getMainTaskConfig($mainTaskDn);
 
         // Determine if main task is marked repeatable; only then use schedule
-        $isRepeatableFlag = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? NULL; // may be TRUE/FALSE
-        if ($isRepeatableFlag !== NULL && strcasecmp($isRepeatableFlag, 'TRUE') === 0) {
-          $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
-        }
+        $repeatableSchedule = $this->gateway->extractRepeatableSchedule($mainTaskConfig);
 
         // Process fdExtractorTaskListOfDN attribute
         $userDnListRaw = $mainTaskConfig[0]['fdextractortasklistofdn'] ?? [];
@@ -281,7 +280,7 @@ class Extractor implements EndpointInterface
    * Note: Retrieve the configuration from the main extract task.
    */
   // @phpstan-ignore method.unused
-  private function getExtractMainTaskConfig (string $mainTaskDn): array
+  protected function getMainTaskConfig (string $mainTaskDn): array
   {
     return $this->gateway->getLdapTasks(
       '(objectClass=fdExtractorTasks)',

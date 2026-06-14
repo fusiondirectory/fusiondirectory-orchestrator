@@ -3,6 +3,8 @@
 
 class Mail implements EndpointInterface
 {
+  use TaskProcessingTrait;
+
   private TaskGateway $gateway;
   private MailUtils $mailUtils;
 
@@ -55,7 +57,7 @@ class Mail implements EndpointInterface
    * @return array
    * Note: Fetch main task configuration data including repeatableSchedule
    */
-  private function getMailTaskMainTask (string $mainTaskDn): array
+  protected function getMainTaskConfig (string $mainTaskDn): array
   {
     return $this->gateway->getLdapTasks(
       "(objectClass=fdTasks)",
@@ -82,22 +84,7 @@ class Mail implements EndpointInterface
     if ($this->verifySpamProtection($fdTasksConf)) {
       // Note : if list_tasks is empty, the controller receive null as result and will log/process it properly.
       foreach ($tasks as $task) {
-        // verify status before processing (to be checked with schedule as well).
-        if ($this->gateway->statusAndScheduleCheck($task)) {
-
-          // Get the main task DN
-          $mainTaskDn = $task['fdtasksgranularmaster'][0];
-
-          // Retrieve data from the main task including the repeatable schedule
-          $mainTaskConfig = $this->getMailTaskMainTask($mainTaskDn);
-          // Gate schedule usage by repeatable flag
-          $repeatableSchedule = NULL;
-          $repeatableFlag     = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? NULL;
-
-          if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
-            $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
-          }
-
+        $taskResult = $this->processTask($task, function ($task, $mainTaskDn, $repeatableSchedule) use ($fdTasksConf) {
           // Search for the related attached mail object.
           $mailInfos   = $this->retrieveMailTemplateInfos($task["fdtasksgranularref"][0]);
 
@@ -127,8 +114,11 @@ class Mail implements EndpointInterface
           }
 
           $mailSentResult = $this->mailUtils->sendMail($setFrom, $setBCC, $recipients, $body, $signature, $subject, $receipt, $attachments);
-          $result[$task["dn"]] = $this->updateResult($mailSentResult, $task, $fdTasksConf, $mainTaskDn, $repeatableSchedule);
+          return $this->updateResult($mailSentResult, $task, $fdTasksConf, $mainTaskDn, $repeatableSchedule);
+        });
 
+        if (!empty($taskResult)) {
+          $result[$task["dn"]] = $taskResult;
           // Verification anti-spam max mails to be sent and quit loop if matched
           $maxMailsIncrement += 1; //Only one as recipients in mail object is always one email.
           if ($maxMailsIncrement == $maxMailsConfig) {

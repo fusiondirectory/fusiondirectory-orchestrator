@@ -2,6 +2,7 @@
 
 class Notifications implements EndpointInterface
 {
+  use TaskProcessingTrait;
 
   private TaskGateway $gateway;
   private CoreUtils $coreUtils;
@@ -63,22 +64,9 @@ class Notifications implements EndpointInterface
     $notifications = [];
 
     foreach ($notificationsSubTasks as $task) {
-      // If the tasks must be treated - status and scheduled - process the sub-tasks
-      if ($this->gateway->statusAndScheduleCheck($task)) {
-
-        // Retrieve data from the main task
-        $mainTaskDn = $task['fdtasksgranularmaster'][0];
-
-        $notificationsMainTask     = $this->getNotificationsMainTask($mainTaskDn);
+      $taskResult = $this->processTask($task, function ($task, $mainTaskDn, $repeatableSchedule) use (&$notifications, &$result) {
+        $notificationsMainTask     = $this->getMainTaskConfig($mainTaskDn);
         $notificationsMainTaskName = $mainTaskDn;
-
-        // Gate repeatable schedule by flag
-        $repeatableSchedule = NULL;
-        $repeatableFlag     = $notificationsMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
-
-        if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
-          $repeatableSchedule = $notificationsMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
-        }
 
         // Generate the mail form with all mail controller requirements
         $mailTemplateForm = $this->generateMainTaskMailTemplate($notificationsMainTask);
@@ -179,7 +167,8 @@ class Notifications implements EndpointInterface
           );
           $result[$task['dn']]['Message'] = 'No matching audited attributes with monitored attributes, nothing to process!';
         }
-      }
+        return [];
+      });
     }
 
     if (!empty($notifications)) {
@@ -264,7 +253,7 @@ class Notifications implements EndpointInterface
    * @param string $mainTaskDn
    * @return array
    */
-  public function getNotificationsMainTask (string $mainTaskDn): array
+  protected function getMainTaskConfig (string $mainTaskDn): array
   {
     // Retrieve data from the main task
     return $this->gateway->getLdapTasks('(objectClass=fdTasksNotifications)', ['fdTasksNotificationsListOfRecipientsMails',

@@ -4,6 +4,8 @@ use FusionDirectory\Rest\WebServiceCall;
 
 class Archive implements EndpointInterface
 {
+  use TaskProcessingTrait;
+
   private TaskGateway $gateway;
   private CoreUtils $coreUtils;
 
@@ -40,51 +42,39 @@ class Archive implements EndpointInterface
 
     foreach ($archiveTasks as $task) {
       try {
-        // Initialize variables to avoid undefined variable errors
-        $mainTaskDn         = NULL;
-        $repeatableSchedule = NULL;
+        $taskResult = $this->processTask($task, function ($task, $mainTaskDn, $repeatableSchedule) use ($webServiceCall) {
+          // Retrieve the main task configuration
+          $mainTaskConfig = $this->getMainTaskConfig($mainTaskDn);
+          $desiredSupannStatus = $mainTaskConfig;
 
-        // @phpstan-ignore argument.type
-        if (!$this->gateway->statusAndScheduleCheck($task)) {
-            // Skip this task if it does not meet the status and schedule criteria
-            continue;
-        }
+          // Retrieve the current supann status of the user
+          // @phpstan-ignore offsetAccess.notFound
+          $currentSupannStatus = $this->coreUtils->getUserSupannAccountStatus($task['fdtasksgranulardn'][0], $this->gateway);
 
-        // Get the main task DN
-        // @phpstan-ignore offsetAccess.notFound
-        $mainTaskDn = $task['fdtasksgranularmaster'][0];
+          // Check if the current supann status matches the desired status
+          if (!$this->isSupannStatusMatching($desiredSupannStatus, $currentSupannStatus)) {
+              // The task does not meet the criteria for archiving - reporting nothing to be processed.
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '3', $mainTaskDn, $repeatableSchedule); /* @phpstan-ignore-line */
+              return ['result' => "User does not meet the criteria for archiving."];
+          }
 
-        // Retrieve the main task configuration
-        $mainTaskConfig = $this->getArchiveTaskBehaviorFromMainTask($mainTaskDn);
-        $rawRepeatable = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? '';
-        $isTaskRepeatable = (strcasecmp($rawRepeatable, 'TRUE') === 0);
-        $repeatableSchedule = $isTaskRepeatable ? ($mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL) : NULL;
-        $desiredSupannStatus = $mainTaskConfig;
+          // Set the archive endpoint and method using the same WebServiceCall object
+          // @phpstan-ignore offsetAccess.notFound
+          $archiveUrl = $_ENV['FUSIONDIRECTORY_WEBSERVICE_URL'] . '/archive/user/' . rawurlencode($task['fdtasksgranulardn'][0]);
+          $webServiceCall->setCurlSettings($archiveUrl, NULL, 'POST'); // Update settings for the archive request
+          $response = $webServiceCall->execute();
 
-        // Retrieve the current supann status of the user
-        // @phpstan-ignore offsetAccess.notFound
-        $currentSupannStatus = $this->coreUtils->getUserSupannAccountStatus($task['fdtasksgranulardn'][0], $this->gateway);
+          // Check if the HTTP status code is 204
+          if ($webServiceCall->getHttpStatusCode() === 204) {
+              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule); /* @phpstan-ignore-line */
+              return ['result' => "User " . $task['fdtasksgranulardn'][0] . " successfully archived."];
+          } else {
+              throw new Exception("Unexpected HTTP status code: " . $webServiceCall->getHttpStatusCode());
+          }
+        });
 
-        // Check if the current supann status matches the desired status
-        if (!$this->isSupannStatusMatching($desiredSupannStatus, $currentSupannStatus)) {
-            // The task does not meet the criteria for archiving - reporting nothing to be processed.
-            $result[$task['dn']]['result'] = "User does not meet the criteria for archiving."; /* @phpstan-ignore-line */
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '3', $mainTaskDn, $repeatableSchedule); /* @phpstan-ignore-line */
-            continue;
-        }
-
-        // Set the archive endpoint and method using the same WebServiceCall object
-        // @phpstan-ignore offsetAccess.notFound
-        $archiveUrl = $_ENV['FUSIONDIRECTORY_WEBSERVICE_URL'] . '/archive/user/' . rawurlencode($task['fdtasksgranulardn'][0]);
-        $webServiceCall->setCurlSettings($archiveUrl, NULL, 'POST'); // Update settings for the archive request
-        $response = $webServiceCall->execute();
-
-        // Check if the HTTP status code is 204
-        if ($webServiceCall->getHttpStatusCode() === 204) {
-            $result[$task['dn']]['result'] = "User " . $task['fdtasksgranulardn'][0] . " successfully archived."; /* @phpstan-ignore-line */
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule); /* @phpstan-ignore-line */
-        } else {
-            throw new Exception("Unexpected HTTP status code: " . $webServiceCall->getHttpStatusCode());
+        if (!empty($taskResult)) {
+          $result[$task['dn']] = $taskResult;
         }
       } catch (Exception $e) {
             // @phpstan-ignore offsetAccess.notFound
@@ -122,7 +112,7 @@ class Archive implements EndpointInterface
      * @return array
      * Note: Retrieve the desired supann status and repeatable schedule from the main task attributes.
      */
-  private function getArchiveTaskBehaviorFromMainTask (string $taskDN): array
+  protected function getMainTaskConfig (string $taskDN): array
   {
       return $this->gateway->getLdapTasks(
           '(objectClass=fdArchiveTasks)',
