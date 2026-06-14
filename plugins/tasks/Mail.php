@@ -145,23 +145,11 @@ class Mail implements EndpointInterface
   {
     $result = [];
     if ($mailSentResult[0] == "SUCCESS") {
-      if ($repeatableSchedule !== NULL && $mainTaskDn !== NULL) {
-        $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], "2", $mainTaskDn, $repeatableSchedule);
-      } else if ($mainTaskDn !== NULL) {
-        $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], "2", $mainTaskDn);
-      } else {
-        $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], "2");
-      }
+      $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], "2", $mainTaskDn, $repeatableSchedule);
       $result['mailStatus'] = 'mail : ' . $task["dn"] . ' was successfully sent';
       $result['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($fdTasksConf[0]["dn"]);
     } else {
-      if ($repeatableSchedule !== NULL && $mainTaskDn !== NULL) {
-        $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], $mailSentResult[0], $mainTaskDn, $repeatableSchedule);
-      } else if ($mainTaskDn !== NULL) {
-        $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], $mailSentResult[0], $mainTaskDn);
-      } else {
-        $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], $mailSentResult[0]);
-      }
+      $result['statusUpdate'] = $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], $mailSentResult[0], $mainTaskDn, $repeatableSchedule);
       $result['Error'] = $mailSentResult;
     }
     return $result;

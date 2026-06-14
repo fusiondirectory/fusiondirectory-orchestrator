@@ -592,11 +592,7 @@ class Reminder implements EndpointInterface
       foreach ($taskInfo['subTask'] as $subTask => $details) {
         $cn = $subTask;
         $dn = $details['dn'];
-        if ($repeatableSchedule !== NULL) {
-          $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, "2", $mainTaskDn, $repeatableSchedule);
-        } else {
-          $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, "2", $mainTaskDn);
-        }
+        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, "2", $mainTaskDn, $repeatableSchedule);
         $result[$dn]['mailStatus']         = 'reminder was successfully sent';
         $result[$dn]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($mailTaskBackend[0]["dn"]);
       }
@@ -604,11 +600,7 @@ class Reminder implements EndpointInterface
       foreach ($taskInfo['subTask'] as $subTask => $details) {
         $cn = $subTask;
         $dn = $details['dn'];
-        if ($repeatableSchedule !== NULL) {
-          $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $serverResults[0], $mainTaskDn, $repeatableSchedule);
-        } else {
-          $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $serverResults[0], $mainTaskDn);
-        }
+        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $serverResults[0], $mainTaskDn, $repeatableSchedule);
         $result[$dn]['mailStatus']   = $serverResults;
       }
     }
