@@ -164,13 +164,7 @@ class Audit implements EndpointInterface
 
           // Check if there are no audit entries
           if (count($auditEntries) === 0) {
-            if ($repeatableSchedule !== NULL) {
-              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
-            } elseif ($mainTaskDn !== NULL) {
-              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
-            } else {
-              $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-            }
+            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
             $result[] = ["dn" => $task['dn'], "message" => "No audit entries found to transform"];
             continue;
           }
@@ -259,13 +253,7 @@ class Audit implements EndpointInterface
             file_put_contents($stateFile, $latestTime);
           }
 
-          if ($repeatableSchedule !== NULL) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
-          } elseif ($mainTaskDn !== NULL) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
-          } else {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-          }
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
 
           // Include information about skipped entries in the result message
           $resultMsg = "Successfully transformed $count audit entries to syslog format in $filename";
@@ -275,13 +263,7 @@ class Audit implements EndpointInterface
           $result[] = ["dn" => $task['dn'], "message" => $resultMsg];
         }
       } catch (Exception $e) {
-        if ($repeatableSchedule !== NULL && $mainTaskDn !== NULL) {
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
-        } elseif ($mainTaskDn !== NULL) {
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn);
-        } else {
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage());
-        }
+        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule);
         $result[] = ["dn" => $task['dn'], "message" => "Error transforming audit entries: " . $e->getMessage()];
       }
     }

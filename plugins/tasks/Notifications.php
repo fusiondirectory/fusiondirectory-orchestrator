@@ -449,16 +449,8 @@ class Notifications implements EndpointInterface
 
   private function updateResult ($dn, $cn, $status, $mainTaskDn, $repeatableSchedule, $message)
   {
-    if ($mainTaskDn !== NULL) {
-      if ($repeatableSchedule !== NULL) {
-        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $status, $mainTaskDn, $repeatableSchedule);
-      } else {
-        $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $status, $mainTaskDn);
-      }
-    } else {
-      $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $status);
-    }
-      $result[$dn]['mailStatus'] = $message;
-      return $result;
+    $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, $status, $mainTaskDn, $repeatableSchedule);
+    $result[$dn]['mailStatus'] = $message;
+    return $result;
   }
 }

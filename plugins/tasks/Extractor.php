@@ -105,11 +105,7 @@ class Extractor implements EndpointInterface
         }
 
         if (empty($userDnList)) {
-          if ($repeatableSchedule !== NULL) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
-          } else {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-          }
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
             $result[$task['dn']]['result'] = "No user DNs to process.";
             continue;
         }
@@ -153,13 +149,7 @@ class Extractor implements EndpointInterface
               $finalMessage .= " Errors: " . implode("; ", $errors);
           }
             // Treat as successful completion (no data) so next execution can be scheduled
-          if ($repeatableSchedule !== NULL) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
-          } else if ($mainTaskDn !== NULL) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
-          } else {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-          }
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
             $result[$task['dn']]['result'] = $finalMessage;
             continue;
         }
@@ -194,20 +184,8 @@ class Extractor implements EndpointInterface
         }
 
       } catch (Exception $e) {
-        // @phpstan-ignore booleanAnd.alwaysFalse
-        if ($repeatableSchedule !== NULL && isset($mainTaskDn)) { /* @phpstan-ignore-line */
-          // @phpstan-ignore offsetAccess.notFound
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule); /* @phpstan-ignore-line */
-          // @phpstan-ignore isset.variable
-        } else if (isset($mainTaskDn)) {
-          // @phpstan-ignore offsetAccess.notFound
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn); /* @phpstan-ignore-line */
-        } else {
-          // @phpstan-ignore offsetAccess.notFound
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage()); /* @phpstan-ignore-line */
-        }
-        // @phpstan-ignore offsetAccess.notFound
-        $result[$task['dn']]['result'] = "Error processing extractor task: " . $e->getMessage();
+        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule); /* @phpstan-ignore-line */
+        $result[$task['dn']]['result'] = "Error processing extractor task: " . $e->getMessage(); /* @phpstan-ignore-line */
       }
     }
 
@@ -237,13 +215,7 @@ class Extractor implements EndpointInterface
               $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
         }
         // Success without email
-        if ($repeatableSchedule !== NULL) {
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
-        } else if ($mainTaskDn !== NULL) {
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
-        } else {
-          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-        }
+        $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
       } else {
           // Send mail using MailLib
         $mailSentResult = $this->mailUtils->sendMail($sender, NULL, $recipients,
@@ -254,22 +226,10 @@ class Extractor implements EndpointInterface
           if (!empty($errors)) {
                   $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
           }
-          if ($repeatableSchedule !== NULL) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
-          } else if ($mainTaskDn !== NULL) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn);
-          } else {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2');
-          }
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
         } else {
           $finalMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
-          if ($repeatableSchedule !== NULL) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage, $mainTaskDn, $repeatableSchedule);
-          } else if ($mainTaskDn !== NULL) {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage, $mainTaskDn);
-          } else {
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
-          }
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage, $mainTaskDn, $repeatableSchedule);
         }
       }
       return $finalMessage;
