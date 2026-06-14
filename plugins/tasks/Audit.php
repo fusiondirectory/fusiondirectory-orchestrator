@@ -314,14 +314,37 @@ class Audit implements EndpointInterface
   {
     $auditLib = new FusionDirectory\Audit\AuditLib(
       $auditRetention,
-      $this->returnLdapAuditEntries(),
-      $this->gateway,
-      $subTaskDN,
-      $subTaskCN,
-      $mainTaskDn,
-      $repeatableSchedule
+      $this->returnLdapAuditEntries()
     );
-    return $auditLib->checkAuditPassedRetentionOrchestrator();
+
+    $actions = $auditLib->getRetentionActions($subTaskDN, $subTaskCN, $mainTaskDn, $repeatableSchedule);
+    $result  = [];
+
+    foreach ($actions as $action) {
+      if ($action instanceof FusionDirectory\Audit\Action\MarkTaskCompleted) {
+        $result[$action->subTaskCN]['result']       = TRUE;
+        $result[$action->subTaskCN]['info']         = 'No audit to be removed.';
+        $result[$action->subTaskCN]['statusUpdate'] = $this->gateway->updateTaskStatus(
+          $action->subTaskDN, $action->subTaskCN, "2", $action->mainTaskDn, $action->repeatableSchedule
+        );
+      } elseif ($action instanceof FusionDirectory\Audit\Action\RemoveAuditRecord) {
+        $removed = $this->gateway->removeSubTask($action->dn);
+        $result[$subTaskCN]['result'] = $removed;
+        $result[$subTaskCN]['info']   = 'Audit record removed.';
+
+        if ($removed) {
+          $result[$subTaskCN]['statusUpdate'] = $this->gateway->updateTaskStatus(
+            $subTaskDN, $subTaskCN, "2", $mainTaskDn, $repeatableSchedule
+          );
+        } else {
+          $result[$subTaskCN]['statusUpdate'] = $this->gateway->updateTaskStatus(
+            $subTaskDN, $subTaskCN, 'error', $mainTaskDn, $repeatableSchedule
+          );
+        }
+      }
+    }
+
+    return $result;
   }
 
   /**
