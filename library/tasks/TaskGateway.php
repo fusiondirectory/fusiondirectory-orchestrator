@@ -261,7 +261,7 @@ class TaskGateway
 
     // This is the logic in order to get sub nodes attachments based on the mailTemplate parent cn.
     if (!empty($attachmentsCN)) {
-      $dn = 'cn=' . $attachmentsCN . "," . $templateBranch . "," . $base;
+      $base = 'cn=' . $attachmentsCN . "," . $templateBranch . "," . $base;
     }
 
     /** Verification if the search report a FALSE, possible in case of non-existing DN passed in sub-tasks from a past
