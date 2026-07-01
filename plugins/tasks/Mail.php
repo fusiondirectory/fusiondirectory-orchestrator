@@ -186,13 +186,14 @@ class Mail implements EndpointInterface
    */
   public function verifySpamProtection (array $fdTasksConf): bool
   {
-    $lastExec     = $fdTasksConf[0]["fdtasksconflastexectime"][0] ?? NULL;
-    $spamInterval = $fdTasksConf[0]["fdtasksconfintervalemails"][0] ?? NULL;
+    $lastExec     = $fdTasksConf[0]["fdtasksconflastexectime"][0];
+    $spamInterval = $fdTasksConf[0]["fdtasksconfintervalemails"][0];
 
-    // Multiplication is required to have the seconds
-    $spamInterval = $spamInterval * 60;
-    $antispam     = $lastExec + $spamInterval;
-    if ($antispam <= time()) {
+    $currentDateTime = new DateTime('now', new DateTimeZone('UTC'));
+    $lastExecDate    = \FusionDirectory\Ldap\GeneralizedTime::fromString($lastExec);
+    $antispam        = $lastExecDate->modify("+ " . $spamInterval . " minutes");
+
+    if ($antispam <= $currentDateTime) {
       return TRUE;
     }
 
