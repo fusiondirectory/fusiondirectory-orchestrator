@@ -3,6 +3,8 @@
 
 class LifeCycle implements EndpointInterface
 {
+  use TaskProcessingTrait;
+
   private TaskGateway $gateway;
   private CoreUtils $coreUtils;
 
@@ -57,7 +59,7 @@ class LifeCycle implements EndpointInterface
    * @return array
    * Note : Simply return attributes from main task, here supann desired behavior
    */
-  private function getLifeCycleBehaviorFromMainTask (string $taskDN): array
+  protected function getMainTaskConfig (string $taskDN): array
   {
     return $this->gateway->getLdapTasks('(objectClass=fdTasksLifeCycle)', ['fdTasksLifeCyclePreResource',
       'fdTasksLifeCyclePreState', 'fdTasksLifeCyclePreSubState',
@@ -211,22 +213,9 @@ class LifeCycle implements EndpointInterface
     $webservice->setCurlSettings();
 
     foreach ($list_tasks as $task) {
-      // If the tasks must be treated - status and scheduled - process the sub-tasks
-      if ($this->gateway->statusAndScheduleCheck($task)) {
-
-        // Get the main task DN
-        $mainTaskDn = $task['fdtasksgranularmaster'][0];
-
+      $taskResult = $this->processTask($task, function ($task, $mainTaskDn, $repeatableSchedule) use ($webservice) {
         // Simply retrieve the lifeCycle behavior from the main related tasks
-        $lifeCycleBehavior = $this->getLifeCycleBehaviorFromMainTask($mainTaskDn);
-
-        // Determine repeatable schedule only if main task marked repeatable
-        $repeatableSchedule = NULL;
-        $repeatableFlag     = $lifeCycleBehavior[0]['fdtasksrepeatable'][0] ?? NULL;
-
-        if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
-          $repeatableSchedule = $lifeCycleBehavior[0]['fdtasksrepeatableschedule'][0] ?? NULL;
-        }
+        $lifeCycleBehavior = $this->getMainTaskConfig($mainTaskDn);
 
         // Simply retrieve the current supannStatus of the user DN related to the task at hand
         $currentUserLifeCycle = $this->coreUtils->getUserSupannAccountStatus($task['fdtasksgranulardn'][0], $this->gateway);
@@ -289,6 +278,11 @@ class LifeCycle implements EndpointInterface
         } else if (isset($updateResult)) {
           $result[$task['dn']]['statusUpdate'] = $updateResult;
         }
+        return $result[$task['dn']] ?? [];
+      });
+
+      if (!empty($taskResult)) {
+        $result[$task['dn']] = $taskResult;
       }
     }
 

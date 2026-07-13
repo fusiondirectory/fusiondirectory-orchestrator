@@ -344,6 +344,23 @@ class TaskGateway
   }
 
   /**
+   * @param array $mainTaskConfig
+   * @return string|null
+   * Note: Extract repeatable schedule from main task config.
+   * Returns the schedule string if fdTasksRepeatable is TRUE, NULL otherwise.
+   */
+  public function extractRepeatableSchedule (array $mainTaskConfig): ?string
+  {
+    $repeatableFlag = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? NULL;
+
+    if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
+      return $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+    }
+
+    return NULL;
+  }
+
+  /**
    * @param string $objectType
    * @return array|string[]|void
    */

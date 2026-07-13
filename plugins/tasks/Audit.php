@@ -2,6 +2,8 @@
 
 class Audit implements EndpointInterface
 {
+  use TaskProcessingTrait;
+
   private TaskGateway $gateway;
   private CoreUtils $utils;
 
@@ -75,39 +77,18 @@ class Audit implements EndpointInterface
    */
   public function processAuditDeletion (array $auditSubTasks): array
   {
-    return array_values(array_map(
-      function ($task) {
-        return $this->processScheduledTask($task);
-      },
-      array_filter($auditSubTasks, function ($task) {
-        return $this->gateway->statusAndScheduleCheck($task);
-      })
-    ));
-  }
-
-  /**
-   * @param array $task
-   * @return array
-   * @throws Exception
-   */
-  private function processScheduledTask (array $task): array
-  {
-    // Retrieve main task DN
-    $mainTaskDn    = $task['fdtasksgranularmaster'][0];
-    // Retrieve data from the main task (now also repeatable attributes)
-    $auditMainTask = $this->getAuditMainTask($mainTaskDn);
-
-    // Determine repeatable schedule only if main task marked repeatable
-    $repeatableSchedule = NULL;
-    $repeatableFlag     = $auditMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
-    if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
-      $repeatableSchedule = $auditMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
+    $result = [];
+    foreach ($auditSubTasks as $task) {
+      $taskResult = $this->processTask($task, function ($task, $mainTaskDn, $repeatableSchedule) {
+        $mainTaskConfig = $this->getMainTaskConfig($mainTaskDn);
+        $auditRetention = $mainTaskConfig[0]['fdaudittasksretention'][0];
+        return $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0], $mainTaskDn, $repeatableSchedule);
+      });
+      if (!empty($taskResult)) {
+        $result[] = $taskResult;
+      }
     }
-
-    // Simply get the days to retain audit.
-    $auditRetention = $auditMainTask[0]['fdaudittasksretention'][0];
-    // Verification of all audit and their potential removal based on retention days passed, also update subtasks.
-    return $this->checkAuditPassedRetention($auditRetention, $task['dn'], $task['cn'][0], $mainTaskDn, $repeatableSchedule);
+    return array_values($result);
   }
 
   /**
@@ -131,12 +112,9 @@ class Audit implements EndpointInterface
         if ($this->gateway->statusAndScheduleCheck($task)) {
           // Retrieve data from the main task
           $mainTaskDn   = $task['fdtasksgranularmaster'][0];
-          $auditMainTask = $this->getAuditMainTask($mainTaskDn);
+          $auditMainTask = $this->getMainTaskConfig($mainTaskDn);
           // Repeatable logic
-          $repeatableFlag = $auditMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
-          if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
-            $repeatableSchedule = $auditMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
-          }
+          $repeatableSchedule = $this->gateway->extractRepeatableSchedule($auditMainTask);
           // Get the prefix from the main task configuration (default to 'fd_syslog' if not set)
           $prefix = $auditMainTask[0]['fdauditsyslogprefix'][0] ?? 'fd_syslog';
 
@@ -276,7 +254,7 @@ class Audit implements EndpointInterface
    * @return array
    * Note : Simply return attributes from the main related audit tasks.
    */
-  public function getAuditMainTask (string $mainTaskDn): array
+  protected function getMainTaskConfig (string $mainTaskDn): array
   {
     return $this->gateway->getLdapTasks(
       '(objectClass=fdAuditTasks)',

@@ -2,6 +2,7 @@
 
 class Reminder implements EndpointInterface
 {
+  use TaskProcessingTrait;
 
   private TaskGateway $gateway;
   private ReminderTokenUtils $reminderTokenUtils;
@@ -70,17 +71,12 @@ class Reminder implements EndpointInterface
         $remindersMainTaskName = $task['fdtasksgranularmaster'][0]; //dn
         // Get the main task DN
         $mainTaskDn = $remindersMainTaskName;
-        $remindersMainTask     = $this->getRemindersMainTask($remindersMainTaskName);
+        $remindersMainTask     = $this->getMainTaskConfig($remindersMainTaskName);
         // remove the count keys
         $this->gateway->unsetCountKeys($remindersMainTask);
 
         // Determine repeatable schedule only if main task marked repeatable
-        $repeatableSchedule = NULL;
-        $repeatableFlag     = $remindersMainTask[0]['fdtasksrepeatable'][0] ?? NULL;
-
-        if ($repeatableFlag !== NULL && strcasecmp($repeatableFlag, 'TRUE') === 0) {
-          $repeatableSchedule = $remindersMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
-        }
+        $repeatableSchedule = $this->gateway->extractRepeatableSchedule($remindersMainTask);
 
         // Retrieve email attribute for the monitored members requiring reminding.
         $mailOfTheReminded = $this->getEmailFromReminder($task['fdtasksgranulardn'][0]);
@@ -442,7 +438,7 @@ class Reminder implements EndpointInterface
    * @param string $mainTaskDn
    * @return array
    */
-  public function getRemindersMainTask (string $mainTaskDn): array
+  protected function getMainTaskConfig (string $mainTaskDn): array
   {
     // Retrieve data from the main Reminder task
     return $this->gateway->getLdapTasks('(objectClass=fdTasksReminder)', ['fdTasksReminderListOfRecipientsMails',
