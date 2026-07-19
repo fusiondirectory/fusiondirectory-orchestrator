@@ -344,6 +344,48 @@ class TaskGateway
   }
 
   /**
+   * Add maintask DN in LDAP user entry
+   *
+   * @param string $userDn DN of the user
+   * @param string $mainTaskDn DN of the maintask
+   */
+  public function trackTaskExecutionOnUser (string $userDn, string $mainTaskDn): void
+  {
+    error_log("trackTaskExecutionOnUser: START for $userDn, mainTask=$mainTaskDn");
+
+    // Check if objectClass fdTasksInfos is already on the user
+    $entry = @ldap_read($this->ds, $userDn, '(objectClass=fdTasksInfos)', ['objectClass']);
+    $hasObjectClass = $entry && ldap_count_entries($this->ds, $entry) > 0;
+    if (!$hasObjectClass) {
+      error_log("Orchestrator: fdTasksInfos NOT found on $userDn, ldap_error=" . ldap_error($this->ds) . ", adding objectClass");
+      try {
+        $addResult = @ldap_mod_add($this->ds, $userDn, ['objectClass' => ['fdTasksInfos']]);
+        if ($addResult) {
+          error_log("Orchestrator: objectClass add SUCCESS");
+        } else {
+          error_log("Orchestrator: objectClass add FAILED ldap_error=" . ldap_error($this->ds));
+        }
+      } catch (\ErrorException $e) {
+        error_log("Orchestrator: objectClass add EXCEPTION: " . $e->getMessage());
+      }
+    } else {
+      error_log("Orchestrator: fdTasksInfos already present on $userDn");
+    }
+
+    // Add maintask DN
+    try {
+      $addResult = @ldap_mod_add($this->ds, $userDn, ['fdTasksExecutedDNs' => [$mainTaskDn]]);
+      if ($addResult) {
+        error_log("Orchestrator: attribute add SUCCESS");
+      } else {
+        error_log("Orchestrator: attribute add FAILED ldap_error=" . ldap_error($this->ds));
+      }
+    } catch (\ErrorException $e) {
+      error_log("Orchestrator: attribute add EXCEPTION: " . $e->getMessage());
+    }
+  }
+
+  /**
    * @param string $objectType
    * @return array|string[]|void
    */

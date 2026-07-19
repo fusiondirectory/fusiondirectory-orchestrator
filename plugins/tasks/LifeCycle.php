@@ -244,6 +244,11 @@ class LifeCycle implements EndpointInterface
             $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
             // Here the user is refresh in order to activate methods based on supann Status changes.
             $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
+            // Track task execution on user only if changes are made
+            $userDn = $task['fdtasksgranulardn'][0] ?? NULL;
+            if ($userDn) {
+              $this->gateway->trackTaskExecutionOnUser($userDn, $mainTaskDn);
+            }
           } else if ($lifeCycleResult === "NO_MATCHING_RESOURCES") {
             $result[$task['dn']]['results'] = json_encode("No matching resources found for " . $task['fdtasksgranulardn'][0] . " - nothing to process");
             // The task is still considered "complete" as we checked what we needed to
@@ -270,6 +275,11 @@ class LifeCycle implements EndpointInterface
               $updateResult = $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
               // Here the user is refresh in order to activate methods based on supann Status changes.
               $result[$task['dn']]['refreshUser'] = $webservice->refreshUserInfo($task['fdtasksgranulardn'][0]);
+              // Track task execution on user only if changes are made
+              $userDn = $task['fdtasksgranulardn'][0] ?? NULL;
+              if ($userDn) {
+                $this->gateway->trackTaskExecutionOnUser($userDn, $mainTaskDn);
+              }
             } else {
               // In case the modification failed (e.g., post-state target missing), fail the subtask
               $result[$task['dn']]['results'] = json_encode("Error updating " . $task['fdtasksgranulardn'][0] . " - " . $lifeCycleResult);

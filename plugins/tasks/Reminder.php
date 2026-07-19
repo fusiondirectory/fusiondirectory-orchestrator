@@ -266,23 +266,12 @@ class Reminder implements EndpointInterface
   /**
    * @param string $dn
    * @return string
-   * Note : return the mail attribute from gosaMail objectclass.
+   * Note : return the mail attribute from the user DN using configurable mail type.
    */
   private function getEmailFromReminder (string $dn): string
   {
-    // in case the DN do not have an email set. - Return string FALSE.
-    $result = "FALSE";
-    $email  = $this->gateway->getLdapTasks('(objectClass=gosaMailAccount)', ['mail'],
-      '', $dn);
-    // Simply remove key "count"
-    $this->gateway->unsetCountKeys($email);
-
-    // Removing un-required keys (ldap return array with count and 0).
-    if (!empty($email[0]['mail'][0])) {
-      $result = $email[0]['mail'][0];
-    }
-
-    return $result;
+    $email = $this->mailUtils->resolveEmailFromDn($this->gateway, $dn, 'mail');
+    return empty($email) ? "FALSE" : $email;
   }
 
   /**
@@ -595,6 +584,11 @@ class Reminder implements EndpointInterface
         $result[$dn]['statusUpdate'] = $this->gateway->updateTaskStatus($dn, $cn, "2", $mainTaskDn, $repeatableSchedule);
         $result[$dn]['mailStatus']         = 'reminder was successfully sent';
         $result[$dn]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($mailTaskBackend[0]["dn"]);
+        // Track task execution on the user
+        $userDn = $details['uid'] ?? NULL;
+        if ($userDn && $mainTaskDn) {
+          $this->gateway->trackTaskExecutionOnUser($userDn, $mainTaskDn);
+        }
       }
     } else {
       foreach ($taskInfo['subTask'] as $subTask => $details) {

@@ -59,7 +59,7 @@ class Mail implements EndpointInterface
   {
     return $this->gateway->getLdapTasks(
       "(objectClass=fdTasks)",
-      ["fdTasksRepeatableSchedule", "fdTasksRepeatable"],
+      ["fdTasksRepeatableSchedule", "fdTasksRepeatable", "fdTasksEmailAttribute"],
       "",
       $mainTaskDn
     );
@@ -111,9 +111,23 @@ class Mail implements EndpointInterface
           $mailAttachments = array_values($mailInfos);
 
           $mailMacros = isset($mailContent["fdmailtemplatemacro"]) ? $mailContent["fdmailtemplatemacro"] : [];
+
+          // Get the mail from DN
+          $recipientDN = $task["fdtasksgranularmail"][0];
+          $mailType    = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";
+          $email       = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientDN, $mailType);
+
+          if (empty($email)) {
+            $result[$task["dn"]] = [
+              'statusUpdate' => $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], "ERROR"),
+              'Error' => "Could not resolve email for DN: $recipientDN"
+            ];
+            continue;
+          }
+
           $setFrom    = $task["fdtasksgranularmailfrom"][0];
           $setBCC     = $task["fdtasksgranularmailbcc"][0] ?? NULL;
-          $recipients = $task["fdtasksgranularmail"];
+          $recipients = [$email];
           $body       = $this->mailUtils->replaceMacros($this->gateway, $recipients, $mailContent["fdmailtemplatebody"][0], $mailMacros);
           $signature  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
           $subject    = $mailContent["fdmailtemplatesubject"][0];
@@ -129,6 +143,11 @@ class Mail implements EndpointInterface
           $mailSentResult = $this->mailUtils->sendMail($setFrom, $setBCC, $recipients, $body, $signature, $subject, $receipt, $attachments);
           $result[$task["dn"]] = $this->updateResult($mailSentResult, $task, $fdTasksConf, $mainTaskDn, $repeatableSchedule);
 
+          // Track task execution on the user
+          if ($mailSentResult[0] == "SUCCESS" && $recipientDN) {
+            $this->gateway->trackTaskExecutionOnUser($recipientDN, $mainTaskDn);
+          }
+
           // Verification anti-spam max mails to be sent and quit loop if matched
           $maxMailsIncrement += 1; //Only one as recipients in mail object is always one email.
           if ($maxMailsIncrement == $maxMailsConfig) {
@@ -136,6 +155,10 @@ class Mail implements EndpointInterface
           }
         }
       }
+    } else {
+      $msg = "Anti-spam protection active, skipping mail tasks. Last exec=" . ($fdTasksConf[0]["fdtasksconflastexectime"][0] ?? "never") . ", interval=" . ($fdTasksConf[0]["fdtasksconfintervalemails"][0] ?? "?") . "min";
+      error_log("Mail::processMailTasks: $msg");
+      $result['antiSpam'] = $msg;
     }
 
     return $result;
