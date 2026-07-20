@@ -426,7 +426,6 @@ class Notifications implements EndpointInterface
     $repeatableSchedule = $subTask['repeatableSchedule'] ?? NULL;
 
     // Removed runtime revalidation of repeatable flag/schedule for performance & simplicity per request
-
     if ($serverResults[0] == "SUCCESS") {
       foreach ($subTask['subTask'] as $subTaskCn => $details) {
         $cn = $subTaskCn;
@@ -434,6 +433,11 @@ class Notifications implements EndpointInterface
         $update = $this->updateResult($dn, $cn, "2", $mainTaskDn, $repeatableSchedule, 'Notification was successfully sent');
         $result = array_merge($result, $update);
         $result[$dn]['updateLastMailExec'] = $this->gateway->updateLastMailExecTime($mailTaskBackend[0]["dn"]);
+        // Track task execution on user
+        $userDn = $details['uid'] ?? NULL;
+        if ($userDn && $mainTaskDn) {
+          $this->gateway->trackTaskExecutionOnUser($userDn, $mainTaskDn);
+        }
       }
     } else {
       foreach ($subTask['subTask'] as $subTaskCn => $details) {

@@ -65,6 +65,79 @@ class MailUtils
     return $fdTasksConf[0]["fdtasksconfmaxemails"][0] ?? 50;
   }
 
+  /**
+   * Resolve email from DN and clean the mail attribute if require
+   * Fallback on mail attribute if the mailType doesn't exist
+   *
+   * @param TaskGateway $gateway TaskGateway object
+   * @param string $dn user DN
+   * @param string $mailType mail attribute that we will get from the user
+   * @return string return email or empty string
+   */
+  public function resolveEmailFromDn (TaskGateway $gateway, string $dn, string $mailType): string
+  {
+    $objectClass = $this->getMailObjectForType($mailType);
+
+    $email = $gateway->getLdapTasks(
+      "(objectClass=$objectClass)",
+      [$mailType],
+      "",
+      $dn
+    );
+    $gateway->unsetCountKeys($email);
+
+    if (!empty($email[0][strtolower($mailType)][0])) {
+      return $this->cleanSupannEmail($email[0][strtolower($mailType)][0], $mailType);
+    }
+
+    // Fallback on 'mail' if required attribute is empty
+    if ($mailType !== 'mail') {
+      $email = $gateway->getLdapTasks(
+        "(objectClass=gosaMailAccount)",
+        ["mail"],
+        "",
+        $dn
+      );
+      $gateway->unsetCountKeys($email);
+      if (!empty($email[0]['mail'][0])) {
+        return $email[0]['mail'][0];
+      }
+    }
+
+    return '';
+  }
+
+  /**
+   * Clean the "supann" emails by removing the prefixes
+   *
+   * @param string $email email of the user
+   * @param string $mailType required mailType
+   * @return string cleaned email
+   */
+  private function cleanSupannEmail (string $email, string $mailType): string
+  {
+    if (in_array($mailType, ['supannAutreMail', 'supannMailPerso', 'supannMailPrive'])) {
+      $cleanMail = preg_replace('/.+?(?=supann)/', '', $email);
+      return preg_replace('/\{.*?\}/', '', $cleanMail);
+    }
+    return $email;
+  }
+
+  /**
+   * Return objectClass based on the mailType
+   *
+   * @param string $mailType required mailType
+   * @return string objectclass related to mailType
+   */
+  private function getMailObjectForType (string $mailType): string
+  {
+    return match ($mailType) {
+      'mail', 'gosaMailAlternateAddress', 'gosaMailForwardingAddress' => 'gosaMailAccount',
+      'supannAutreMail', 'supannMailPerso', 'supannMailPrive' => 'supannPerson',
+      default => 'gosaMailAccount',
+    };
+  }
+
   public function replaceMacros (TaskGateway $gateway, array|string $recipients, string $body, array $mailMacros): string
   {
     // Prepare hardcodedMacros array
