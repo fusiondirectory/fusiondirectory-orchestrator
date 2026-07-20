@@ -163,16 +163,22 @@ class Extractor implements EndpointInterface
                 '(objectClass=fdExtractorTasks)',
                 [
                   'fdExtractorEmailSender',
-                  'fdExtractorListOfRecipientsMails'
+                  'fdExtractorRecipientsMembers'
                 ],
                 '',
                 $mainTaskDn
             );
             $sender = $mainTaskDetails[0]['fdextractoremailsender'][0] ?? '';
-            $recipients = $mainTaskDetails[0]['fdextractorlistofrecipientsmails'] ?? [];
-            $this->gateway->unsetCountKeys($recipients);
+            $mailType = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";
+            $recipientsDNs = $mainTaskDetails[0]['fdextractorrecipientsmembers'] ?? [];
+            $this->gateway->unsetCountKeys($recipientsDNs);
 
-            $finalMessage = $this->getFinalMessage($filename, $task, $recipients, $sender, $errors, $mainTaskDn, $repeatableSchedule);
+            $recipientsEmails = [];
+            foreach ($recipientsDNs as $recipientsDN) {
+                 $recipientsEmails[] = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientsDN, $mailType);
+            }
+
+            $finalMessage = $this->getFinalMessage($filename, $task, $recipientsEmails, $sender, $errors, $mainTaskDn, $repeatableSchedule);
             $result[$task['dn']]['result'] = $finalMessage;
             // --- EMAIL LOGIC END ---
         } else {
