@@ -267,7 +267,7 @@ class Notifications implements EndpointInterface
   public function getNotificationsMainTask (string $mainTaskDn): array
   {
     // Retrieve data from the main task
-    return $this->gateway->getLdapTasks('(objectClass=fdTasksNotifications)', ['fdTasksNotificationsListOfRecipientsMails',
+    return $this->gateway->getLdapTasks('(objectClass=fdTasksNotifications)', ['fdTasksNotificationsRecipientsMembers',
       'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksNotificationsEmailSender',
       'fdTasksNotificationsSubState', 'fdTasksNotificationsState', 'fdTasksNotificationsResource',
       'fdTasksRepeatableSchedule', 'fdTasksRepeatable', 'fdTasksNotificationsPostResource',
@@ -282,8 +282,15 @@ class Notifications implements EndpointInterface
   private function generateMainTaskMailTemplate (array $mainTask): array
   {
     // Generate email configuration for each result of subtasks having the same main task.w
-    $recipients = $mainTask[0]["fdtasksnotificationslistofrecipientsmails"];
-    $this->gateway->unsetCountKeys($recipients);
+    $recipientsDNs = $mainTask[0]["fdtasksnotificationsrecipientsmembers"];
+    $this->gateway->unsetCountKeys($recipientsDNs);
+    $mailType = $mainTask[0]["fdtasksemailattribute"][0] ?? "mail";
+
+    $recipientsEmails = [];
+    foreach ($recipientsDNs as $recipientsDN) {
+        $recipientsEmails[] = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientsDN, $mailType);
+    }
+
     $sender           = $mainTask[0]["fdtasksnotificationsemailsender"][0];
     $mailTemplateName = $mainTask[0]['fdtasksnotificationsmailtemplate'][0];
 
@@ -297,8 +304,8 @@ class Notifications implements EndpointInterface
     // Set the notification array with all required variable for all sub-tasks of same main task origin.
     $mailMacros             = isset($mailContent["fdmailtemplatemacro"]) ? $mailContent["fdmailtemplatemacro"] : [];
     $mailForm['setFrom']    = $sender;
-    $mailForm['recipients'] = $recipients;
-    $mailForm['body']       = $this->mailUtils->replaceMacros($this->gateway, $recipients, $mailContent["fdmailtemplatebody"][0], $mailMacros);
+    $mailForm['recipients'] = $recipientsEmails;
+    $mailForm['body']       = $this->mailUtils->replaceMacros($this->gateway, $recipientsEmails, $mailContent["fdmailtemplatebody"][0], $mailMacros);
     $mailForm['signature']  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
     $mailForm['subject']    = $mailContent["fdmailtemplatesubject"][0];
     $mailForm['receipt']    = $mailContent["fdmailtemplatereadreceipt"][0];
