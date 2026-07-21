@@ -159,7 +159,7 @@ class TaskGateway
 
             // Case where the tasks were once run, verification of the cyclic schedule and last activation.
           } else if (!empty($task['fdtasksrepeatableschedule'][0])) {
-            $lastActivation = new DateTime($task['fdtaskslastactivation'][0]);
+            $lastActivation = \FusionDirectory\Ldap\GeneralizedTime::fromString($task['fdtaskslastactivation'][0]);
 
             // Efficient way to verify timelapse
             $interval = $now->diff($lastActivation);
