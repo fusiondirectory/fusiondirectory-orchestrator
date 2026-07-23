@@ -157,36 +157,36 @@ class Extractor implements EndpointInterface
         $success = $this->extractToFileBatch($allUserAttributes, $filename, 'csv');
 
         if ($success) {
-            // --- EMAIL LOGIC START ---
-            // Retrieve sender and recipients from main task
-            $mainTaskDetails = $this->gateway->getLdapTasks(
-                '(objectClass=fdExtractorTasks)',
-                [
-                  'fdExtractorEmailSender',
-                  'fdExtractorRecipientsMembers'
-                ],
-                '',
-                $mainTaskDn
-            );
-            $sender = $mainTaskDetails[0]['fdextractoremailsender'][0] ?? '';
-            $mailType = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";
-            $recipientsDNs = $mainTaskDetails[0]['fdextractorrecipientsmembers'] ?? [];
-            $this->gateway->unsetCountKeys($recipientsDNs);
+          // --- EMAIL LOGIC START ---
+          // Retrieve sender and recipients from main task
+          $mainTaskDetails = $this->gateway->getLdapTasks(
+            '(objectClass=fdExtractorTasks)',
+            [
+              'fdExtractorEmailSender',
+              'fdExtractorRecipientsMembers'
+            ],
+            '',
+            $mainTaskDn
+          );
+          $sender        = $mainTaskDetails[0]['fdextractoremailsender'][0] ?? '';
+          $mailType      = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";
+          $recipientsDNs = $mainTaskDetails[0]['fdextractorrecipientsmembers'] ?? [];
+          $this->gateway->unsetCountKeys($recipientsDNs);
 
-            $recipientsEmails = [];
-            foreach ($recipientsDNs as $recipientsDN) {
-                 $recipientsEmails[] = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientsDN, $mailType);
-            }
+          $recipientsEmails = [];
+          foreach ($recipientsDNs as $recipientsDN) {
+            $recipientsEmails[] = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientsDN, $mailType);
+          }
 
-            $finalMessage = $this->getFinalMessage($filename, $task, $recipientsEmails, $sender, $errors, $mainTaskDn, $repeatableSchedule);
-            $result[$task['dn']]['result'] = $finalMessage;
-            // --- EMAIL LOGIC END ---
+          $finalMessage = $this->getFinalMessage($filename, $task, $recipientsEmails, $sender, $errors, $mainTaskDn, $repeatableSchedule);
+          $result[$task['dn']]['result'] = $finalMessage;
+          // --- EMAIL LOGIC END ---
         } else {
-            $finalMessage = "Failed to write batch data to $filename.";
-            // Update the status to error ('1')
-            $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
-            $result[$task['dn']]['result'] = $finalMessage;
-            continue;
+          $finalMessage = "Failed to write batch data to $filename.";
+          // Update the status to error ('1')
+          $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage);
+          $result[$task['dn']]['result'] = $finalMessage;
+          continue;
         }
 
       } catch (Exception $e) {
