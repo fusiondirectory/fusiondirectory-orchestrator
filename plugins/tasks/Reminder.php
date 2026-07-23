@@ -434,18 +434,18 @@ class Reminder implements EndpointInterface
   public function getRemindersMainTask (string $mainTaskDn): array
   {
     // Retrieve data from the main Reminder task
-    return $this->gateway->getLdapTasks('(objectClass=fdTasksReminder)', ['fdTasksReminderListOfRecipientsMails',
+    return $this->gateway->getLdapTasks('(objectClass=fdTasksReminder)', ['fdTasksReminderRecipientsMembers',
       'fdTasksReminderResource', 'fdTasksReminderState', 'fdTasksReminderPosix', 'fdTasksReminderMailTemplate',
-      'fdTasksReminderSupannNewEndDate', 'fdTasksReminderRecipientsMembers', 'fdTasksReminderEmailSender',
-      'fdTasksReminderAccountProlongation', 'fdTasksReminderMembers', 'fdTasksReminderNextResource',
+      'fdTasksReminderSupannNewEndDate', 'fdTasksReminderEmailSender', 'fdTasksReminderAccountProlongation',
+      'fdTasksReminderMembers', 'fdTasksReminderNextResource',
       'fdTasksReminderNextState', 'fdTasksReminderNextSubState', 'fdTasksReminderSubState', 'fdTasksReminderFirstCall', 'fdTasksReminderSecondCall',
       'fdTasksRepeatableSchedule', 'fdTasksRepeatable'], '', $mainTaskDn);
   }
 
   /**
-   * @param array $mainTask
-   * @param string $remindedEmail
-   * @return array
+   * @param array $mainTask main task array
+   * @param string $remindedEmail email of the monitored member
+   * @return array mailform data
    * Note : Simply generate the email to be sent as reminder.
    * Note 2 : The boolean is created to generate the token and is only sent to reminded. Not recipients.
    */
@@ -463,9 +463,18 @@ class Reminder implements EndpointInterface
     $mailContent = $mailInfos[0];
 
     // If no forward-to mail recipients is set, simply send the reminder to the monitored members.
-    if (!empty($mainTask[0]["fdtasksreminderlistofrecipientsmails"])) {
-      $recipients = array_merge($mainTask[0]["fdtasksreminderlistofrecipientsmails"], [$remindedEmail]);
-      $this->gateway->unsetCountKeys($recipients);
+    if (!empty($mainTask[0]["fdtasksreminderrecipientsmembers"])) {
+      $recipientsDNs = $mainTask[0]["fdtasksreminderrecipientsmembers"];
+      $this->gateway->unsetCountKeys($recipientsDNs);
+
+      $mailType = $mainTask[0]["fdtasksemailattribute"][0] ?? "mail";
+      $recipientsEmails = [];
+      foreach ($recipientsDNs as $recipientsDN) {
+        $recipientsEmails[] = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientsDN, $mailType);
+      }
+
+      // Merge recipientsEmails and remindedEmail
+      $recipients = array_merge($recipientsEmails, [$remindedEmail]);
 
       // There is no reason to send an email twice to the same person. Render the array unique.
       $recipients = array_unique($recipients);
