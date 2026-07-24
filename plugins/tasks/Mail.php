@@ -113,7 +113,7 @@ class Mail implements EndpointInterface
           $mailMacros = isset($mailContent["fdmailtemplatemacro"]) ? $mailContent["fdmailtemplatemacro"] : [];
 
           // Get the mail from DN
-          $recipientDN = $task["fdtasksgranularmail"][0];
+          $recipientDN = $task["fdsubtaskmemberdn"][0];
           $mailType    = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";
           $email       = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientDN, $mailType);
 
