@@ -58,14 +58,12 @@ class Notifications implements EndpointInterface
    */
   public function processNotifications (array $notificationsSubTasks): array
   {
-    $result = [];
-    // It will contain all required notifications to be sent per main task.
     $notifications = [];
+    $result = [];
 
     foreach ($notificationsSubTasks as $task) {
       // If the tasks must be treated - status and scheduled - process the sub-tasks
       if ($this->gateway->statusAndScheduleCheck($task)) {
-
         // Retrieve data from the main task
         $mainTaskDn = $task['fdtasksgranularmaster'][0];
 
@@ -81,7 +79,16 @@ class Notifications implements EndpointInterface
         }
 
         // Generate the mail form with all mail controller requirements
-        $mailTemplateForm = $this->generateMainTaskMailTemplate($notificationsMainTask);
+        $mailTemplateForm = $this->generateMainTaskMailTemplate($notificationsMainTask, $task['fdtasksgranulardn']);
+
+        // Error in case $mailTemplateForm["recipients"][0] is empty
+        if (empty($mailTemplateForm["recipients"])) {
+          $result[$task["dn"]] = [
+            'statusUpdate' => $this->gateway->updateTaskStatus($task["dn"], $task["cn"][0], "ERROR"),
+            'Error' => "Could not resolve emails for recipients"
+          ];
+          continue;
+        }
 
         // Simply retrieve the list of audited attributes
         $auditAttributes = $this->decodeAuditAttributes($task);
@@ -180,9 +187,7 @@ class Notifications implements EndpointInterface
           $result[$task['dn']]['Message'] = 'No matching audited attributes with monitored attributes, nothing to process!';
         }
       }
-    }
 
-    if (!empty($notifications)) {
       $result[] = $this->sendNotificationsMail($notifications);
     }
 
@@ -275,20 +280,24 @@ class Notifications implements EndpointInterface
   }
 
   /**
-   * @param array $mainTask
+   * @param array $mainTask maintask informations
+   * @param array $fdTasksGranularDN Subtask granular dn
    * @return array
    * Note : Simply generate the email to be sent as notification.
    */
-  private function generateMainTaskMailTemplate (array $mainTask): array
+  private function generateMainTaskMailTemplate (array $mainTask, array $fdTasksGranularDN): array
   {
     // Generate email configuration for each result of subtasks having the same main task.w
-    $recipientsDNs = $mainTask[0]["fdtasksnotificationsrecipientsmembers"];
+    $recipientsDNs = $fdTasksGranularDN;
     $this->gateway->unsetCountKeys($recipientsDNs);
     $mailType = $mainTask[0]["fdtasksemailattribute"][0] ?? "mail";
 
     $recipientsEmails = [];
     foreach ($recipientsDNs as $recipientsDN) {
-        $recipientsEmails[] = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientsDN, $mailType);
+      $email = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientsDN, $mailType);
+      if (! empty($email)) {
+        $recipientsEmails[] = $email;
+      }
     }
 
     $sender           = $mainTask[0]["fdtasksnotificationsemailsender"][0];
@@ -384,6 +393,7 @@ class Notifications implements EndpointInterface
   protected function sendNotificationsMail (array $notifications): array
   {
     $result = [];
+
     // Re-use of the same mail processing template logic
     $fdTasksConf    = $this->mailUtils->getMailObjectConfiguration($this->gateway);
     $maxMailsConfig = $this->mailUtils->returnMaximumMailToBeSend($fdTasksConf);
@@ -397,6 +407,12 @@ class Notifications implements EndpointInterface
     foreach ($notifications as $data) {
       $numberOfRecipients = count($data['mailForm']['recipients']);
 
+      // Verification anti-spam max mails to be sent and quit loop if matched.
+      $maxMailsIncrement += $numberOfRecipients;
+      if ($maxMailsIncrement == $maxMailsConfig) {
+        break;
+      }
+
       $mailSentResult = $this->mailUtils->sendMail($data['mailForm']['setFrom'],
           NULL,
           $data['mailForm']['recipients'],
@@ -406,12 +422,6 @@ class Notifications implements EndpointInterface
           $data['mailForm']['receipt'],
           NULL);
       $result[]       = $this->processMailResponseAndUpdateTasks($mailSentResult, $data, $fdTasksConf);
-
-      // Verification anti-spam max mails to be sent and quit loop if matched.
-      $maxMailsIncrement += $numberOfRecipients;
-      if ($maxMailsIncrement == $maxMailsConfig) {
-        break;
-      }
     }
 
     return $result;
