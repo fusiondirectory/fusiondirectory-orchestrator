@@ -294,10 +294,10 @@ class Notifications implements EndpointInterface
 
     $recipientsEmails = [];
     foreach ($recipientsDNs as $recipientsDN) {
-        $email = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientsDN, $mailType);
-        if (! empty($email)) {
-          $recipientsEmails[] = $email;
-        }
+      $email = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientsDN, $mailType);
+      if (! empty($email)) {
+        $recipientsEmails[] = $email;
+      }
     }
 
     $sender           = $mainTask[0]["fdtasksnotificationsemailsender"][0];
