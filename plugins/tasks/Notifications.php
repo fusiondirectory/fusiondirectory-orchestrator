@@ -373,7 +373,14 @@ class Notifications implements EndpointInterface
             $attrs[] = $attr;
           }
         }
-        $uidAttrsText[] = "\n$userDN attrs=[" . implode(', ', $attrs) . "]";
+        if (isset($attrs) {
+          // Keep only uniq attrs
+          $uniqAttrs = array_unique($attrs);
+          $uidAttrsText[] = "\n$userDN attrs=[" . implode(', ', $uniqAttrs) . "]";
+        } else {
+          // If empty then just write []
+          $uidAttrsText[] = "\n$userDN attrs=[]";
+        }
       }
     }
 
