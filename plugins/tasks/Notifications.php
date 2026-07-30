@@ -91,7 +91,7 @@ class Notifications implements EndpointInterface
         }
 
         // Simply retrieve the list of audited attributes
-        $auditAttributes = $this->decodeAuditAttributes($task);
+        $auditAttributes = $this->retrieveAuditedAttributes($task);
 
         // Recovering monitored attributes list from the defined notification task.
         $monitoredAttrs = $notificationsMainTask[0]['fdtasksnotificationsattributes'];
@@ -110,10 +110,12 @@ class Notifications implements EndpointInterface
           // Adds it to the mating attrs for further notification process.
           $matchingAttrs[] = 'supannRessourceEtat';
         }
-
         if (!empty($matchingAttrs)) {
+          // Access $auditAttributes (userDN => auditAttribute) from $notifications
+          $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['auditAttributes'] = $auditAttributes;
+
           // Fill an array with UID of audited user and related matching attributes
-          $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['attrs'] = $matchingAttrs;
+          $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['matchingAttrs'] = $matchingAttrs;
 
           // Require to be set for updating the status of the task later on.
           $notifications[$notificationsMainTaskName]['subTask'][$task['cn'][0]]['dn']  = $task['dn'];
@@ -188,7 +190,9 @@ class Notifications implements EndpointInterface
         }
       }
 
-      $result[] = $this->sendNotificationsMail($notifications);
+      if (!empty($notifications)) {
+        $result[] = $this->sendNotificationsMail($notifications);
+      }
     }
 
     return $result;
@@ -226,25 +230,6 @@ class Notifications implements EndpointInterface
   }
 
   /**
-   * Decode audit attributes from the task.
-   *
-   * @param array $task
-   * @return array
-   */
-  private function decodeAuditAttributes (array $task): array
-  {
-    $auditAttributesJson = $this->retrieveAuditedAttributes($task);
-    $auditAttributes     = [];
-
-    // Decoding the json_format into an associative array, implode allows to put all values of array together.(forming the json correctly).
-    foreach ($auditAttributesJson as $auditAttribute) {
-      $auditAttributes[] = json_decode(implode($auditAttribute), TRUE);
-    }
-
-    return $auditAttributes;
-  }
-
-  /**
    * @param array $supannResource
    * @param array $auditedAttrs
    * @return bool
@@ -262,7 +247,12 @@ class Notifications implements EndpointInterface
     // Get all the values only of a multidimensional array.
     $auditedValues = $this->coreUtils->getArrayValuesRecursive($auditedAttrs);
 
-    return in_array($monitoredSupannState, $auditedValues);
+    foreach ($auditedValues as $value) {
+      if (strpos($value, $monitoredSupannState)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**
@@ -331,25 +321,34 @@ class Notifications implements EndpointInterface
   {
     $auditAttributes  = [];
     $auditInformation = [];
-
     // Retrieve audit data attributes from the list of references set in the sub-task
     if (!empty($notificationTask['fdtasksgranularref'])) {
       // Remove count keys (count is shared by ldap).
       $this->gateway->unsetCountKeys($notificationTask);
 
-      foreach ($notificationTask['fdtasksgranularref'] as $auditDN) {
-        $auditInformation[] = $this->gateway->getLdapTasks('(&(objectClass=fdAuditEvent))',
-                                                           ['fdAuditAttributes'], '', $auditDN);
+      foreach ($notificationTask['fdtasksgranularref'] as $ref) {
+        $userDN  = explode('|', $ref)[0];
+        $auditDN = explode('|', $ref)[1];
+        $auditInformation[$userDN][] = $this->gateway->getLdapTasks('(&(objectClass=fdAuditEvent))',
+          ['fdAuditAttributes'], '', $auditDN);
       }
 
       // Again remove key: count retrieved from LDAP.
       $this->gateway->unsetCountKeys($auditInformation);
       // It is possible that an audit does not contain any attributes changes, condition is required.
-      foreach ($auditInformation as $attr) {
-        if (!empty($attr[0]['fdauditattributes'])) {
-          // Clear and compact received results from above ldap search
-          $auditAttributes[] = $attr[0]['fdauditattributes'];
+      foreach ($auditInformation as $userDN => $attrArray) {
+        foreach($attrArray as $attr) {
+          if (!empty($attr[0]['fdauditattributes'])) {
+            // Clear and compact received results from above ldap search
+            if(isset($auditAttributes[$userDN][0])) {
+              $auditAttributes[$userDN] = array_merge($auditAttributes[$userDN], $attr[0]['fdauditattributes']);
+            } else {
+              $auditAttributes[$userDN] = $attr[0]['fdauditattributes'];
+            }
+          }
         }
+        // Keep only different values
+        $auditAttributes[$userDN] = array_unique($auditAttributes[$userDN]);
       }
     }
 
@@ -368,19 +367,20 @@ class Notifications implements EndpointInterface
     $uidAttrsText = [];
 
     foreach ($notifications[$notificationsMainTaskName]['subTask'] as $value) {
-      $uidName = $value['uid'];
-      $attrs   = [];
-
-      foreach ($value['attrs'] as $attr) {
-        $attrs[] = $attr;
+      foreach ($value['auditAttributes'] as $userDN => $auditAttributes) {
+        foreach ($value['matchingAttrs'] as $attr) {
+          if (in_array($attr, $auditAttributes)) {
+            $attrs[] = $attr;
+          }
+        }
+        $uidAttrsText[] = "\n$userDN attrs=[" . implode(', ', $attrs) . "]";
       }
-      $uidAttrsText[] = "\n$uidName attrs=[" . implode(', ', $attrs) . "]";
     }
 
     // Make the array unique, avoiding uid and same attribute duplication.
     $uidAttrsText = array_unique($uidAttrsText);
     // Add uid names and related attrs to mailForm['body']
-    $notifications[$notificationsMainTaskName]['mailForm']['body'] .= PHP_EOL . implode(" ", $uidAttrsText);
+    $notifications[$notificationsMainTaskName]['mailForm']['body'] .= PHP_EOL . implode(PHP_EOL, $uidAttrsText);
 
     return $notifications;
   }
