@@ -337,10 +337,10 @@ class Notifications implements EndpointInterface
       $this->gateway->unsetCountKeys($auditInformation);
       // It is possible that an audit does not contain any attributes changes, condition is required.
       foreach ($auditInformation as $userDN => $attrArray) {
-        foreach($attrArray as $attr) {
+        foreach ($attrArray as $attr) {
           if (!empty($attr[0]['fdauditattributes'])) {
             // Clear and compact received results from above ldap search
-            if(isset($auditAttributes[$userDN][0])) {
+            if (isset($auditAttributes[$userDN][0])) {
               $auditAttributes[$userDN] = array_merge($auditAttributes[$userDN], $attr[0]['fdauditattributes']);
             } else {
               $auditAttributes[$userDN] = $attr[0]['fdauditattributes'];
