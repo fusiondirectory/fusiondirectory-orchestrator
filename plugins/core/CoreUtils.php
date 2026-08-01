@@ -46,8 +46,8 @@ class CoreUtils
   /**
    * Find matching keys between 2 lists.
    *
-   * @param array|null $elements
-   * @param array $keys
+   * @param array|null $elements (1 dimension array)
+   * @param array $keys (1 dimension array)
    * @return array
    */
   public function findMatchingKeys (?array $elements, array $keys): array
