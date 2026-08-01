@@ -103,7 +103,10 @@ class Notifications implements EndpointInterface
         $this->gateway->unsetCountKeys($monitoredSupannResource);
 
         // Find matching attributes between audited and monitored attributes
-        $matchingAttrs = $this->coreUtils->findMatchingKeys($auditAttributes, $monitoredAttrs);
+        $matchingAttrs = $this->coreUtils->findMatchingKeys(
+          $this->coreUtils->getArrayValuesRecursive($auditAttributes),
+          $monitoredAttrs
+        );
 
         // Verify Supann resource state if applicable
         if ($this->shouldVerifySupannResource($monitoredSupannResource, $auditAttributes)) {
