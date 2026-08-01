@@ -102,8 +102,8 @@ class Notifications implements EndpointInterface
         $this->gateway->unsetCountKeys($monitoredAttrs);
         $this->gateway->unsetCountKeys($monitoredSupannResource);
 
-        // Find matching attributes between audited and monitored attributes
-        $matchingAttrs = $this->coreUtils->findMatchingKeys(
+        // Find intersection of values between auditAttributes values and monitoredAttrs
+        $matchingAttrs = array_intersect(
           $this->coreUtils->getArrayValuesRecursive($auditAttributes),
           $monitoredAttrs
         );

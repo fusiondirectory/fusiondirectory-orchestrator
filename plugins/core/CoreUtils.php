@@ -44,30 +44,6 @@ class CoreUtils
   }
 
   /**
-   * Find matching keys between 2 lists.
-   *
-   * @param array|null $elements (1 dimension array)
-   * @param array $keys (1 dimension array)
-   * @return array
-   */
-  public function findMatchingKeys (?array $elements, array $keys): array
-  {
-    $matching = [];
-
-    if (!empty($elements)) {
-      foreach ($elements as $element) {
-        foreach ($keys as $key) {
-          if (!empty($element) && array_key_exists($key, $element)) {
-            $matching[] = $key;
-          }
-        }
-      }
-    }
-
-    return $matching;
-  }
-
-  /**
    * @param array $array
    * @return array
    * Note : simply return all values of a multi-dimensional array.
