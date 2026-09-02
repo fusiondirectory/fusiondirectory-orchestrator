@@ -4,11 +4,13 @@
 class Mail implements EndpointInterface
 {
   private TaskGateway $gateway;
+  private CoreUtils $coreUtils;
   private MailUtils $mailUtils;
 
   function __construct (TaskGateway $gateway)
   {
-    $this->gateway = $gateway;
+    $this->gateway   = $gateway;
+    $this->coreUtils = new CoreUtils();
     $this->mailUtils = new MailUtils();
   }
 

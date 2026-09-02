@@ -92,10 +92,9 @@ class CoreUtils
    * @param array $maintask
    * @param string $maintaskMemberValue
    */
-  public function generateSubtaskFromDN (TaskGateway $gateway, array $maintask,
-      string $maintaskMembervalue = 'fdtasksgranulardn') {
+  public function generateSubtaskFromDN (TaskGateway $gateway, array $maintask, string $maintaskMemberValue = 'fdtasksgranulardn') {
     $maintaskCN       = $maintask['cn'][0];
-    $maintaskMemberDN = $maintask[$maintaskMembervalue][0];
+    $maintaskMemberDN = $maintask[$maintaskMemberValue][0];
 
     // TODO: use our LDAP library
     $memberSearch = $gateway->getLdapTasks(
@@ -147,14 +146,14 @@ class CoreUtils
         'fdTasksGranularType'         => $maintask['fdtasksgranulartype'][0],
         'fdTasksGranularSchedule'     => $maintask['fdtasksgranularschedule'][0],
         'fdTasksGranularCreationdate' => $maintask['fdtasksgranularcreationdate'][0],
-        $maintaskMembervalue          => $memberDN
+        $maintaskMemberValue          => $memberDN
       ];
 
       // TODO: Use our LDAP library
       try {
         $result = ldap_add($gateway->ds, $newSubtaskDN, $newSubtaskAttrs);
         if (!$result) {
-          echo "Error when creating subtask: " . $newSubTaskDN;
+          echo "Error when creating subtask: " . $newSubtaskDN;
         }
       } catch (Exception $e) {
         echo "Error when doing ldap_add for " . $newSubtaskDN . ": " . print_r($e, TRUE);

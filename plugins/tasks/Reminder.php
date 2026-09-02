@@ -4,14 +4,16 @@ class Reminder implements EndpointInterface
 {
 
   private TaskGateway $gateway;
+  private CoreUtils $coreUtils;
   private ReminderTokenUtils $reminderTokenUtils;
   private MailUtils $mailUtils;
 
   public function __construct (TaskGateway $gateway)
   {
-    $this->gateway = $gateway;
+    $this->gateway            = $gateway;
+    $this->coreUtils          = new CoreUtils();
     $this->reminderTokenUtils = new ReminderTokenUtils();
-    $this->mailUtils = new MailUtils();
+    $this->mailUtils          = new MailUtils();
   }
 
   /**

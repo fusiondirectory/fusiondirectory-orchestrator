@@ -3,12 +3,15 @@
 class AutomaticGroups implements EndpointInterface
 {
   private TaskGateway $gateway;
+  private CoreUtils $coreUtils;
+
   public $fdConfiguration;
   public $groupBranch;
 
   public function __construct (TaskGateway $gateway)
   {
-    $this->gateway = $gateway;
+    $this->gateway   = $gateway;
+    $this->coreUtils = new CoreUtils();
   }
 
   /**
