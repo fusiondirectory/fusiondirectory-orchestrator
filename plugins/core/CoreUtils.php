@@ -92,7 +92,9 @@ class CoreUtils
    * @param array $maintask
    * @param string $maintaskMemberValue
    */
-  public function generateSubtaskFromDN (TaskGateway $gateway, array $maintask, string $maintaskMemberValue = 'fdtasksgranulardn') {
+  public function generateSubtaskFromDN (TaskGateway $gateway, array $maintask,
+    string $maintaskMemberValue = 'fdtasksgranulardn') : void
+  {
     $maintaskCN       = $maintask['cn'][0];
     $maintaskMemberDN = $maintask[$maintaskMemberValue][0];
 

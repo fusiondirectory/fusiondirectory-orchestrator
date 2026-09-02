@@ -3,12 +3,12 @@
 class Audit implements EndpointInterface
 {
   private TaskGateway $gateway;
-  private CoreUtils $utils;
+  private CoreUtils $coreUtils;
 
   public function __construct (TaskGateway $gateway)
   {
-    $this->gateway = $gateway;
-    $this->utils = new CoreUtils();
+    $this->gateway   = $gateway;
+    $this->coreUtils = new CoreUtils();
   }
 
   /**
@@ -57,7 +57,7 @@ class Audit implements EndpointInterface
     }
 
     // Recursive function to filter out empty arrays at any depth
-    $nonEmptyResults = $this->utils->recursiveArrayFilter($result);
+    $nonEmptyResults = $this->coreUtils->recursiveArrayFilter($result);
 
     if (!empty($nonEmptyResults)) {
       return $nonEmptyResults;
@@ -120,7 +120,7 @@ class Audit implements EndpointInterface
     $result = [];
 
     $path = '/var/log/fusiondirectory/';
-    $this->utils->ensureDirectoryExists($path);
+    $this->coreUtils->ensureDirectoryExists($path);
 
     foreach ($syslogAuditSubTasks as $task) {
       try {

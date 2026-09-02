@@ -4,7 +4,7 @@ class Extractor implements EndpointInterface
 {
   private TaskGateway $gateway;
   // @phpstan-ignore property.onlyWritten
-  private CoreUtils $utils;
+  private CoreUtils $coreUtils;
   private MailUtils $mailUtils;
 
   public function __construct (TaskGateway $gateway)
