@@ -79,6 +79,9 @@ class AutomaticGroups implements EndpointInterface
           continue;
         }
 
+        // Try to generate subtasks in case $task['fdtaskgranulardn'][0] is not a "user" DN
+        $this->coreUtils->generateSubtaskFromDN($this->gateway, $task);
+
         // Get the DN of the user/group to process
         $userDn = $task['fdtasksgranulardn'][0] ?? NULL;
         if (empty($userDn)) {

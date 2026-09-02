@@ -82,6 +82,9 @@ class Reminder implements EndpointInterface
           $repeatableSchedule = $remindersMainTask[0]['fdtasksrepeatableschedule'][0] ?? NULL;
         }
 
+        // Try to generate subtasks in case $task['fdtaskgranulardn'][0] is not a "user" DN
+        $this->coreUtils->generateSubtaskFromDN($this->gateway, $task);
+
         // Retrieve email attribute for the monitored members requiring reminding.
         $mailOfTheReminded = $this->getEmailFromReminder($task['fdtasksgranulardn'][0]);
 

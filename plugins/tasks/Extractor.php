@@ -73,6 +73,9 @@ class Extractor implements EndpointInterface
           continue;
         }
 
+        // Try to generate subtasks in case $task['fdtaskgranulardn'][0] is not a "user" DN
+        $this->coreUtils->generateSubtaskFromDN($this->gateway, $task);
+
         // Check if it's the bulk task identifier we expect
         // @phpstan-ignore isset.offset
         if (!isset($task['fdtasksgranulardn'][0]) || $task['fdtasksgranulardn'][0] !== 'bulkExtractorTask') { /* @phpstan-ignore-line */

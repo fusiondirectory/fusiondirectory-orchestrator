@@ -112,6 +112,9 @@ class Mail implements EndpointInterface
 
           $mailMacros = isset($mailContent["fdmailtemplatemacro"]) ? $mailContent["fdmailtemplatemacro"] : [];
 
+          // Try to generate subtasks in case $task['fdtaskgranulardn'][0] is not a "user" DN
+          $this->coreUtils->generateSubtaskFromDN($this->gateway, $task, 'fdsubtaskmemberdn');
+
           // Get the mail from DN
           $recipientDN = $task["fdsubtaskmemberdn"][0];
           $mailType    = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";

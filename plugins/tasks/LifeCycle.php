@@ -228,6 +228,9 @@ class LifeCycle implements EndpointInterface
           $repeatableSchedule = $lifeCycleBehavior[0]['fdtasksrepeatableschedule'][0] ?? NULL;
         }
 
+        // Try to generate subtasks in case $task['fdtaskgranulardn'][0] is not a "user" DN
+        $this->coreUtils->generateSubtaskFromDN($this->gateway, $task);
+
         // Simply retrieve the current supannStatus of the user DN related to the task at hand
         $currentUserLifeCycle = $this->coreUtils->getUserSupannAccountStatus($task['fdtasksgranulardn'][0], $this->gateway);
 

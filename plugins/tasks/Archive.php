@@ -61,6 +61,9 @@ class Archive implements EndpointInterface
         $repeatableSchedule = $isTaskRepeatable ? ($mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL) : NULL;
         $desiredSupannStatus = $mainTaskConfig;
 
+        // Try to generate subtasks in case $task['fdtaskgranulardn'][0] is not a "user" DN
+        $this->coreUtils->generateSubtaskFromDN($this->gateway, $task);
+
         // Retrieve the current supann status of the user
         // @phpstan-ignore offsetAccess.notFound
         $currentSupannStatus = $this->coreUtils->getUserSupannAccountStatus($task['fdtasksgranulardn'][0], $this->gateway);
