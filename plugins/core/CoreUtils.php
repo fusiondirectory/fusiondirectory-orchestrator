@@ -130,7 +130,7 @@ class CoreUtils
   {
     $maintaskCN       = $maintask['cn'][0];
     $maintaskMemberDN = $maintask[$maintaskMemberValue][0];
-    $membersDN        = $this->getMembersDNFromDN($gateway, $maintaskMemberDN);
+    $membersDN        = $this->getMembersFromDN($gateway, $maintaskMemberDN);
 
     foreach ($membersDN as $memberDN) {
       $memberID = explode("=", explode(',', $memberDN)[0])[1];
