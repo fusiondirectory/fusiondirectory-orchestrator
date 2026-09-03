@@ -87,23 +87,19 @@ class CoreUtils
   }
 
   /**
-   * Generature subtasks foreach DNs from the "group" DN
+   * Get Members from DN if the DN is a group or just get the actual member
    * @param TaskGateway $gateway
-   * @param array $maintask
-   * @param string $maintaskMemberValue
+   * @param string $dn
+   * @return array $members
    */
-  public function generateSubtaskFromDN (TaskGateway $gateway, array $maintask,
-    string $maintaskMemberValue = 'fdtasksgranulardn') : void
+  public function getMembersFromDN (TaskGateway $gateway, string $dn)
   {
-    $maintaskCN       = $maintask['cn'][0];
-    $maintaskMemberDN = $maintask[$maintaskMemberValue][0];
-
     // TODO: use our LDAP library
     $memberSearch = $gateway->getLdapTasks(
       '(|(objectClass=groupOfNames)(objectClass=organizationalRole)(objectClass=groupOfURLs))',
       ['objectClass', 'member', 'roleOccupant'],
       '',
-      $maintaskMemberDN
+      $dn
     );
 
     // Remove the counts in $memberSearch
@@ -113,14 +109,30 @@ class CoreUtils
     // If one of them isset then return the DNs array
     // Else return the $dn that we get because it means that it is an user
     if (isset($memberSearch[0]['member'])) {
-      $memberDNs   = $memberSearch[0]['member'];
+      $members   = $memberSearch[0]['member'];
     } else if (isset($memberSearch[0]['roleOccupant'])) {
-      $memberDNs = $memberSearch[0]['roleOccupant'];
+      $members = $memberSearch[0]['roleOccupant'];
     } else {
-      $memberDNs = [];
+      $members = [$dn];
     }
 
-    foreach ($memberDNs as $memberDN) {
+    return $members;
+  }
+
+  /**
+   * Generate subtasks foreach DNs from the "group" DN
+   * @param TaskGateway $gateway
+   * @param array $maintask
+   * @param string $maintaskMemberValue
+   */
+  public function generateSubtaskFromDN (TaskGateway $gateway, array $maintask,
+    string $maintaskMemberValue = 'fdtasksgranulardn') : void
+  {
+    $maintaskCN       = $maintask['cn'][0];
+    $maintaskMemberDN = $maintask[$maintaskMemberValue][0];
+    $membersDN        = $this->getMembersDNFromDN($gateway, $maintaskMemberDN);
+
+    foreach ($membersDN as $memberDN) {
       $memberID = explode("=", explode(',', $memberDN)[0])[1];
 
       // Get timestamp from maintask

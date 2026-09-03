@@ -9,7 +9,7 @@ class Extractor implements EndpointInterface
 
   public function __construct (TaskGateway $gateway)
   {
-    $this->gateway   = $gateway;
+    $this->gateway = $gateway;
     $this->coreUtils = new CoreUtils();
     $this->mailUtils = new MailUtils();
   }
@@ -73,12 +73,9 @@ class Extractor implements EndpointInterface
           continue;
         }
 
-        // Try to generate subtasks in case $task['fdtaskgranulardn'][0] is not a "user" DN
-        $this->coreUtils->generateSubtaskFromDN($this->gateway, $task);
-
         // Check if it's the bulk task identifier we expect
         // @phpstan-ignore isset.offset
-        if (!isset($task['fdtasksgranulardn'][0]) || $task['fdtasksgranulardn'][0] !== 'bulkExtractorTask') { /* @phpstan-ignore-line */
+        if (!isset($task['fdtasksgranulardn'][0])) { /* @phpstan-ignore-line */
           // Skip tasks without adding to result
           continue;
         }
@@ -97,15 +94,10 @@ class Extractor implements EndpointInterface
         }
 
         // Process fdExtractorTaskListOfDN attribute
-        $userDnListRaw = $mainTaskConfig[0]['fdextractortasklistofdn'] ?? [];
-        $userDnList = [];
-
-        if (is_array($userDnListRaw)) {
-            $userDnList = $userDnListRaw;
-            unset($userDnList['count']);
-        } elseif (is_string($userDnListRaw) && !empty($userDnListRaw)) {
-            $userDnList = [$userDnListRaw];
-        }
+        $userDnList = $this->coreUtils->getMembersFromDN(
+          $this->gateway,
+          $task['fdtasksgranulardn'][0]
+        );
 
         if (empty($userDnList)) {
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
@@ -173,8 +165,19 @@ class Extractor implements EndpointInterface
           );
           $sender        = $mainTaskDetails[0]['fdextractoremailsender'][0] ?? '';
           $mailType      = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";
-          $recipientsDNs = $mainTaskDetails[0]['fdextractorrecipientsmembers'] ?? [];
-          $this->gateway->unsetCountKeys($recipientsDNs);
+
+          // $mainTaskDetails[0]['fdextractorrecipientsmembers'] is not always unique
+          // It must be processed in a foreach
+          $maintaskRecipientsDNs = $mainTaskDetails[0]['fdextractorrecipientsmembers'];
+          $this->gateway->unsetCountKeys($maintaskRecipientsDNs);
+          $recipientsDNs         = [];
+          foreach ($maintaskRecipientsDNs as $maintaskRecipientDN) {
+            $membersDN = $this->coreUtils->getMembersFromDN(
+              $this->gateway,
+              $maintaskRecipientDN
+            );
+            $recipientsDNs = array_merge($recipientsDNs, $membersDN);
+          }
 
           $recipientsEmails = [];
           foreach ($recipientsDNs as $recipientsDN) {
