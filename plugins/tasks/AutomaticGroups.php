@@ -3,12 +3,15 @@
 class AutomaticGroups implements EndpointInterface
 {
   private TaskGateway $gateway;
+  private CoreUtils $coreUtils;
+
   public $fdConfiguration;
   public $groupBranch;
 
   public function __construct (TaskGateway $gateway)
   {
-    $this->gateway = $gateway;
+    $this->gateway   = $gateway;
+    $this->coreUtils = new CoreUtils();
   }
 
   /**
@@ -78,6 +81,9 @@ class AutomaticGroups implements EndpointInterface
         if (!$this->gateway->statusAndScheduleCheck($task)) {
           continue;
         }
+
+        // Try to generate subtasks in case $task['fdtaskgranulardn'][0] is not a "user" DN
+        $this->coreUtils->generateSubtaskFromDN($this->gateway, $task);
 
         // Get the DN of the user/group to process
         $userDn = $task['fdtasksgranulardn'][0] ?? NULL;

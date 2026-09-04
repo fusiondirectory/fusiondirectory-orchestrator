@@ -4,13 +4,13 @@ class Extractor implements EndpointInterface
 {
   private TaskGateway $gateway;
   // @phpstan-ignore property.onlyWritten
-  private CoreUtils $utils;
+  private CoreUtils $coreUtils;
   private MailUtils $mailUtils;
 
   public function __construct (TaskGateway $gateway)
   {
     $this->gateway = $gateway;
-    $this->utils = new CoreUtils();
+    $this->coreUtils = new CoreUtils();
     $this->mailUtils = new MailUtils();
   }
 
@@ -75,7 +75,7 @@ class Extractor implements EndpointInterface
 
         // Check if it's the bulk task identifier we expect
         // @phpstan-ignore isset.offset
-        if (!isset($task['fdtasksgranulardn'][0]) || $task['fdtasksgranulardn'][0] !== 'bulkExtractorTask') { /* @phpstan-ignore-line */
+        if (!isset($task['fdtasksgranulardn'][0])) { /* @phpstan-ignore-line */
           // Skip tasks without adding to result
           continue;
         }
@@ -94,15 +94,10 @@ class Extractor implements EndpointInterface
         }
 
         // Process fdExtractorTaskListOfDN attribute
-        $userDnListRaw = $mainTaskConfig[0]['fdextractortasklistofdn'] ?? [];
-        $userDnList = [];
-
-        if (is_array($userDnListRaw)) {
-            $userDnList = $userDnListRaw;
-            unset($userDnList['count']);
-        } elseif (is_string($userDnListRaw) && !empty($userDnListRaw)) {
-            $userDnList = [$userDnListRaw];
-        }
+        $userDnList = $this->coreUtils->getMembersFromDN(
+          $this->gateway,
+          $task['fdtasksgranulardn'][0]
+        );
 
         if (empty($userDnList)) {
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
@@ -111,7 +106,7 @@ class Extractor implements EndpointInterface
         }
 
         // Create directory if it doesn't exist
-        $this->utils->ensureDirectoryExists($path);
+        $this->coreUtils->ensureDirectoryExists($path);
 
         // Get main task CN for filename
         $mainTaskCn = $this->getMainTaskCn($mainTaskDn);
@@ -170,8 +165,19 @@ class Extractor implements EndpointInterface
           );
           $sender        = $mainTaskDetails[0]['fdextractoremailsender'][0] ?? '';
           $mailType      = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";
-          $recipientsDNs = $mainTaskDetails[0]['fdextractorrecipientsmembers'] ?? [];
-          $this->gateway->unsetCountKeys($recipientsDNs);
+
+          // $mainTaskDetails[0]['fdextractorrecipientsmembers'] is not always unique
+          // It must be processed in a foreach
+          $maintaskRecipientsDNs = $mainTaskDetails[0]['fdextractorrecipientsmembers'];
+          $this->gateway->unsetCountKeys($maintaskRecipientsDNs);
+          $recipientsDNs         = [];
+          foreach ($maintaskRecipientsDNs as $maintaskRecipientDN) {
+            $membersDN = $this->coreUtils->getMembersFromDN(
+              $this->gateway,
+              $maintaskRecipientDN
+            );
+            $recipientsDNs = array_merge($recipientsDNs, $membersDN);
+          }
 
           $recipientsEmails = [];
           foreach ($recipientsDNs as $recipientsDN) {

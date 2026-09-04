@@ -4,11 +4,13 @@
 class Mail implements EndpointInterface
 {
   private TaskGateway $gateway;
+  private CoreUtils $coreUtils;
   private MailUtils $mailUtils;
 
   function __construct (TaskGateway $gateway)
   {
-    $this->gateway = $gateway;
+    $this->gateway   = $gateway;
+    $this->coreUtils = new CoreUtils();
     $this->mailUtils = new MailUtils();
   }
 
@@ -111,6 +113,9 @@ class Mail implements EndpointInterface
           $mailAttachments = array_values($mailInfos);
 
           $mailMacros = isset($mailContent["fdmailtemplatemacro"]) ? $mailContent["fdmailtemplatemacro"] : [];
+
+          // Try to generate subtasks in case $task['fdtaskgranulardn'][0] is not a "user" DN
+          $this->coreUtils->generateSubtaskFromDN($this->gateway, $task, 'fdsubtaskmemberdn');
 
           // Get the mail from DN
           $recipientDN = $task["fdsubtaskmemberdn"][0];

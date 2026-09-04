@@ -6,12 +6,14 @@ class Notifications implements EndpointInterface
   private TaskGateway $gateway;
   private CoreUtils $coreUtils;
   private MailUtils $mailUtils;
+  public $fdConfiguration;
 
   public function __construct (TaskGateway $gateway)
   {
-    $this->gateway = $gateway;
-    $this->coreUtils = new CoreUtils();
-    $this->mailUtils = new MailUtils();
+    $this->gateway         = $gateway;
+    $this->coreUtils       = new CoreUtils();
+    $this->mailUtils       = new MailUtils();
+    $this->fdConfiguration = new Backend();
   }
 
   /**
@@ -91,7 +93,7 @@ class Notifications implements EndpointInterface
         }
 
         // Simply retrieve the list of audited attributes
-        $auditAttributes = $this->retrieveAuditedAttributes($task);
+        $auditAttributes = $this->retrieveAuditedAttributes($task, $notificationsMainTask);
 
         // Recovering monitored attributes list from the defined notification task.
         $monitoredAttrs = $notificationsMainTask[0]['fdtasksnotificationsattributes'];
@@ -107,7 +109,6 @@ class Notifications implements EndpointInterface
           $this->coreUtils->getArrayValuesRecursive($auditAttributes),
           $monitoredAttrs
         );
-
         // Verify Supann resource state if applicable
         if ($this->shouldVerifySupannResource($monitoredSupannResource, $auditAttributes)) {
           // Adds it to the mating attrs for further notification process.
@@ -269,7 +270,7 @@ class Notifications implements EndpointInterface
       'fdTasksNotificationsAttributes', 'fdTasksNotificationsMailTemplate', 'fdTasksNotificationsEmailSender',
       'fdTasksNotificationsSubState', 'fdTasksNotificationsState', 'fdTasksNotificationsResource',
       'fdTasksRepeatableSchedule', 'fdTasksRepeatable', 'fdTasksNotificationsPostResource',
-      'fdTasksNotificationsPostState', 'fdTasksNotificationsPostSubState'], '', $mainTaskDn);
+      'fdTasksNotificationsPostState', 'fdTasksNotificationsPostSubState', 'fdTasksLastActivation'], '', $mainTaskDn);
   }
 
   /**
@@ -281,7 +282,7 @@ class Notifications implements EndpointInterface
   private function generateMainTaskMailTemplate (array $mainTask, array $fdTasksGranularDN): array
   {
     // Generate email configuration for each result of subtasks having the same main task.w
-    $recipientsDNs = $fdTasksGranularDN;
+    $recipientsDNs = $this->coreUtils->getMembersFromDN($this->gateway, $fdTasksGranularDN[0]);
     $this->gateway->unsetCountKeys($recipientsDNs);
     $mailType = $mainTask[0]["fdtasksemailattribute"][0] ?? "mail";
 
@@ -317,41 +318,81 @@ class Notifications implements EndpointInterface
 
   /**
    * @param array $notificationTask
+   * @param array $notificationsMainTask
    * @return array
    * NOTE : receive a unique tasks of type notification (one subtask at a time)
    */
-  protected function retrieveAuditedAttributes (array $notificationTask): array
+  protected function retrieveAuditedAttributes (array $notificationTask, array $notificationsMainTask): array
   {
     $auditAttributes  = [];
     $auditInformation = [];
+
     // Retrieve audit data attributes from the list of references set in the sub-task
     if (!empty($notificationTask['fdtasksgranularref'])) {
-      // Remove count keys (count is shared by ldap).
-      $this->gateway->unsetCountKeys($notificationTask);
-
+      // Get the members for all the $notificationTask['fdtasksgranularref']
+      $membersRef = [];
       foreach ($notificationTask['fdtasksgranularref'] as $ref) {
-        $userDN  = explode('|', $ref)[0];
-        $auditDN = explode('|', $ref)[1];
-        $auditInformation[$userDN][] = $this->gateway->getLdapTasks('(&(objectClass=fdAuditEvent))',
-          ['fdAuditAttributes'], '', $auditDN);
+        $members    = $this->coreUtils->getMembersFromDN($this->gateway, $ref);
+        $membersRef = array_merge($membersRef, $members);
       }
 
-      // Again remove key: count retrieved from LDAP.
+      // Get lastActivationGeneralizedTime
+      if (isset($notificationsMainTask[0]['fdtaskslastactivation'][0])) {
+        $lastActivationGeneralizedTime = $notificationsMainTask[0]['fdtaskslastactivation'][0];
+      } else {
+        $currentDateTime   = new DateTime('today', new DateTimeZone('UTC'));
+        $lastActivationGeneralizedTime = \FusionDirectory\Ldap\GeneralizedTime::toString($currentDateTime);
+      }
+
+      // Get AuditRDN
+      $auditRDN = $this->fdConfiguration->getFDConfigAttributes()[0]['fdAuditRDN'][0];
+
+      // Prepare member ldapfilter string
+      $membersLdapFilter = '';
+      foreach ($membersRef as $monitoredMember) {
+        $membersLdapFilter .= '(fdAuditObject=' . $monitoredMember . ')';
+      }
+
+      // Prepare ldap filter
+      $ldapFilter = '(&'
+        .   '(&'
+        .     '(objectClass=fdAuditEvent)'
+        .     "(fdAuditDateTime>=$lastActivationGeneralizedTime)"
+        .   ')'
+        .   '(|'
+        .    "$membersLdapFilter"
+        .   ')'
+        . ')';
+
+      // TODO use proper LDAP library to search audits after the last activation
+      $auditInformation = $this->gateway->getLdapTasks(
+        $ldapFilter,
+        ['fdAuditObject', 'fdAuditAttributes'],
+        '',
+        $auditRDN . ',' . $_ENV["LDAP_BASE"]
+      );
+
+      // Remove count keys (count is shared by ldap).
       $this->gateway->unsetCountKeys($auditInformation);
+
       // It is possible that an audit does not contain any attributes changes, condition is required.
-      foreach ($auditInformation as $userDN => $attrArray) {
-        foreach ($attrArray as $attr) {
-          if (!empty($attr[0]['fdauditattributes'])) {
-            // Clear and compact received results from above ldap search
-            if (isset($auditAttributes[$userDN][0])) {
-              $auditAttributes[$userDN] = array_merge($auditAttributes[$userDN], $attr[0]['fdauditattributes']);
-            } else {
-              $auditAttributes[$userDN] = $attr[0]['fdauditattributes'];
-            }
+      foreach ($auditInformation as $auditArray) {
+        $userDN = $auditArray['fdauditobject'][0];
+
+        // Convert the attributes info in an array of attributes
+        $attributesArray = array_keys(json_decode($auditArray['fdauditattributes'][0], TRUE));
+
+        // Add $attributesArray only if set (not empty)
+        if ($attributesArray) {
+          if (isset($auditAttributes[$userDN])) {
+            $auditAttributes[$userDN] = array_merge($auditAttributes[$userDN], $attributesArray);
+          } else {
+            $auditAttributes[$userDN] = $attributesArray;
           }
+
+          // Keep only different values
+          $auditAttributes[$userDN] = array_unique($auditAttributes[$userDN]);
         }
-        // Keep only different values
-        $auditAttributes[$userDN] = array_unique($auditAttributes[$userDN]);
       }
     }
 

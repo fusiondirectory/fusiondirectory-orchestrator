@@ -3,7 +3,7 @@
 /*
   This code is part of FusionDirectory\Ldap (https://www.fusiondirectory.org/)
 
-  Copyright (C) 2025  FusionDirectory
+  Copyright (C) 2025-2026  FusionDirectory
 
   SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -84,5 +84,95 @@ class CoreUtils
       '',
       $userDn
     );
+  }
+
+  /**
+   * Get Members from DN if the DN is a group or just get the actual member
+   * @param TaskGateway $gateway
+   * @param string $dn
+   * @return array $members
+   */
+  public function getMembersFromDN (TaskGateway $gateway, string $dn)
+  {
+    // TODO: use our LDAP library
+    $memberSearch = $gateway->getLdapTasks(
+      '(|(objectClass=groupOfNames)(objectClass=organizationalRole)(objectClass=groupOfURLs))',
+      ['objectClass', 'member', 'roleOccupant'],
+      '',
+      $dn
+    );
+
+    // Remove the counts in $memberSearch
+    $gateway->unsetCountKeys($memberSearch);
+
+    // Check if $memberSearch[0]['member'] or $memberSearch[0]['roleOccupant'] isset
+    // If one of them isset then return the DNs array
+    // Else return the $dn that we get because it means that it is an user
+    if (isset($memberSearch[0]['member'])) {
+      $members   = $memberSearch[0]['member'];
+    } else if (isset($memberSearch[0]['roleOccupant'])) {
+      $members = $memberSearch[0]['roleOccupant'];
+    } else {
+      $members = [$dn];
+    }
+
+    return $members;
+  }
+
+  /**
+   * Generate subtasks foreach DNs from the "group" DN
+   * @param TaskGateway $gateway
+   * @param array $maintask
+   * @param string $maintaskMemberValue
+   */
+  public function generateSubtaskFromDN (TaskGateway $gateway, array $maintask,
+    string $maintaskMemberValue = 'fdtasksgranulardn') : void
+  {
+    $maintaskCN       = $maintask['cn'][0];
+    $maintaskMemberDN = $maintask[$maintaskMemberValue][0];
+    $membersDN        = $this->getMembersFromDN($gateway, $maintaskMemberDN);
+
+    foreach ($membersDN as $memberDN) {
+      $memberID = explode("=", explode(',', $memberDN)[0])[1];
+
+      // Get timestamp from maintask
+      $maintaskTimestampCN = strrev(explode("-", strrev($maintaskCN))[0]);
+
+      // Get CN without timestamp
+      $maintaskWithoutTimestampCN = str_replace($maintaskTimestampCN, '', $maintaskCN);
+
+      // Generate the new CN
+      $newSubtaskCN = $maintaskWithoutTimestampCN . "extract-" . $memberID . "-" . $maintaskTimestampCN;
+
+      // Generate the new DN
+      $newSubtaskDN = str_replace(
+        $maintask['cn'][0],
+        $newSubtaskCN,
+        $maintask['dn']
+      );
+
+      // Generate the new subtask attrs
+      $newSubtaskAttrs    = [
+        'objectClass'                 => 'fdTasksGranular',
+        'cn'                          => $newSubtaskCN,
+        'fdTasksGranularStatus'       => 1,
+        'fdTasksGranularMaster'       => $maintask['fdtasksgranularmaster'][0],
+        'fdTasksGranularType'         => $maintask['fdtasksgranulartype'][0],
+        'fdTasksGranularSchedule'     => $maintask['fdtasksgranularschedule'][0],
+        'fdTasksGranularCreationdate' => $maintask['fdtasksgranularcreationdate'][0],
+        $maintaskMemberValue          => $memberDN
+      ];
+
+      // TODO: Use our LDAP library
+      try {
+        $result = ldap_add($gateway->ds, $newSubtaskDN, $newSubtaskAttrs);
+        if (!$result) {
+          echo "Error when creating subtask: " . $newSubtaskDN;
+        }
+      } catch (Exception $e) {
+        echo "Error when doing ldap_add for " . $newSubtaskDN . ": " . print_r($e, TRUE);
+        echo "Attrs: " . print_r($newSubtaskAttrs, TRUE);
+      }
+    }
   }
 }
