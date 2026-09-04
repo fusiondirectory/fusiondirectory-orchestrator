@@ -324,11 +324,11 @@ class Notifications implements EndpointInterface
    */
   protected function retrieveAuditedAttributes (array $notificationTask, array $notificationsMainTask): array
   {
+    $auditAttributes  = [];
+    $auditInformation = [];
+
     // Retrieve audit data attributes from the list of references set in the sub-task
     if (!empty($notificationTask['fdtasksgranularref'])) {
-      $auditAttributes  = [];
-      $auditInformation = [];
-
       // Get the members for all the $notificationTask['fdtasksgranularref']
       $membersRef = [];
       foreach ($notificationTask['fdtasksgranularref'] as $ref) {
