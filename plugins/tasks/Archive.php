@@ -62,6 +62,7 @@ class Archive implements EndpointInterface
         $desiredSupannStatus = $mainTaskConfig;
 
         // Try to generate subtasks in case $task['fdtaskgranulardn'][0] is not a "user" DN
+        // @phpstan-ignore argument.type
         $this->coreUtils->generateSubtaskFromDN($this->gateway, $task);
 
         // Retrieve the current supann status of the user
