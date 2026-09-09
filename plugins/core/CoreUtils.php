@@ -163,6 +163,11 @@ class CoreUtils
         $maintaskMemberValue          => $memberDN
       ];
 
+      // If $maintask['fdtasksgranularhelper'] is set add it to $newSubtaskAttrs
+      if (isset($maintask['fdtasksgranularhelper'])) {
+        $newSubtaskAttrs['fdTasksGranularHelper'] = $maintask['fdtasksgranularhelper'];
+      }
+
       // TODO: Use our LDAP library
       try {
         $result = ldap_add($gateway->ds, $newSubtaskDN, $newSubtaskAttrs);
