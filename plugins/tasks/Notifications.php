@@ -380,7 +380,7 @@ class Notifications implements EndpointInterface
         $userDN = $auditArray['fdauditobject'][0];
 
         // Convert the attributes info in an array of attributes
-        $attributesArray = array_keys(json_decode($auditArray['fdauditattributes'][0], TRUE));
+        $attributesArray = array_values($auditArray['fdauditattributes']);
 
         // Add $attributesArray only if set (not empty)
         if ($attributesArray) {
