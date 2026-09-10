@@ -130,7 +130,30 @@ class CoreUtils
   {
     $maintaskCN       = $maintask['cn'][0];
     $maintaskMemberDN = $maintask[$maintaskMemberValue][0];
-    $membersDN        = $this->getMembersFromDN($gateway, $maintaskMemberDN);
+
+    // TODO: use our LDAP library
+    $memberSearch = $gateway->getLdapTasks(
+      '(|(objectClass=groupOfNames)(objectClass=organizationalRole)(objectClass=groupOfURLs))',
+      ['objectClass', 'member', 'roleOccupant'],
+      '',
+      $maintaskMemberDN
+    );
+
+    // Remove the counts in $memberSearch
+    $gateway->unsetCountKeys($memberSearch);
+
+    // Check if $memberSearch[0]['member'] or $memberSearch[0]['roleOccupant'] isset
+    // If one of them isset then return the DNs array
+    // Else return the $dn that we get because it means that it is an user
+    if (isset($memberSearch[0]['member'])) {
+      $membersDN = $memberSearch[0]['member'];
+    } else if (isset($memberSearch[0]['roleOccupant'])) {
+      $membersDN = $memberSearch[0]['roleOccupant'];
+    } else {
+      // Nothing to do because it is probably a user already
+      echo $maintaskMemberDN . " is probably a user we don't create a subtask";
+      return;
+    }
 
     foreach ($membersDN as $memberDN) {
       $memberID = explode("=", explode(',', $memberDN)[0])[1];
@@ -152,7 +175,7 @@ class CoreUtils
       );
 
       // Generate the new subtask attrs
-      $newSubtaskAttrs    = [
+      $newSubtaskAttrs = [
         'objectClass'                 => 'fdTasksGranular',
         'cn'                          => $newSubtaskCN,
         'fdTasksGranularStatus'       => 1,
