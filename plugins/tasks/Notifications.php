@@ -67,7 +67,7 @@ class Notifications implements EndpointInterface
       // If the tasks must be treated - status and scheduled - process the sub-tasks
       if ($this->gateway->statusAndScheduleCheck($task)) {
         // Try to generate subtasks in case $task['fdtaskgranulardn'][0] is not a "user" DN
-        $this->coreUtils->generateSubtaskFromDN($this->gateway, $task); 
+        $this->coreUtils->generateSubtaskFromDN($this->gateway, $task);
 
         // Retrieve data from the main task
         $mainTaskDn = $task['fdtasksgranularmaster'][0];
@@ -286,7 +286,7 @@ class Notifications implements EndpointInterface
   {
     // Generate email configuration for each result of subtasks having the same main task.w
     $recipientsDNs = $fdTasksGranularDN;
-    $mailType = $mainTask[0]["fdtasksemailattribute"][0] ?? "mail";
+    $mailType      = $mainTask[0]["fdtasksemailattribute"][0] ?? "mail";
 
     $recipientsEmails = [];
     foreach ($recipientsDNs as $recipientsDN) {
