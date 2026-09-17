@@ -93,7 +93,7 @@ class Extractor implements EndpointInterface
           $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
         }
 
-        // Process $mainTaskConfig[0]['fdextractortaskmembers'] attribute
+        // Process fdextractortaskmembers attribute
         $this->gateway->unsetCountKeys($mainTaskConfig);
         // Initiate to [] to start with an empty array
         $userDnList = [];
