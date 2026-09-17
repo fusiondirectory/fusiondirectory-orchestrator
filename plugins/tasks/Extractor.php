@@ -93,11 +93,16 @@ class Extractor implements EndpointInterface
           $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
         }
 
-        // Process fdExtractorTaskListOfDN attribute
-        $userDnList = $this->coreUtils->getMembersFromDN(
-          $this->gateway,
-          $task['fdtasksgranulardn'][0]
-        );
+        // Process $mainTaskConfig[0]['fdextractortaskmembers'] attribute
+        $this->gateway->unsetCountKeys($mainTaskConfig);
+        // Initiate to [] to start with an empty array
+        $userDnList = [];
+        foreach ($mainTaskConfig[0]['fdextractortaskmembers'] as $dn) {
+          $userDnList[] = $this->coreUtils->getMembersFromDN(
+            $this->gateway,
+            $dn
+          );
+        }
 
         if (empty($userDnList)) {
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
@@ -109,27 +114,31 @@ class Extractor implements EndpointInterface
         $this->coreUtils->ensureDirectoryExists($path);
 
         // Get main task CN for filename
-        $mainTaskCn = $this->getMainTaskCn($mainTaskDn);
-        $date = date('Y-m-d_H');
-
-        // Add a unique identifier based on microtime
-        $uniqueId = substr(md5((string)microtime(TRUE)), 0, 8);
+        $mainTaskCn      = $this->getMainTaskCn($mainTaskDn);
+        $currentDateTime = new DateTime('today', new DateTimeZone('UTC'));
+        $date            = \FusionDirectory\Ldap\GeneralizedTime::toString($currentDateTime);
 
         $filename = isset($data['filename']) ?
-                   $path . $data['filename'] . '_' . $date . '_' . $uniqueId . '.csv' :
-                   $path . $mainTaskCn . '_' . $date . '_' . $uniqueId . '.csv';
+                   $path . $data['filename'] . '_' . $date . '.csv' :
+                   $path . $mainTaskCn . '_' . $date . '.csv';
 
         // Batch Processing
         $allUserAttributes = [];
-        $errors = [];
+        $errors            = [];
 
         foreach ($userDnList as $userDn) {
+          $userAttributes = [];
           if (empty($userDn)) {
               continue;
           }
 
           try {
-              $userAttributes = $this->getUserAttributes($userDn, $mainTaskConfig);
+            foreach ($userDn as $dn) {
+              $userAttributes = array_merge(
+                $userAttributes,
+                $this->getUserAttributes($dn, $mainTaskConfig)
+              );
+            }
             if (!empty($userAttributes)) {
                 $allUserAttributes[] = $userAttributes[0];
             }
@@ -148,7 +157,6 @@ class Extractor implements EndpointInterface
             $result[$task['dn']]['result'] = $finalMessage;
             continue;
         }
-
         $success = $this->extractToFileBatch($allUserAttributes, $filename, 'csv');
 
         if ($success) {
@@ -163,29 +171,16 @@ class Extractor implements EndpointInterface
             '',
             $mainTaskDn
           );
-          $sender        = $mainTaskDetails[0]['fdextractoremailsender'][0] ?? '';
-          $mailType      = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";
+          $sender         = $mainTaskDetails[0]['fdextractoremailsender'][0] ?? '';
+          $mailType       = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";
+          $userDn         = $task['fdtasksgranulardn'][0];
+          $recipientEmail = $this->mailUtils->resolveEmailFromDn($this->gateway, $userDn, $mailType);
 
-          // $mainTaskDetails[0]['fdextractorrecipientsmembers'] is not always unique
-          // It must be processed in a foreach
-          $maintaskRecipientsDNs = $mainTaskDetails[0]['fdextractorrecipientsmembers'];
-          $this->gateway->unsetCountKeys($maintaskRecipientsDNs);
-          $recipientsDNs         = [];
-          foreach ($maintaskRecipientsDNs as $maintaskRecipientDN) {
-            $membersDN = $this->coreUtils->getMembersFromDN(
-              $this->gateway,
-              $maintaskRecipientDN
-            );
-            $recipientsDNs = array_merge($recipientsDNs, $membersDN);
-          }
-
-          $recipientsEmails = [];
-          foreach ($recipientsDNs as $recipientsDN) {
-            $recipientsEmails[] = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientsDN, $mailType);
-          }
-
-          $finalMessage = $this->getFinalMessage($filename, $task, $recipientsEmails, $sender, $errors, $mainTaskDn, $repeatableSchedule);
+          $finalMessage = $this->getFinalMessage($filename, $task, $recipientEmail, $sender, $errors, $mainTaskDn, $repeatableSchedule);
           $result[$task['dn']]['result'] = $finalMessage;
+
+          // Update tasksInfos on the user
+          $this->gateway->trackTaskExecutionOnUser($userDn, $mainTaskDn);
           // --- EMAIL LOGIC END ---
         } else {
           $finalMessage = "Failed to write batch data to $filename.";
@@ -211,7 +206,7 @@ class Extractor implements EndpointInterface
   }
 
   // @phpstan-ignore method.unused
-  private function getFinalMessage (string $filename, array $task, array $recipients, $sender, array $errors, $mainTaskDn, $repeatableSchedule): string
+  private function getFinalMessage (string $filename, array $task, string $recipient, $sender, array $errors, $mainTaskDn, $repeatableSchedule): string
   {
       $subject    = "FusionDirectory Extractor - Export file";
       $body       = "Your requested extract is attached.\n\nFile: $filename";
@@ -221,7 +216,7 @@ class Extractor implements EndpointInterface
           'content' => file_get_contents($filename)
       ]];
 
-      if (empty($sender) || empty($recipients)) {
+      if (empty($sender) || empty($recipient)) {
         $finalMessage = "Batch extraction successful to $filename. Email not sent: sender or recipient missing.";
         if (!empty($errors)) {
               $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
@@ -229,8 +224,9 @@ class Extractor implements EndpointInterface
         // Success without email
         $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
       } else {
-          // Send mail using MailLib
-        $mailSentResult = $this->mailUtils->sendMail($sender, NULL, $recipients,
+        // Send mail using MailLib
+        // Recipient must be an array
+        $mailSentResult = $this->mailUtils->sendMail($sender, NULL, [$recipient],
               $body, NULL, $subject, NULL, $attachments);
 
         if ($mailSentResult[0] == "SUCCESS") {
@@ -263,7 +259,8 @@ class Extractor implements EndpointInterface
         'fdExtractorTaskListOfDN',
         'fdExtractorTaskAttributes',
         'fdTasksRepeatableSchedule',
-        'fdTasksRepeatable'
+        'fdTasksRepeatable',
+        'fdExtractorTaskMembers'
       ],
       '',
       $mainTaskDn
@@ -364,47 +361,44 @@ class Extractor implements EndpointInterface
 
     // Second pass: Build data rows with consistent column structure
     foreach ($allUserAttributes as $user) {
-        $userData = [];
+      $userData = [];
       foreach (array_keys($allColumns) as $column) {
         if (isset($user[$column])) {
           if (is_array($user[$column])) {
             // All values, since 'count' is already removed
             $userData[$column] = implode(';', $user[$column]);
           } else {
-              $userData[$column] = $user[$column];
+            $userData[$column] = $user[$column];
           }
         } else {
-            $userData[$column] = '';
+          $userData[$column] = '';
         }
       }
-        $allUserData[] = $userData;
+      $allUserData[] = $userData;
     }
 
     if (empty($allUserData)) {
-        return TRUE; // No valid user data extracted
+      return TRUE; // No valid user data extracted
     }
-
-    $finalColumns = array_keys($allColumns);
 
     // Write to file (overwrite mode 'w')
     $handle = fopen($filename, 'w');
+
     if ($handle === FALSE) {
         throw new Exception("Could not open file for writing: $filename");
     }
 
-    try {
-        // Write headers
-        fputcsv($handle, $finalColumns, escape: "\\");
+    // Write headers
+    fputcsv($handle, array_keys($allColumns), escape: "\\");
 
-        // Write data rows
-      foreach ($allUserData as $row) {
-          fputcsv($handle, $row, escape: "\\");
-      }
-
-        return TRUE;
-    } finally {
-        fclose($handle);
+    // Write row
+    foreach ($allUserData as $row) {
+      fputcsv($handle, $row, escape: "\\");
     }
+
+    fclose($handle);
+
+    return TRUE;
   }
 
   /**
