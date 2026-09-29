@@ -20,8 +20,8 @@ class Extractor implements EndpointInterface
    */
   public function processEndPointGet (): array
   {
-    // Retrieve tasks of type 'extract'
-    return $this->gateway->getObjectTypeTask('extract');
+    // Retrieve tasks of type 'export'
+    return $this->gateway->getObjectTypeTask('export');
   }
 
   /**
@@ -53,13 +53,13 @@ class Extractor implements EndpointInterface
   public function processEndPointPatch (?array $data = NULL): array
   {
     $result = [];
-    $extractTasks = $this->gateway->getObjectTypeTask('extract');
+    $exportTasks = $this->gateway->getObjectTypeTask('export');
     $processedAnyTask = FALSE; // Track if any task was actually processedy
 
     // Path is now expected in the JSON body ($data)
     $path = $data['path'] ?? '/srv/orchestrator/';
 
-    foreach ($extractTasks as $task) {
+    foreach ($exportTasks as $task) {
       try {
         // Initialize variables to avoid undefined variable errors
         $mainTaskDn         = NULL;
@@ -85,7 +85,7 @@ class Extractor implements EndpointInterface
 
         // Get the main task configuration, including the list of DNs
         $mainTaskDn = $task['fdtasksgranularmaster'][0];
-        $mainTaskConfig = $this->getExtractMainTaskConfig($mainTaskDn);
+        $mainTaskConfig = $this->getExportMainTaskConfig($mainTaskDn);
 
         // Determine if main task is marked repeatable; only then use schedule
         $isRepeatableFlag = $mainTaskConfig[0]['fdtasksrepeatable'][0] ?? NULL; // may be TRUE/FALSE
@@ -93,11 +93,11 @@ class Extractor implements EndpointInterface
           $repeatableSchedule = $mainTaskConfig[0]['fdtasksrepeatableschedule'][0] ?? NULL;
         }
 
-        // Process fdextractortaskmembers attribute
+        // Process fdexporttaskmembers attribute
         $this->gateway->unsetCountKeys($mainTaskConfig);
         // Initiate to [] to start with an empty array
         $userDnList = [];
-        foreach ($mainTaskConfig[0]['fdextractortaskmembers'] as $dn) {
+        foreach ($mainTaskConfig[0]['fdexporttaskmembers'] as $dn) {
           $userDnList[] = $this->coreUtils->getMembersFromDN(
             $this->gateway,
             $dn
@@ -148,7 +148,7 @@ class Extractor implements EndpointInterface
         }
 
         if (empty($allUserAttributes)) {
-            $finalMessage = "No user attributes could be extracted.";
+            $finalMessage = "No user attributes can be exported.";
           if (!empty($errors)) {
               $finalMessage .= " Errors: " . implode("; ", $errors);
           }
@@ -157,7 +157,7 @@ class Extractor implements EndpointInterface
             $result[$task['dn']]['result'] = $finalMessage;
             continue;
         }
-        $success = $this->extractToFileBatch($allUserAttributes, $filename, 'csv');
+        $success = $this->exportToFileBatch($allUserAttributes, $filename, 'csv');
 
         if ($success) {
           // --- EMAIL LOGIC START ---
@@ -165,13 +165,13 @@ class Extractor implements EndpointInterface
           $mainTaskDetails = $this->gateway->getLdapTasks(
             '(objectClass=fdExtractorTasks)',
             [
-              'fdExtractorEmailSender',
-              'fdExtractorRecipientsMembers'
+              'fdExportEmailSender',
+              'fdExportRecipientsMembers'
             ],
             '',
             $mainTaskDn
           );
-          $sender         = $mainTaskDetails[0]['fdextractoremailsender'][0] ?? '';
+          $sender         = $mainTaskDetails[0]['fdexportmailsender'][0] ?? '';
           $mailType       = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";
           $userDn         = $task['fdtasksgranulardn'][0];
           $recipientEmail = $this->mailUtils->resolveEmailFromDn($this->gateway, $userDn, $mailType);
@@ -192,14 +192,14 @@ class Extractor implements EndpointInterface
 
       } catch (Exception $e) {
         $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $e->getMessage(), $mainTaskDn, $repeatableSchedule); /* @phpstan-ignore-line */
-        $result[$task['dn']]['result'] = "Error processing extractor task: " . $e->getMessage(); /* @phpstan-ignore-line */
+        $result[$task['dn']]['result'] = "Error processing export task: " . $e->getMessage(); /* @phpstan-ignore-line */
       }
     }
 
     // After processing all tasks, if none were processed, return a simple message
     // @phpstan-ignore booleanNot.alwaysTrue
     if (!$processedAnyTask && empty($result)) {
-      $result['status'] = "No tasks to process for extractor.";
+      $result['status'] = "No tasks to process for export.";
     }
 
     return $result;
@@ -208,8 +208,8 @@ class Extractor implements EndpointInterface
   // @phpstan-ignore method.unused
   private function getFinalMessage (string $filename, array $task, string $recipient, $sender, array $errors, $mainTaskDn, $repeatableSchedule): string
   {
-      $subject    = "FusionDirectory Extractor - Export file";
-      $body       = "Your requested extract is attached.\n\nFile: $filename";
+      $subject    = "FusionDirectory Export - Export file";
+      $body       = "Your requested export is attached.\n\nFile: $filename";
       // Prepare attachment
       $attachments = [[
           'cn' => basename($filename),
@@ -217,7 +217,7 @@ class Extractor implements EndpointInterface
       ]];
 
       if (empty($sender) || empty($recipient)) {
-        $finalMessage = "Batch extraction successful to $filename. Email not sent: sender or recipient missing.";
+        $finalMessage = "Batch export successful to $filename. Email not sent: sender or recipient missing.";
         if (!empty($errors)) {
               $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
         }
@@ -230,13 +230,13 @@ class Extractor implements EndpointInterface
               $body, NULL, $subject, NULL, $attachments);
 
         if ($mailSentResult[0] == "SUCCESS") {
-          $finalMessage = "Batch extraction successful to $filename. Email sent to recipients.";
+          $finalMessage = "Batch export successful to $filename. Email sent to recipients.";
           if (!empty($errors)) {
                   $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
           }
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], '2', $mainTaskDn, $repeatableSchedule);
         } else {
-          $finalMessage = "Batch extraction successful to $filename, but email failed: " . $mailSentResult[0];
+          $finalMessage = "Batch export successful to $filename, but email failed: " . $mailSentResult[0];
           $this->gateway->updateTaskStatus($task['dn'], $task['cn'][0], $finalMessage, $mainTaskDn, $repeatableSchedule);
         }
       }
@@ -246,21 +246,20 @@ class Extractor implements EndpointInterface
   /**
    * @param string $mainTaskDn
    * @return array
-   * Note: Retrieve the configuration from the main extract task.
+   * Note: Retrieve the configuration from the main export task.
    */
   // @phpstan-ignore method.unused
-  private function getExtractMainTaskConfig (string $mainTaskDn): array
+  private function getExportMainTaskConfig (string $mainTaskDn): array
   {
     return $this->gateway->getLdapTasks(
-      '(objectClass=fdExtractorTasks)',
+      '(objectClass=fdExportTasks)',
       [
-        'fdExtractorTaskFormat',
+        'fdExportTaskFormat',
         'cn',
-        'fdExtractorTaskListOfDN',
-        'fdExtractorTaskAttributes',
+        'fdExportTaskAttributes',
         'fdTasksRepeatableSchedule',
         'fdTasksRepeatable',
-        'fdExtractorTaskMembers'
+        'fdExportTaskMembers'
       ],
       '',
       $mainTaskDn
@@ -280,8 +279,8 @@ class Extractor implements EndpointInterface
     $attributesToFetch = ['*'];
 
     // Try to get fdExtractorTaskAttributes from main task config
-    if (!empty($mainTaskConfig[0]['fdextractortaskattributes'])) {
-      $attrList = $mainTaskConfig[0]['fdextractortaskattributes'];
+    if (!empty($mainTaskConfig[0]['fdexporttaskattributes'])) {
+      $attrList = $mainTaskConfig[0]['fdexporttaskattributes'];
       // Remove all 'count' keys using TaskGateway utility
       $this->gateway->unsetCountKeys($attrList);
 
@@ -322,7 +321,7 @@ class Extractor implements EndpointInterface
    * Note: Extract a batch of user attributes to a file (CSV only).
    */
   // @phpstan-ignore method.unused
-  private function extractToFileBatch (array $allUserAttributes, string $filename, string $format): bool
+  private function exportToFileBatch (array $allUserAttributes, string $filename, string $format): bool
   {
     if (empty($allUserAttributes)) {
         // Nothing to write, consider it a success.
@@ -378,7 +377,7 @@ class Extractor implements EndpointInterface
     }
 
     if (empty($allUserData)) {
-      return TRUE; // No valid user data extracted
+      return TRUE; // No valid user data exported
     }
 
     // Write to file (overwrite mode 'w')
@@ -417,6 +416,6 @@ class Extractor implements EndpointInterface
       $mainTaskDn
     );
 
-    return $mainTask[0]['cn'][0] ?? 'extract';
+    return $mainTask[0]['cn'][0] ?? 'export';
   }
 }
