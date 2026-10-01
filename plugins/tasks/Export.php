@@ -163,7 +163,7 @@ class Export implements EndpointInterface
           // --- EMAIL LOGIC START ---
           // Retrieve sender and recipients from main task
           $mainTaskDetails = $this->gateway->getLdapTasks(
-            '(objectClass=fdExtractorTasks)',
+            '(objectClass=fdExportTasks)',
             [
               'fdExportEmailSender',
               'fdExportRecipientsMembers'
