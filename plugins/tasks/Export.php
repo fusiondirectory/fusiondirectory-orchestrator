@@ -171,7 +171,7 @@ class Export implements EndpointInterface
             '',
             $mainTaskDn
           );
-          $sender         = $mainTaskDetails[0]['fdexportmailsender'][0] ?? '';
+          $sender         = $mainTaskDetails[0]['fdexportemailsender'][0] ?? '';
           $mailType       = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";
           $userDn         = $task['fdtasksgranulardn'][0];
           $recipientEmail = $this->mailUtils->resolveEmailFromDn($this->gateway, $userDn, $mailType);
