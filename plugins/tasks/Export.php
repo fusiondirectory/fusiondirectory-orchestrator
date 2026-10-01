@@ -1,6 +1,6 @@
 <?php
 
-class Extractor implements EndpointInterface
+class Export implements EndpointInterface
 {
   private TaskGateway $gateway;
   // @phpstan-ignore property.onlyWritten
