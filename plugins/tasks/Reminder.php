@@ -493,8 +493,18 @@ class Reminder implements EndpointInterface
     $mailMacros             = isset($mailContent["fdmailtemplatemacro"]) ? $mailContent["fdmailtemplatemacro"] : [];
     $mailForm['setFrom']    = $sender;
     $mailForm['recipients'] = $recipients;
-    $mailForm['body']       = $this->mailUtils->replaceMacros($this->gateway, $recipients, $mailContent["fdmailtemplatebody"][0], $mailMacros);
-    $mailForm['signature']  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+
+    $message                = $this->mailUtils->getMailMessage($this->gateway, $mailContent);
+    $mailForm['body']       = $this->mailUtils->replaceMacros($this->gateway, $recipients, $message, $mailMacros);
+
+    $signatureMessage = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+    if ($signatureMessage != NULL) {
+      $signature        = $this->mailUtils->replaceMacros($this->gateway, $recipients, $signatureMessage, $mailMacros);
+    } else {
+      $signature        = $signatureMessage;
+    }
+    $mailForm['signature']  = $signature;
+
     $mailForm['subject']    = $mailContent["fdmailtemplatesubject"][0];
     $mailForm['receipt']    = $mailContent["fdmailtemplatereadreceipt"][0];
 
@@ -537,6 +547,9 @@ class Reminder implements EndpointInterface
         }
           $numberOfRecipients = count($mailDetails['mail']['recipients']);
 
+          // Define if we are in TEXT or HTML mode
+          $htmlMode = $this->mailUtils->isHtml($mailContent);
+
           $mailSentResult = $this->mailUtils->sendMail(
               $mailDetails['mail']['setFrom'],
               NULL,
@@ -545,7 +558,8 @@ class Reminder implements EndpointInterface
               $mailDetails['mail']['signature'],
               $mailDetails['mail']['subject'],
               $mailDetails['mail']['receipt'],
-              NULL);
+              NULL,
+              $htmlMode);
 
           // Create a simplified structure to pass to processMailResponseAndUpdateTasks
           $taskInfo = [

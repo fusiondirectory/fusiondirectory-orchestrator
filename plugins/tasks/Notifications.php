@@ -315,8 +315,18 @@ class Notifications implements EndpointInterface
     $mailMacros             = isset($mailContent["fdmailtemplatemacro"]) ? $mailContent["fdmailtemplatemacro"] : [];
     $mailForm['setFrom']    = $sender;
     $mailForm['recipients'] = $recipientsEmails;
-    $mailForm['body']       = $this->mailUtils->replaceMacros($this->gateway, $recipientsEmails, $mailContent["fdmailtemplatebody"][0], $mailMacros);
-    $mailForm['signature']  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+
+    $message                = $this->mailUtils->getMailMessage($this->gateway, $mailContent);
+    $mailForm['body']       = $this->mailUtils->replaceMacros($this->gateway, $recipientsEmails, $message, $mailMacros);
+
+    $signatureMessage = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+    if ($signatureMessage != NULL) {
+      $signature        = $this->mailUtils->replaceMacros($this->gateway, $recipients, $signatureMessage, $mailMacros);
+    } else {
+      $signature        = $signatureMessage;
+    }
+    $mailForm['signature']  = $signature;
+
     $mailForm['subject']    = $mailContent["fdmailtemplatesubject"][0];
     $mailForm['receipt']    = $mailContent["fdmailtemplatereadreceipt"][0];
 
@@ -475,6 +485,9 @@ class Notifications implements EndpointInterface
         break;
       }
 
+      // Define if we are in TEXT or HTML mode
+      $htmlMode = $this->mailUtils->isHtml($mailContent);
+
       $mailSentResult = $this->mailUtils->sendMail($data['mailForm']['setFrom'],
           NULL,
           $data['mailForm']['recipients'],
@@ -482,7 +495,8 @@ class Notifications implements EndpointInterface
           $data['mailForm']['signature'],
           $data['mailForm']['subject'],
           $data['mailForm']['receipt'],
-          NULL);
+          NULL,
+          $htmlMode);
       $result[]       = $this->processMailResponseAndUpdateTasks($mailSentResult, $data, $fdTasksConf);
     }
 
