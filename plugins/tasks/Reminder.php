@@ -206,7 +206,17 @@ class Reminder implements EndpointInterface
     }
 
     if (!empty($reminders)) {
-      $result[] = $this->sendRemindersMail($reminders);
+      // Workaround to get mailContent without changing the whole logic
+      // @phpstan-ignore variable.undefined
+      $mailTemplateName = $remindersMainTask[0]['fdtasksremindermailtemplate'][0];
+      $mailInfos        = $this->gateway->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $mailTemplateName);
+
+      // Remove count from array.
+      $this->gateway->unsetCountKeys($mailInfos);
+
+      $mailContent = $mailInfos[0];
+
+      $result[] = $this->sendRemindersMail($reminders, $mailContent);
     }
 
     return $result;
@@ -493,8 +503,18 @@ class Reminder implements EndpointInterface
     $mailMacros             = isset($mailContent["fdmailtemplatemacro"]) ? $mailContent["fdmailtemplatemacro"] : [];
     $mailForm['setFrom']    = $sender;
     $mailForm['recipients'] = $recipients;
-    $mailForm['body']       = $this->mailUtils->replaceMacros($this->gateway, $recipients, $mailContent["fdmailtemplatebody"][0], $mailMacros);
-    $mailForm['signature']  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+
+    $message                = $this->mailUtils->getMailMessage($this->gateway, $mailContent);
+    $mailForm['body']       = $this->mailUtils->replaceMacros($this->gateway, $recipients, $message, $mailMacros);
+
+    $signatureMessage = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+    if ($signatureMessage != NULL) {
+      $signature        = $this->mailUtils->replaceMacros($this->gateway, $recipients, $signatureMessage, $mailMacros);
+    } else {
+      $signature        = $signatureMessage;
+    }
+    $mailForm['signature']  = $signature;
+
     $mailForm['subject']    = $mailContent["fdmailtemplatesubject"][0];
     $mailForm['receipt']    = $mailContent["fdmailtemplatereadreceipt"][0];
 
@@ -506,7 +526,7 @@ class Reminder implements EndpointInterface
    * @return array
    * Note : Collect information and send reminder email.
    */
-  protected function sendRemindersMail (array $reminders): array
+  protected function sendRemindersMail (array $reminders, $mailContent): array
   {
     $result = [];
     // Re-use of the same mail processing template logic
@@ -537,6 +557,9 @@ class Reminder implements EndpointInterface
         }
           $numberOfRecipients = count($mailDetails['mail']['recipients']);
 
+          // Define if we are in TEXT or HTML mode
+          $htmlMode = $this->mailUtils->isHtml($mailContent);
+
           $mailSentResult = $this->mailUtils->sendMail(
               $mailDetails['mail']['setFrom'],
               NULL,
@@ -545,7 +568,8 @@ class Reminder implements EndpointInterface
               $mailDetails['mail']['signature'],
               $mailDetails['mail']['subject'],
               $mailDetails['mail']['receipt'],
-              NULL);
+              NULL,
+              $htmlMode);
 
           // Create a simplified structure to pass to processMailResponseAndUpdateTasks
           $taskInfo = [

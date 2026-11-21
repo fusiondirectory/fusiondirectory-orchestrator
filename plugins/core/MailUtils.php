@@ -1,9 +1,9 @@
 <?php
 
 /*
-  This code is part of FusionDirectory\Ldap (https://www.fusiondirectory.org/)
+  This code is part of FusionDirectory (https://www.fusiondirectory.org/)
 
-  Copyright (C) 2025  FusionDirectory
+  Copyright (C) 2025-2026  FusionDirectory
 
   SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -28,7 +28,7 @@ class MailUtils
   {
   }
 
-  public function sendMail ($setFrom, $setBCC, $recipients, $body, $signature, $subject, $receipt, $attachments)
+  public function sendMail ($setFrom, $setBCC, $recipients, $body, $signature, $subject, $receipt, $attachments, bool $html = FALSE)
   {
     $mail_controller = new \FusionDirectory\Mail\MailLib($setFrom,
       $setBCC,
@@ -39,7 +39,11 @@ class MailUtils
       $receipt,
       $attachments);
 
-    return $mail_controller->sendMail();
+    if ($html == TRUE) {
+      return $mail_controller->sendMailHtml();
+    } else {
+      return $mail_controller->sendMail();
+    }
   }
 
   /**
@@ -165,5 +169,70 @@ class MailUtils
     }
 
     return $body;
+  }
+
+  /**
+   * Return complete mail message text or html
+   *
+   * @param TaskGateway $gateway TaskGateway object
+   * @param array $mailContent the array that contain all the mail informations
+   * @return string objectclass related to mailType
+   * @throws Exception no message to be processed
+   */
+  public function getMailMessage (TaskGateway $gateway, array $mailContent): string
+  {
+    if (in_array('fdMailTemplateText', $mailContent['objectclass'])) {
+      // Process text message
+      // We don't add signature for text because it is managed in MailLib by adding it to the body
+      $message = $mailContent['fdmailtemplatebody'][0];
+    } else if (in_array('fdMailTemplateHtml', $mailContent['objectclass'])) {
+      // Process html message
+      $templateHtmlDn = $mailContent['fdmailtemplatehtmldn'][0];
+
+      // Get header, body and footer from templateHtmlDn
+      $templateHtml = $gateway->getLdapTasks(
+        "(objectClass=fdMailTemplateHtmlSettings)",
+        [
+          'fdmailtemplatehtmlheaderpath',
+          'fdmailtemplatehtmlbodypath',
+          'fdmailtemplatehtmlfooterpath'
+        ],
+        "",
+        $templateHtmlDn
+      );
+
+      // Verify if the path exist
+      $basedir = realpath('/var/cache/fusiondirectory/mailtemplate/');
+      $header  = realpath($basedir . '/' . $templateHtml[0]['fdmailtemplatehtmlheaderpath'][0]);
+      $body    = realpath($basedir . '/' . $templateHtml[0]['fdmailtemplatehtmlbodypath'][0]);
+      $footer  = realpath($basedir . '/' . $templateHtml[0]['fdmailtemplatehtmlfooterpath'][0]);
+
+      // Verify if none is false
+      if (($header !== FALSE) && ($body !== FALSE) && ($footer !== FALSE)) {
+        $message = file_get_contents($header);
+        $message .= "<br>" . file_get_contents($body);
+        $message .= "<br>" . file_get_contents($footer);
+      } else {
+        throw new Exception("Error in header, body or foot path");
+      }
+    } else {
+      throw new Exception("No message to be processed");
+    }
+    return $message;
+  }
+
+  /**
+   * Return TRUE if we are in HTML mode or FALSE if we are in TEXT mode
+   *
+   * @param array $mailContent the array that contain all the mail informations
+   * @return bool TRUE (HTML mode) or FALSE (TEXT mode)
+   */
+  public function isHTML (array $mailContent): bool
+  {
+    if (in_array('fdMailTemplateHtml', $mailContent['objectclass'])) {
+      return TRUE;
+    } else {
+      return FALSE;
+    }
   }
 }

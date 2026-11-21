@@ -133,8 +133,17 @@ class Mail implements EndpointInterface
           $setFrom    = $task["fdtasksgranularmailfrom"][0];
           $setBCC     = $task["fdtasksgranularmailbcc"][0] ?? NULL;
           $recipients = [$email];
-          $body       = $this->mailUtils->replaceMacros($this->gateway, $recipients, $mailContent["fdmailtemplatebody"][0], $mailMacros);
-          $signature  = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+
+          $message    = $this->mailUtils->getMailMessage($this->gateway, $mailContent);
+          $body       = $this->mailUtils->replaceMacros($this->gateway, $recipients, $message, $mailMacros);
+
+          $signatureMessage = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
+          if ($signatureMessage != NULL) {
+            $signature        = $this->mailUtils->replaceMacros($this->gateway, $recipients, $signatureMessage, $mailMacros);
+          } else {
+            $signature        = $signatureMessage;
+          }
+
           $subject    = $mailContent["fdmailtemplatesubject"][0];
           $receipt    = $mailContent["fdmailtemplatereadreceipt"][0];
 
@@ -145,7 +154,10 @@ class Mail implements EndpointInterface
             $attachments[]       = $fileInfo;
           }
 
-          $mailSentResult = $this->mailUtils->sendMail($setFrom, $setBCC, $recipients, $body, $signature, $subject, $receipt, $attachments);
+          // Define if we are in TEXT or HTML mode
+          $htmlMode = $this->mailUtils->isHtml($mailContent);
+
+          $mailSentResult = $this->mailUtils->sendMail($setFrom, $setBCC, $recipients, $body, $signature, $subject, $receipt, $attachments, $htmlMode);
           $result[$task["dn"]] = $this->updateResult($mailSentResult, $task, $fdTasksConf, $mainTaskDn, $repeatableSchedule);
 
           // Track task execution on the user
