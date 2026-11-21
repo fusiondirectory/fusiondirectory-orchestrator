@@ -207,12 +207,13 @@ class Reminder implements EndpointInterface
 
     if (!empty($reminders)) {
       // Workaround to get mailContent without changing the whole logic
+      // @phpstan-ignore variable.undefined
       $mailTemplateName = $remindersMainTask[0]['fdtasksremindermailtemplate'][0];
       $mailInfos        = $this->gateway->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $mailTemplateName);
 
       // Remove count from array.
       $this->gateway->unsetCountKeys($mailInfos);
-  
+
       $mailContent = $mailInfos[0];
 
       $result[] = $this->sendRemindersMail($reminders, $mailContent);
