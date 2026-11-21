@@ -206,7 +206,16 @@ class Reminder implements EndpointInterface
     }
 
     if (!empty($reminders)) {
-      $result[] = $this->sendRemindersMail($reminders);
+      // Workaround to get mailContent without changing the whole logic
+      $mailTemplateName = $remindersMainTask[0]['fdtasksremindermailtemplate'][0];
+      $mailInfos        = $this->gateway->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $mailTemplateName);
+
+      // Remove count from array.
+      $this->gateway->unsetCountKeys($mailInfos);
+  
+      $mailContent = $mailInfos[0];
+
+      $result[] = $this->sendRemindersMail($reminders, $mailContent);
     }
 
     return $result;
@@ -516,7 +525,7 @@ class Reminder implements EndpointInterface
    * @return array
    * Note : Collect information and send reminder email.
    */
-  protected function sendRemindersMail (array $reminders): array
+  protected function sendRemindersMail (array $reminders, $mailContent): array
   {
     $result = [];
     // Re-use of the same mail processing template logic

@@ -212,6 +212,8 @@ class MailUtils
         $message = file_get_contents($header);
         $message .= "<br>" . file_get_contents($body);
         $message .= "<br>" . file_get_contents($footer);
+      } else {
+        throw new Exception("Error in header, body or foot path");
       }
     } else {
       throw new Exception("No message to be processed");

@@ -203,7 +203,15 @@ class Notifications implements EndpointInterface
       }
 
       if (!empty($notifications)) {
-        $result[] = $this->sendNotificationsMail($notifications);
+        // Get again mailContent to avoid chaging the whole logic
+        $mailTemplateName = $notificationsMainTask[0]['fdtasksnotificationsmailtemplate'][0];
+        $mailInfos        = $this->gateway->getLdapTasks("(|(objectClass=fdMailTemplate)(objectClass=fdMailAttachments))", [], $mailTemplateName);
+
+        // Remove count from array.
+        $this->gateway->unsetCountKeys($mailInfos);
+    
+        $mailContent = $mailInfos[0];
+        $result[] = $this->sendNotificationsMail($notifications, $mailContent);
       }
     }
 
@@ -321,7 +329,7 @@ class Notifications implements EndpointInterface
 
     $signatureMessage = $mailContent["fdmailtemplatesignature"][0] ?? NULL;
     if ($signatureMessage != NULL) {
-      $signature        = $this->mailUtils->replaceMacros($this->gateway, $recipients, $signatureMessage, $mailMacros);
+      $signature        = $this->mailUtils->replaceMacros($this->gateway, $recipientsEmails, $signatureMessage, $mailMacros);
     } else {
       $signature        = $signatureMessage;
     }
@@ -462,7 +470,7 @@ class Notifications implements EndpointInterface
    * @return array
    * Note : Collect information and send notification email.
    */
-  protected function sendNotificationsMail (array $notifications): array
+  protected function sendNotificationsMail (array $notifications, array $mailContent): array
   {
     $result = [];
 
