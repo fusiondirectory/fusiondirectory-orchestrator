@@ -17,7 +17,9 @@ class UserGateway
     $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
     $dsaBranch           = $fdConfigAttributes[0]['fdDSARDN'][0];
 
-    $dn     = "cn=$dsaLogin," . $dsaBranch . "," . $_ENV["LDAP_BASE"];
+    $escapedLogin = ldap_escape($dsaLogin, '', LDAP_ESCAPE_DN);
+    $dn = "cn=$escapedLogin," . $dsaBranch . "," . $_ENV["LDAP_BASE"];
+
     $userDs = ldap_connect($_ENV["LDAP_URI"]);
 
     ldap_set_option($userDs, LDAP_OPT_PROTOCOL_VERSION, 3);
@@ -35,7 +37,9 @@ class UserGateway
     $fdConfigAttributes  = $this->fdConfiguration->getFDConfigAttributes();
     $tokenBranch = $fdConfigAttributes[0]['fdOrchestratorTokenRDN'][0] . ',' . $_ENV["LDAP_BASE"];
 
-    $filter = "(&(objectClass=fdJWT)(cn=$jwtCN))";
+    $escapedCN = ldap_escape($jwtCN, '', LDAP_ESCAPE_FILTER);
+    $filter = "(&(objectClass=fdJWT)(cn=$escapedCN))";
+
     $attrs  = ["cn", "dn"];
 
     $sr = @ldap_search($this->ds, $tokenBranch, $filter, $attrs);
