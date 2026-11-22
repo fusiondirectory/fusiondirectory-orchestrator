@@ -43,7 +43,9 @@ class TaskGateway
         break;
 
       case $object_type:
-        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=" . $object_type . "))");
+
+        $escaped_type = ldap_escape($object_type, '', LDAP_ESCAPE_FILTER);
+        $list_tasks = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(fdtasksgranulartype=" . $escaped_type . "))");
         $this->unsetCountKeys($list_tasks);
         break;
 
@@ -327,7 +329,10 @@ class TaskGateway
           }
         } else {
           // Fallback to LDAP lookup if main task DN not provided (Case of Audit E.g)
-          $subtask = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(cn=" . $cn . "))", ["fdTasksGranularMaster"]);
+
+          $escapedcn = ldap_escape($cn, "", LDAP_ESCAPE_FILTER);
+          $subtask = $this->getLdapTasks("(&(objectClass=fdTasksGranular)(cn=" . $escapedcn . "))", ["fdTasksGranularMaster"]);
+
           if (!empty($subtask) && isset($subtask[0]['fdtasksgranularmaster'][0])) {
             $this->updateMainTaskLastExec($subtask[0]['fdtasksgranularmaster'][0], $currentDateTime);
             if (isset($ldap_entry["fdTasksGranularNextExec"])) {
@@ -585,7 +590,9 @@ class TaskGateway
    */
   private function resolveMainTaskDnByName (string $name): ?string
   {
-    $filter = '(&(objectClass=fdTasks)(cn=' . $name . '))';
+    $escapedname = ldap_escape($name, "", LDAP_ESCAPE_FILTER);
+    $filter = '(&(objectClass=fdTasks)(cn=' . $escapedname . '))';
+
     $entries = $this->getLdapTasks($filter, ['dn']);
     $this->unsetCountKeys($entries);
     if (!empty($entries) && !empty($entries[0]['dn'])) {
