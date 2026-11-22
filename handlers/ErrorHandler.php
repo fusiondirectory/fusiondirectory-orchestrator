@@ -14,11 +14,17 @@ class ErrorHandler
   {
     http_response_code(500);
 
-    echo json_encode([
+    $response = [
       "code" => $exception->getCode(),
       "message" => $exception->getMessage(),
-      "file" => $exception->getFile(),
-      "line" => $exception->getLine()
-    ]);
+    ];
+
+    // Only include debug info in development
+    if ($_ENV['DEBUG'] ?? FALSE) {
+      $response["file"] = $exception->getFile();
+      $response["line"] = $exception->getLine();
+    }
+
+    echo json_encode($response);
   }
 }
