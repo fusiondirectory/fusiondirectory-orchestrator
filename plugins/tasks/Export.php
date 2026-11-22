@@ -59,6 +59,21 @@ class Export implements EndpointInterface
     // Path is now expected in the JSON body ($data)
     $path = $data['path'] ?? '/srv/orchestrator/';
 
+    // Sanitize path: resolve and verify it stays within allowed base
+    $allowedBase = '/srv/orchestrator/';
+    $path = realpath($path) ?: $path;
+    if (strpos($path, $allowedBase) !== 0) {
+        $path = $allowedBase;
+    }
+
+    // Validate filename: strip directory traversal
+    if (isset($data['filename'])) {
+        $data['filename'] = basename($data['filename']);
+      if ($data['filename'] === '') {
+          $data['filename'] = 'default';
+      }
+    }
+
     foreach ($exportTasks as $task) {
       try {
         // Initialize variables to avoid undefined variable errors
