@@ -46,8 +46,8 @@ class UserGateway
     if ($sr === FALSE) {
         // Search failed, construct DN for creation
         return [
-            "cn" => $jwtCN,
-            "dn" => "cn=$jwtCN," . $tokenBranch
+            "cn" => $escapedCN ,
+            "dn" => "cn=$escapedCN," . $tokenBranch
         ];
     }
 
