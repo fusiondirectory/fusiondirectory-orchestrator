@@ -189,9 +189,18 @@ class Export implements EndpointInterface
           $sender         = $mainTaskDetails[0]['fdexportemailsender'][0] ?? '';
           $mailType       = $mainTaskConfig[0]["fdtasksemailattribute"][0] ?? "mail";
           $userDn         = $task['fdtasksgranulardn'][0];
-          $recipientEmail = $this->mailUtils->resolveEmailFromDn($this->gateway, $userDn, $mailType);
 
-          $finalMessage = $this->getFinalMessage($filename, $task, $recipientEmail, $sender, $errors, $mainTaskDn, $repeatableSchedule);
+          $recipientsDNs = $mainTaskDetails[0]['fdexportrecipientsmembers'];
+          $this->gateway->unsetCountKeys($recipientsDNs);
+          $recipientsEmails = [];
+          foreach ($recipientsDNs as $recipientsDN) {
+            $email = $this->mailUtils->resolveEmailFromDn($this->gateway, $recipientsDN, $mailType);
+            if (! empty($email)) {
+              $recipientsEmails[] = $email;
+            }
+          }
+
+          $finalMessage = $this->getFinalMessage($filename, $task, $recipientsEmails, $sender, $errors, $mainTaskDn, $repeatableSchedule);
           $result[$task['dn']]['result'] = $finalMessage;
 
           // Update tasksInfos on the user
@@ -221,7 +230,7 @@ class Export implements EndpointInterface
   }
 
   // @phpstan-ignore method.unused
-  private function getFinalMessage (string $filename, array $task, string $recipient, $sender, array $errors, $mainTaskDn, $repeatableSchedule): string
+  private function getFinalMessage (string $filename, array $task, array $recipients, $sender, array $errors, $mainTaskDn, $repeatableSchedule): string
   {
       $subject    = "FusionDirectory Export - Export file";
       $body       = "Your requested export is attached.\n\nFile: $filename";
@@ -231,7 +240,7 @@ class Export implements EndpointInterface
           'content' => file_get_contents($filename)
       ]];
 
-      if (empty($sender) || empty($recipient)) {
+      if (empty($sender) || empty($recipients)) {
         $finalMessage = "Batch export successful to $filename. Email not sent: sender or recipient missing.";
         if (!empty($errors)) {
               $finalMessage .= " Some errors encountered: " . implode("; ", $errors);
@@ -241,7 +250,7 @@ class Export implements EndpointInterface
       } else {
         // Send mail using MailLib
         // Recipient must be an array
-        $mailSentResult = $this->mailUtils->sendMail($sender, NULL, [$recipient],
+        $mailSentResult = $this->mailUtils->sendMail($sender, NULL, $recipients,
               $body, NULL, $subject, NULL, $attachments);
 
         if ($mailSentResult[0] == "SUCCESS") {

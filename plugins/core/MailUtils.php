@@ -81,7 +81,6 @@ class MailUtils
   public function resolveEmailFromDn (TaskGateway $gateway, string $dn, string $mailType): string
   {
     $objectClass = $this->getMailObjectForType($mailType);
-
     $email = $gateway->getLdapTasks(
       "(objectClass=$objectClass)",
       [$mailType],
