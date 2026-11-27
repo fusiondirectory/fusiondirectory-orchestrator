@@ -461,7 +461,12 @@ class Notifications implements EndpointInterface
     // Make the array unique, avoiding uid and same attribute duplication.
     $uidAttrsText = array_unique($uidAttrsText);
     // Add uid names and related attrs to mailForm['body']
-    $notifications[$notificationsMainTaskName]['mailForm']['body'] .= PHP_EOL . implode(PHP_EOL, $uidAttrsText);
+    $contentNotification = implode(PHP_EOL, $uidAttrsText);
+    $notifications[$notificationsMainTaskName]['mailForm']['body'] = str_replace(
+      '%contentNotification%',
+      $contentNotification,
+      $notifications[$notificationsMainTaskName]['mailForm']['body']
+    );
 
     return $notifications;
   }
